@@ -50,10 +50,10 @@ function formatCountdown(seconds: number) {
 }
 
 interface Props {
-  trip: Trip;
-  onCheckIn: (trip: Trip) => void;
-  onSOS: (trip: Trip) => void;
-  onReport: (trip: Trip) => void;
+  trip: UiTrip;
+  onCheckIn: (trip: UiTrip) => void;
+  onSOS: (trip: UiTrip) => void;
+  onReport: (trip: UiTrip) => void;
   index: number;
 }
 
