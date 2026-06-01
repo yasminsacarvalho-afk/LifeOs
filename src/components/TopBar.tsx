@@ -8,18 +8,17 @@ interface TopBarProps {
 }
 
 export function TopBar({ title, subtitle, actions }: TopBarProps) {
-  const [now, setNow] = useState(() => new Date());
+  const [now, setNow] = useState<Date | null>(null);
   useEffect(() => {
+    setNow(new Date());
     const id = setInterval(() => setNow(new Date()), 1000);
     return () => clearInterval(id);
   }, []);
 
-  const time = now.toLocaleTimeString("pt-BR", { hour12: false });
-  const date = now.toLocaleDateString("pt-BR", {
-    weekday: "long",
-    day: "2-digit",
-    month: "long",
-  });
+  const time = now ? now.toLocaleTimeString("pt-BR", { hour12: false }) : "--:--:--";
+  const date = now
+    ? now.toLocaleDateString("pt-BR", { weekday: "long", day: "2-digit", month: "long" })
+    : "Carregando…";
 
   return (
     <header className="sticky top-0 z-30 flex flex-wrap items-end justify-between gap-4 border-b border-border bg-background/60 px-8 py-5 backdrop-blur-xl">
