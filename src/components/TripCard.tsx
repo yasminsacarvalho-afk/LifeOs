@@ -1,10 +1,10 @@
 import { useEffect, useState } from "react";
 import { AlertTriangle, CheckCircle2, Clock, MapPin, Package, Phone, Send, User, X } from "lucide-react";
-import type { Trip, TripStatus } from "@/lib/mock-data";
+import type { UiTrip, UiTripStatus } from "@/lib/trip-helpers";
 import { cn } from "@/lib/utils";
 
 const statusMeta: Record<
-  TripStatus,
+  UiTripStatus,
   { label: string; color: string; bg: string; border: string; dot: string }
 > = {
   "checked-in": {
