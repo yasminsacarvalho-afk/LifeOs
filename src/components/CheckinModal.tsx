@@ -1,12 +1,13 @@
 import { useEffect, useState } from "react";
-import { X, Send, AlertTriangle, CheckCircle2, MessageCircle } from "lucide-react";
-import type { Trip } from "@/lib/mock-data";
+import { X, Send, AlertTriangle, CheckCircle2, MessageCircle, Loader2 } from "lucide-react";
+import { supabase } from "@/integrations/supabase/client";
+import type { UiTrip } from "@/lib/trip-helpers";
 import { cn } from "@/lib/utils";
 
 interface Props {
-  trip: Trip | null;
+  trip: UiTrip | null;
   open: boolean;
-  onClose: () => void;
+  onClose: (result?: { sentWa: boolean }) => void;
 }
 
 const buses = ["G8 1205 (Scania K400)", "G7 1102 (Volvo 9800)", "DD 980 (Marcopolo Paradiso)"];
@@ -18,10 +19,12 @@ export function CheckinModal({ trip, open, onClose }: Props) {
   const [packages, setPackages] = useState("12");
   const [sendWA, setSendWA] = useState(true);
   const [confirmed, setConfirmed] = useState(false);
-  const [now, setNow] = useState(() => new Date());
+  const [saving, setSaving] = useState(false);
+  const [now, setNow] = useState<Date | null>(null);
 
   useEffect(() => {
     if (!open) return;
+    setNow(new Date());
     const id = setInterval(() => setNow(new Date()), 1000);
     return () => clearInterval(id);
   }, [open]);
@@ -29,33 +32,63 @@ export function CheckinModal({ trip, open, onClose }: Props) {
   useEffect(() => {
     if (open) {
       setConfirmed(false);
-      setBus(buses[0]);
-      setDriver(drivers[0]);
+      setSaving(false);
+      setBus(trip?.bus ?? buses[0]);
+      setDriver(trip?.driver ?? drivers[0]);
       setPackages("12");
     }
   }, [open, trip]);
 
   if (!open || !trip) return null;
 
-  const time = now.toLocaleTimeString("pt-BR", { hour12: false });
+  const time = now ? now.toLocaleTimeString("pt-BR", { hour12: false }) : "--:--:--";
 
-  const handleConfirm = () => {
+  const handleConfirm = async () => {
+    setSaving(true);
+    const nowIso = new Date().toISOString();
+    const packagesCount = Number(packages) || 0;
+
+    await supabase.from("checkins").insert({
+      trip_id: trip.id,
+      real_departure: nowIso,
+      car_plate: bus,
+      driver_name: driver,
+      packages_count: packagesCount,
+      sent_to_whatsapp: sendWA,
+    });
+
+    await supabase
+      .from("trips")
+      .update({
+        status: "checked_in",
+        real_departure: nowIso,
+        car_plate: bus,
+        driver_name: driver,
+      })
+      .eq("id", trip.id);
+
     setConfirmed(true);
-    setTimeout(() => {
-      onClose();
-    }, 1600);
+    setTimeout(() => onClose({ sentWa: sendWA }), 1400);
+  };
+
+  const handleSos = async () => {
+    await supabase.from("sos_alerts").insert({
+      trip_id: trip.id,
+      message: `SOS · ${trip.code} · carro quebrado · ${bus} · ${driver}`,
+      severity: "high",
+    });
+    onClose();
   };
 
   return (
     <div
       className="fixed inset-0 z-50 grid place-items-center bg-background/70 px-4 backdrop-blur-md animate-slide-up"
-      onClick={onClose}
+      onClick={() => onClose()}
     >
       <div
         className="relative w-full max-w-2xl overflow-hidden rounded-2xl border border-border bg-card shadow-2xl"
         onClick={(e) => e.stopPropagation()}
       >
-        {/* Header */}
         <div className="flex items-start justify-between border-b border-border bg-gradient-to-br from-primary/10 via-card to-card p-6">
           <div>
             <div className="mb-1 flex items-center gap-2 text-[10px] font-bold uppercase tracking-widest text-primary">
@@ -71,7 +104,7 @@ export function CheckinModal({ trip, open, onClose }: Props) {
             </p>
           </div>
           <button
-            onClick={onClose}
+            onClick={() => onClose()}
             className="grid size-8 place-items-center rounded-lg border border-border text-muted-foreground hover:text-foreground"
           >
             <X className="size-4" />
@@ -156,24 +189,29 @@ export function CheckinModal({ trip, open, onClose }: Props) {
 
               <div className="flex flex-col-reverse gap-2 sm:flex-row sm:justify-end">
                 <button
-                  onClick={onClose}
+                  onClick={() => onClose()}
                   className="rounded-lg border border-border bg-card px-4 py-2.5 text-sm font-medium text-muted-foreground hover:text-foreground"
                 >
                   Cancelar
                 </button>
                 <button
                   onClick={handleConfirm}
+                  disabled={saving}
                   className={cn(
                     "inline-flex items-center justify-center gap-2 rounded-lg px-5 py-2.5 text-sm font-bold uppercase tracking-wider transition-transform hover:scale-[1.01]",
                     "bg-gradient-to-r from-primary to-[oklch(0.7_0.16_295)] text-primary-foreground shadow-glow-accent",
+                    saving && "opacity-70",
                   )}
                 >
-                  <Send className="size-4" />
-                  Confirmar check-in
+                  {saving ? <Loader2 className="size-4 animate-spin" /> : <Send className="size-4" />}
+                  {saving ? "Salvando…" : "Confirmar check-in"}
                 </button>
               </div>
 
-              <button className="mt-3 inline-flex w-full items-center justify-center gap-2 rounded-lg border border-danger/30 bg-danger/5 px-4 py-2 text-xs font-bold uppercase tracking-wider text-danger hover:bg-danger/10">
+              <button
+                onClick={handleSos}
+                className="mt-3 inline-flex w-full items-center justify-center gap-2 rounded-lg border border-danger/30 bg-danger/5 px-4 py-2 text-xs font-bold uppercase tracking-wider text-danger hover:bg-danger/10"
+              >
                 <AlertTriangle className="size-3.5" /> Acionar SOS · carro quebrado
               </button>
             </div>

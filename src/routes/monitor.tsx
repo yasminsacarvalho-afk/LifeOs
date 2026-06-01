@@ -4,7 +4,9 @@ import { AlertTriangle, FileText, MessageCircle, Send } from "lucide-react";
 import { TopBar } from "@/components/TopBar";
 import { TripCard } from "@/components/TripCard";
 import { CheckinModal } from "@/components/CheckinModal";
-import { trips as seedTrips, type Trip } from "@/lib/mock-data";
+import { useTripsRealtime } from "@/hooks/use-trips-realtime";
+import { supabase } from "@/integrations/supabase/client";
+import type { UiTrip } from "@/lib/trip-helpers";
 import { cn } from "@/lib/utils";
 
 export const Route = createFileRoute("/monitor")({
@@ -24,8 +26,8 @@ export const Route = createFileRoute("/monitor")({
 type Filter = "todas" | "imminent" | "delayed" | "checked-in" | "scheduled";
 
 function MonitorPage() {
-  const [trips, setTrips] = useState<Trip[]>(seedTrips);
-  const [activeTrip, setActiveTrip] = useState<Trip | null>(null);
+  const { trips, loading } = useTripsRealtime();
+  const [activeTrip, setActiveTrip] = useState<UiTrip | null>(null);
   const [modalOpen, setModalOpen] = useState(false);
   const [filter, setFilter] = useState<Filter>("todas");
   const [toast, setToast] = useState<string | null>(null);
@@ -45,41 +47,36 @@ function MonitorPage() {
     return trips.filter((t) => t.status === filter);
   }, [trips, filter]);
 
-  const handleOpenCheckin = (trip: Trip) => {
+  const handleOpenCheckin = (trip: UiTrip) => {
     setActiveTrip(trip);
     setModalOpen(true);
   };
 
-  const handleCloseCheckin = () => {
-    if (activeTrip) {
-      const time = new Date().toLocaleTimeString("pt-BR", { hour12: false }).slice(0, 5);
-      setTrips((prev) =>
-        prev.map((t) =>
-          t.id === activeTrip.id
-            ? {
-                ...t,
-                status: "checked-in" as const,
-                checkedInAt: time,
-                bus: t.bus ?? "G8 1205 (Scania K400)",
-                driver: t.driver ?? "Claudio Mendonça",
-                packages: t.packages ?? 12,
-              }
-            : t,
-        ),
+  const handleCloseCheckin = (result?: { sentWa: boolean }) => {
+    if (result && activeTrip) {
+      showToast(
+        result.sentWa
+          ? `✅ Check-in ${activeTrip.code} enviado ao WhatsApp operacional`
+          : `✅ Check-in ${activeTrip.code} registrado`,
       );
-      showToast(`✅ Check-in ${activeTrip.code} enviado ao WhatsApp operacional`);
     }
     setModalOpen(false);
     setActiveTrip(null);
   };
 
-  const handleSOS = (trip: Trip) => {
+  const handleSOS = async (trip: UiTrip) => {
+    await supabase.from("sos_alerts").insert({
+      trip_id: trip.id,
+      message: `SOS · ${trip.code} · carro quebrado entre ${trip.origin} e ${trip.destination}`,
+      severity: "high",
+    });
     showToast(`🚨 SOS acionado · ${trip.code} · CCO e agência ${trip.destination} notificados`);
   };
 
-  const handleReport = (trip: Trip) => {
+  const handleReport = (trip: UiTrip) => {
     showToast(`📋 Relatório de ${trip.code} pronto para compartilhar`);
   };
+
 
   const showToast = (msg: string) => {
     setToast(msg);

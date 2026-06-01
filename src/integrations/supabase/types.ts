@@ -14,7 +14,318 @@ export type Database = {
   }
   public: {
     Tables: {
-      [_ in never]: never
+      checkins: {
+        Row: {
+          car_plate: string | null
+          created_at: string
+          driver_name: string | null
+          id: string
+          operator_name: string | null
+          packages_count: number
+          packages_notes: string | null
+          real_departure: string
+          sent_to_whatsapp: boolean
+          trip_id: string
+        }
+        Insert: {
+          car_plate?: string | null
+          created_at?: string
+          driver_name?: string | null
+          id?: string
+          operator_name?: string | null
+          packages_count?: number
+          packages_notes?: string | null
+          real_departure?: string
+          sent_to_whatsapp?: boolean
+          trip_id: string
+        }
+        Update: {
+          car_plate?: string | null
+          created_at?: string
+          driver_name?: string | null
+          id?: string
+          operator_name?: string | null
+          packages_count?: number
+          packages_notes?: string | null
+          real_departure?: string
+          sent_to_whatsapp?: boolean
+          trip_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "checkins_trip_id_fkey"
+            columns: ["trip_id"]
+            isOneToOne: false
+            referencedRelation: "trips"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      monthly_goals: {
+        Row: {
+          company_id: string | null
+          created_at: string
+          id: string
+          period_month: string
+          seller_id: string | null
+          target_amount: number
+          updated_at: string
+        }
+        Insert: {
+          company_id?: string | null
+          created_at?: string
+          id?: string
+          period_month: string
+          seller_id?: string | null
+          target_amount: number
+          updated_at?: string
+        }
+        Update: {
+          company_id?: string | null
+          created_at?: string
+          id?: string
+          period_month?: string
+          seller_id?: string | null
+          target_amount?: number
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "monthly_goals_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "partner_companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "monthly_goals_seller_id_fkey"
+            columns: ["seller_id"]
+            isOneToOne: false
+            referencedRelation: "sellers"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      partner_companies: {
+        Row: {
+          active: boolean
+          color: string
+          created_at: string
+          id: string
+          name: string
+          slug: string
+          updated_at: string
+        }
+        Insert: {
+          active?: boolean
+          color?: string
+          created_at?: string
+          id?: string
+          name: string
+          slug: string
+          updated_at?: string
+        }
+        Update: {
+          active?: boolean
+          color?: string
+          created_at?: string
+          id?: string
+          name?: string
+          slug?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      sales: {
+        Row: {
+          amount: number
+          commission_amount: number
+          company_id: string | null
+          created_at: string
+          id: string
+          sale_date: string
+          seller_id: string | null
+          trip_id: string | null
+        }
+        Insert: {
+          amount: number
+          commission_amount?: number
+          company_id?: string | null
+          created_at?: string
+          id?: string
+          sale_date?: string
+          seller_id?: string | null
+          trip_id?: string | null
+        }
+        Update: {
+          amount?: number
+          commission_amount?: number
+          company_id?: string | null
+          created_at?: string
+          id?: string
+          sale_date?: string
+          seller_id?: string | null
+          trip_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "sales_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "partner_companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "sales_seller_id_fkey"
+            columns: ["seller_id"]
+            isOneToOne: false
+            referencedRelation: "sellers"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "sales_trip_id_fkey"
+            columns: ["trip_id"]
+            isOneToOne: false
+            referencedRelation: "trips"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      sellers: {
+        Row: {
+          active: boolean
+          commission_rate: number
+          company_id: string | null
+          created_at: string
+          email: string | null
+          id: string
+          name: string
+          updated_at: string
+        }
+        Insert: {
+          active?: boolean
+          commission_rate?: number
+          company_id?: string | null
+          created_at?: string
+          email?: string | null
+          id?: string
+          name: string
+          updated_at?: string
+        }
+        Update: {
+          active?: boolean
+          commission_rate?: number
+          company_id?: string | null
+          created_at?: string
+          email?: string | null
+          id?: string
+          name?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "sellers_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "partner_companies"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      sos_alerts: {
+        Row: {
+          created_at: string
+          id: string
+          message: string
+          resolved: boolean
+          resolved_at: string | null
+          severity: string
+          trip_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          message: string
+          resolved?: boolean
+          resolved_at?: string | null
+          severity?: string
+          trip_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          message?: string
+          resolved?: boolean
+          resolved_at?: string | null
+          severity?: string
+          trip_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "sos_alerts_trip_id_fkey"
+            columns: ["trip_id"]
+            isOneToOne: false
+            referencedRelation: "trips"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      trips: {
+        Row: {
+          car_plate: string | null
+          code: string
+          company_id: string | null
+          created_at: string
+          destination: string
+          driver_name: string | null
+          id: string
+          notes: string | null
+          origin: string
+          real_departure: string | null
+          scheduled_departure: string
+          status: Database["public"]["Enums"]["trip_status"]
+          updated_at: string
+        }
+        Insert: {
+          car_plate?: string | null
+          code: string
+          company_id?: string | null
+          created_at?: string
+          destination: string
+          driver_name?: string | null
+          id?: string
+          notes?: string | null
+          origin: string
+          real_departure?: string | null
+          scheduled_departure: string
+          status?: Database["public"]["Enums"]["trip_status"]
+          updated_at?: string
+        }
+        Update: {
+          car_plate?: string | null
+          code?: string
+          company_id?: string | null
+          created_at?: string
+          destination?: string
+          driver_name?: string | null
+          id?: string
+          notes?: string | null
+          origin?: string
+          real_departure?: string | null
+          scheduled_departure?: string
+          status?: Database["public"]["Enums"]["trip_status"]
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "trips_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "partner_companies"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
     }
     Views: {
       [_ in never]: never
@@ -23,7 +334,12 @@ export type Database = {
       [_ in never]: never
     }
     Enums: {
-      [_ in never]: never
+      trip_status:
+        | "scheduled"
+        | "imminent"
+        | "late"
+        | "checked_in"
+        | "cancelled"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -150,6 +466,8 @@ export type CompositeTypes<
 
 export const Constants = {
   public: {
-    Enums: {},
+    Enums: {
+      trip_status: ["scheduled", "imminent", "late", "checked_in", "cancelled"],
+    },
   },
 } as const
