@@ -9,16 +9,64 @@
 // Additionally, you should also exclude this file from your linter and/or formatter to prevent it from being checked or modified.
 
 import { Route as rootRouteImport } from './routes/__root'
+import { Route as TasksRouteImport } from './routes/tasks'
+import { Route as SimulatorRouteImport } from './routes/simulator'
 import { Route as SellersRouteImport } from './routes/sellers'
+import { Route as SearchRoutesRouteImport } from './routes/search-routes'
+import { Route as ReconcileRouteImport } from './routes/reconcile'
+import { Route as QuadroOperacionalRouteImport } from './routes/quadro-operacional'
+import { Route as PersonalOsRouteImport } from './routes/personal-os'
 import { Route as PartnersRouteImport } from './routes/partners'
+import { Route as PackagesRouteImport } from './routes/packages'
 import { Route as MonitorRouteImport } from './routes/monitor'
+import { Route as LoginRouteImport } from './routes/login'
+import { Route as InfoRouteImport } from './routes/info'
+import { Route as HelpRouteImport } from './routes/help'
+import { Route as GrowthRouteImport } from './routes/growth'
 import { Route as GoalsRouteImport } from './routes/goals'
+import { Route as FinanceRouteImport } from './routes/finance'
+import { Route as DriversRouteImport } from './routes/drivers'
+import { Route as CrmRouteImport } from './routes/crm'
 import { Route as BillingRouteImport } from './routes/billing'
+import { Route as AnalyticsRouteImport } from './routes/analytics'
+import { Route as AdminRouteImport } from './routes/admin'
+import { Route as AccessRouteImport } from './routes/access'
+import { Route as AcademyRouteImport } from './routes/academy'
 import { Route as IndexRouteImport } from './routes/index'
 
+const TasksRoute = TasksRouteImport.update({
+  id: '/tasks',
+  path: '/tasks',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const SimulatorRoute = SimulatorRouteImport.update({
+  id: '/simulator',
+  path: '/simulator',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const SellersRoute = SellersRouteImport.update({
   id: '/sellers',
   path: '/sellers',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const SearchRoutesRoute = SearchRoutesRouteImport.update({
+  id: '/search-routes',
+  path: '/search-routes',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ReconcileRoute = ReconcileRouteImport.update({
+  id: '/reconcile',
+  path: '/reconcile',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const QuadroOperacionalRoute = QuadroOperacionalRouteImport.update({
+  id: '/quadro-operacional',
+  path: '/quadro-operacional',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const PersonalOsRoute = PersonalOsRouteImport.update({
+  id: '/personal-os',
+  path: '/personal-os',
   getParentRoute: () => rootRouteImport,
 } as any)
 const PartnersRoute = PartnersRouteImport.update({
@@ -26,9 +74,34 @@ const PartnersRoute = PartnersRouteImport.update({
   path: '/partners',
   getParentRoute: () => rootRouteImport,
 } as any)
+const PackagesRoute = PackagesRouteImport.update({
+  id: '/packages',
+  path: '/packages',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const MonitorRoute = MonitorRouteImport.update({
   id: '/monitor',
   path: '/monitor',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const LoginRoute = LoginRouteImport.update({
+  id: '/login',
+  path: '/login',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const InfoRoute = InfoRouteImport.update({
+  id: '/info',
+  path: '/info',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const HelpRoute = HelpRouteImport.update({
+  id: '/help',
+  path: '/help',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const GrowthRoute = GrowthRouteImport.update({
+  id: '/growth',
+  path: '/growth',
   getParentRoute: () => rootRouteImport,
 } as any)
 const GoalsRoute = GoalsRouteImport.update({
@@ -36,9 +109,44 @@ const GoalsRoute = GoalsRouteImport.update({
   path: '/goals',
   getParentRoute: () => rootRouteImport,
 } as any)
+const FinanceRoute = FinanceRouteImport.update({
+  id: '/finance',
+  path: '/finance',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const DriversRoute = DriversRouteImport.update({
+  id: '/drivers',
+  path: '/drivers',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const CrmRoute = CrmRouteImport.update({
+  id: '/crm',
+  path: '/crm',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const BillingRoute = BillingRouteImport.update({
   id: '/billing',
   path: '/billing',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const AnalyticsRoute = AnalyticsRouteImport.update({
+  id: '/analytics',
+  path: '/analytics',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const AdminRoute = AdminRouteImport.update({
+  id: '/admin',
+  path: '/admin',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const AccessRoute = AccessRouteImport.update({
+  id: '/access',
+  path: '/access',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const AcademyRoute = AcademyRouteImport.update({
+  id: '/academy',
+  path: '/academy',
   getParentRoute: () => rootRouteImport,
 } as any)
 const IndexRoute = IndexRouteImport.update({
@@ -49,60 +157,240 @@ const IndexRoute = IndexRouteImport.update({
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
+  '/academy': typeof AcademyRoute
+  '/access': typeof AccessRoute
+  '/admin': typeof AdminRoute
+  '/analytics': typeof AnalyticsRoute
   '/billing': typeof BillingRoute
+  '/crm': typeof CrmRoute
+  '/drivers': typeof DriversRoute
+  '/finance': typeof FinanceRoute
   '/goals': typeof GoalsRoute
+  '/growth': typeof GrowthRoute
+  '/help': typeof HelpRoute
+  '/info': typeof InfoRoute
+  '/login': typeof LoginRoute
   '/monitor': typeof MonitorRoute
+  '/packages': typeof PackagesRoute
   '/partners': typeof PartnersRoute
+  '/personal-os': typeof PersonalOsRoute
+  '/quadro-operacional': typeof QuadroOperacionalRoute
+  '/reconcile': typeof ReconcileRoute
+  '/search-routes': typeof SearchRoutesRoute
   '/sellers': typeof SellersRoute
+  '/simulator': typeof SimulatorRoute
+  '/tasks': typeof TasksRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
+  '/academy': typeof AcademyRoute
+  '/access': typeof AccessRoute
+  '/admin': typeof AdminRoute
+  '/analytics': typeof AnalyticsRoute
   '/billing': typeof BillingRoute
+  '/crm': typeof CrmRoute
+  '/drivers': typeof DriversRoute
+  '/finance': typeof FinanceRoute
   '/goals': typeof GoalsRoute
+  '/growth': typeof GrowthRoute
+  '/help': typeof HelpRoute
+  '/info': typeof InfoRoute
+  '/login': typeof LoginRoute
   '/monitor': typeof MonitorRoute
+  '/packages': typeof PackagesRoute
   '/partners': typeof PartnersRoute
+  '/personal-os': typeof PersonalOsRoute
+  '/quadro-operacional': typeof QuadroOperacionalRoute
+  '/reconcile': typeof ReconcileRoute
+  '/search-routes': typeof SearchRoutesRoute
   '/sellers': typeof SellersRoute
+  '/simulator': typeof SimulatorRoute
+  '/tasks': typeof TasksRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
+  '/academy': typeof AcademyRoute
+  '/access': typeof AccessRoute
+  '/admin': typeof AdminRoute
+  '/analytics': typeof AnalyticsRoute
   '/billing': typeof BillingRoute
+  '/crm': typeof CrmRoute
+  '/drivers': typeof DriversRoute
+  '/finance': typeof FinanceRoute
   '/goals': typeof GoalsRoute
+  '/growth': typeof GrowthRoute
+  '/help': typeof HelpRoute
+  '/info': typeof InfoRoute
+  '/login': typeof LoginRoute
   '/monitor': typeof MonitorRoute
+  '/packages': typeof PackagesRoute
   '/partners': typeof PartnersRoute
+  '/personal-os': typeof PersonalOsRoute
+  '/quadro-operacional': typeof QuadroOperacionalRoute
+  '/reconcile': typeof ReconcileRoute
+  '/search-routes': typeof SearchRoutesRoute
   '/sellers': typeof SellersRoute
+  '/simulator': typeof SimulatorRoute
+  '/tasks': typeof TasksRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/' | '/billing' | '/goals' | '/monitor' | '/partners' | '/sellers'
+  fullPaths:
+    | '/'
+    | '/academy'
+    | '/access'
+    | '/admin'
+    | '/analytics'
+    | '/billing'
+    | '/crm'
+    | '/drivers'
+    | '/finance'
+    | '/goals'
+    | '/growth'
+    | '/help'
+    | '/info'
+    | '/login'
+    | '/monitor'
+    | '/packages'
+    | '/partners'
+    | '/personal-os'
+    | '/quadro-operacional'
+    | '/reconcile'
+    | '/search-routes'
+    | '/sellers'
+    | '/simulator'
+    | '/tasks'
   fileRoutesByTo: FileRoutesByTo
-  to: '/' | '/billing' | '/goals' | '/monitor' | '/partners' | '/sellers'
+  to:
+    | '/'
+    | '/academy'
+    | '/access'
+    | '/admin'
+    | '/analytics'
+    | '/billing'
+    | '/crm'
+    | '/drivers'
+    | '/finance'
+    | '/goals'
+    | '/growth'
+    | '/help'
+    | '/info'
+    | '/login'
+    | '/monitor'
+    | '/packages'
+    | '/partners'
+    | '/personal-os'
+    | '/quadro-operacional'
+    | '/reconcile'
+    | '/search-routes'
+    | '/sellers'
+    | '/simulator'
+    | '/tasks'
   id:
     | '__root__'
     | '/'
+    | '/academy'
+    | '/access'
+    | '/admin'
+    | '/analytics'
     | '/billing'
+    | '/crm'
+    | '/drivers'
+    | '/finance'
     | '/goals'
+    | '/growth'
+    | '/help'
+    | '/info'
+    | '/login'
     | '/monitor'
+    | '/packages'
     | '/partners'
+    | '/personal-os'
+    | '/quadro-operacional'
+    | '/reconcile'
+    | '/search-routes'
     | '/sellers'
+    | '/simulator'
+    | '/tasks'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
+  AcademyRoute: typeof AcademyRoute
+  AccessRoute: typeof AccessRoute
+  AdminRoute: typeof AdminRoute
+  AnalyticsRoute: typeof AnalyticsRoute
   BillingRoute: typeof BillingRoute
+  CrmRoute: typeof CrmRoute
+  DriversRoute: typeof DriversRoute
+  FinanceRoute: typeof FinanceRoute
   GoalsRoute: typeof GoalsRoute
+  GrowthRoute: typeof GrowthRoute
+  HelpRoute: typeof HelpRoute
+  InfoRoute: typeof InfoRoute
+  LoginRoute: typeof LoginRoute
   MonitorRoute: typeof MonitorRoute
+  PackagesRoute: typeof PackagesRoute
   PartnersRoute: typeof PartnersRoute
+  PersonalOsRoute: typeof PersonalOsRoute
+  QuadroOperacionalRoute: typeof QuadroOperacionalRoute
+  ReconcileRoute: typeof ReconcileRoute
+  SearchRoutesRoute: typeof SearchRoutesRoute
   SellersRoute: typeof SellersRoute
+  SimulatorRoute: typeof SimulatorRoute
+  TasksRoute: typeof TasksRoute
 }
 
 declare module '@tanstack/react-router' {
   interface FileRoutesByPath {
+    '/tasks': {
+      id: '/tasks'
+      path: '/tasks'
+      fullPath: '/tasks'
+      preLoaderRoute: typeof TasksRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/simulator': {
+      id: '/simulator'
+      path: '/simulator'
+      fullPath: '/simulator'
+      preLoaderRoute: typeof SimulatorRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/sellers': {
       id: '/sellers'
       path: '/sellers'
       fullPath: '/sellers'
       preLoaderRoute: typeof SellersRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/search-routes': {
+      id: '/search-routes'
+      path: '/search-routes'
+      fullPath: '/search-routes'
+      preLoaderRoute: typeof SearchRoutesRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/reconcile': {
+      id: '/reconcile'
+      path: '/reconcile'
+      fullPath: '/reconcile'
+      preLoaderRoute: typeof ReconcileRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/quadro-operacional': {
+      id: '/quadro-operacional'
+      path: '/quadro-operacional'
+      fullPath: '/quadro-operacional'
+      preLoaderRoute: typeof QuadroOperacionalRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/personal-os': {
+      id: '/personal-os'
+      path: '/personal-os'
+      fullPath: '/personal-os'
+      preLoaderRoute: typeof PersonalOsRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/partners': {
@@ -112,11 +400,46 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof PartnersRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/packages': {
+      id: '/packages'
+      path: '/packages'
+      fullPath: '/packages'
+      preLoaderRoute: typeof PackagesRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/monitor': {
       id: '/monitor'
       path: '/monitor'
       fullPath: '/monitor'
       preLoaderRoute: typeof MonitorRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/login': {
+      id: '/login'
+      path: '/login'
+      fullPath: '/login'
+      preLoaderRoute: typeof LoginRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/info': {
+      id: '/info'
+      path: '/info'
+      fullPath: '/info'
+      preLoaderRoute: typeof InfoRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/help': {
+      id: '/help'
+      path: '/help'
+      fullPath: '/help'
+      preLoaderRoute: typeof HelpRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/growth': {
+      id: '/growth'
+      path: '/growth'
+      fullPath: '/growth'
+      preLoaderRoute: typeof GrowthRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/goals': {
@@ -126,11 +449,60 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof GoalsRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/finance': {
+      id: '/finance'
+      path: '/finance'
+      fullPath: '/finance'
+      preLoaderRoute: typeof FinanceRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/drivers': {
+      id: '/drivers'
+      path: '/drivers'
+      fullPath: '/drivers'
+      preLoaderRoute: typeof DriversRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/crm': {
+      id: '/crm'
+      path: '/crm'
+      fullPath: '/crm'
+      preLoaderRoute: typeof CrmRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/billing': {
       id: '/billing'
       path: '/billing'
       fullPath: '/billing'
       preLoaderRoute: typeof BillingRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/analytics': {
+      id: '/analytics'
+      path: '/analytics'
+      fullPath: '/analytics'
+      preLoaderRoute: typeof AnalyticsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/admin': {
+      id: '/admin'
+      path: '/admin'
+      fullPath: '/admin'
+      preLoaderRoute: typeof AdminRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/access': {
+      id: '/access'
+      path: '/access'
+      fullPath: '/access'
+      preLoaderRoute: typeof AccessRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/academy': {
+      id: '/academy'
+      path: '/academy'
+      fullPath: '/academy'
+      preLoaderRoute: typeof AcademyRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/': {
@@ -145,11 +517,29 @@ declare module '@tanstack/react-router' {
 
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
+  AcademyRoute: AcademyRoute,
+  AccessRoute: AccessRoute,
+  AdminRoute: AdminRoute,
+  AnalyticsRoute: AnalyticsRoute,
   BillingRoute: BillingRoute,
+  CrmRoute: CrmRoute,
+  DriversRoute: DriversRoute,
+  FinanceRoute: FinanceRoute,
   GoalsRoute: GoalsRoute,
+  GrowthRoute: GrowthRoute,
+  HelpRoute: HelpRoute,
+  InfoRoute: InfoRoute,
+  LoginRoute: LoginRoute,
   MonitorRoute: MonitorRoute,
+  PackagesRoute: PackagesRoute,
   PartnersRoute: PartnersRoute,
+  PersonalOsRoute: PersonalOsRoute,
+  QuadroOperacionalRoute: QuadroOperacionalRoute,
+  ReconcileRoute: ReconcileRoute,
+  SearchRoutesRoute: SearchRoutesRoute,
   SellersRoute: SellersRoute,
+  SimulatorRoute: SimulatorRoute,
+  TasksRoute: TasksRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)

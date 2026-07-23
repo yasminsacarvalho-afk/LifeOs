@@ -14,6 +14,45 @@ export type Database = {
   }
   public: {
     Tables: {
+      cash_closings: {
+        Row: {
+          id: string
+          closing_date: string
+          total_sales: number
+          total_commission: number
+          expenses: number
+          net_amount: number
+          closed_by: string | null
+          notes: string | null
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          id?: string
+          closing_date?: string
+          total_sales?: number
+          total_commission?: number
+          expenses?: number
+          net_amount?: number
+          closed_by?: string | null
+          notes?: string | null
+          created_at?: string
+          updated_at?: string
+        }
+        Update: {
+          id?: string
+          closing_date?: string
+          total_sales?: number
+          total_commission?: number
+          expenses?: number
+          net_amount?: number
+          closed_by?: string | null
+          notes?: string | null
+          created_at?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       checkins: {
         Row: {
           car_plate: string | null
@@ -106,6 +145,38 @@ export type Database = {
           },
         ]
       }
+      city_codes: {
+        Row: {
+          id: string
+          city_name: string
+          code: string
+          company_id: string | null
+          created_at: string
+        }
+        Insert: {
+          id?: string
+          city_name: string
+          code: string
+          company_id?: string | null
+          created_at?: string
+        }
+        Update: {
+          id?: string
+          city_name?: string
+          code?: string
+          company_id?: string | null
+          created_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "city_codes_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "partner_companies"
+            referencedColumns: ["id"]
+          }
+        ]
+      }
       partner_companies: {
         Row: {
           active: boolean
@@ -115,6 +186,15 @@ export type Database = {
           name: string
           slug: string
           updated_at: string
+          meta: number | null
+          comissao: number | null
+          linhas_exclusivas: string[] | null
+          protocolo: string | null
+          politica_devolucao: string | null
+          politica_troca: string | null
+          ticket_medio: number | null
+          carros_por_dia: number | null
+          mais_informacoes: string | null
         }
         Insert: {
           active?: boolean
@@ -124,6 +204,15 @@ export type Database = {
           name: string
           slug: string
           updated_at?: string
+          meta?: number | null
+          comissao?: number | null
+          linhas_exclusivas?: string[] | null
+          protocolo?: string | null
+          politica_devolucao?: string | null
+          politica_troca?: string | null
+          ticket_medio?: number | null
+          carros_por_dia?: number | null
+          mais_informacoes?: string | null
         }
         Update: {
           active?: boolean
@@ -133,6 +222,15 @@ export type Database = {
           name?: string
           slug?: string
           updated_at?: string
+          meta?: number | null
+          comissao?: number | null
+          linhas_exclusivas?: string[] | null
+          protocolo?: string | null
+          politica_devolucao?: string | null
+          politica_troca?: string | null
+          ticket_medio?: number | null
+          carros_por_dia?: number | null
+          mais_informacoes?: string | null
         }
         Relationships: []
       }
@@ -143,7 +241,9 @@ export type Database = {
           company_id: string | null
           created_at: string
           id: string
+          payment_method: string | null
           sale_date: string
+          sales_channel: string | null
           seller_id: string | null
           trip_id: string | null
         }
@@ -153,7 +253,9 @@ export type Database = {
           company_id?: string | null
           created_at?: string
           id?: string
+          payment_method?: string | null
           sale_date?: string
+          sales_channel?: string | null
           seller_id?: string | null
           trip_id?: string | null
         }
@@ -163,7 +265,9 @@ export type Database = {
           company_id?: string | null
           created_at?: string
           id?: string
+          payment_method?: string | null
           sale_date?: string
+          sales_channel?: string | null
           seller_id?: string | null
           trip_id?: string | null
         }
@@ -191,37 +295,328 @@ export type Database = {
           },
         ]
       }
+      drivers: {
+        Row: {
+          id: string
+          created_at: string
+          updated_at: string
+          name: string
+          lines: string[]
+          company_id: string | null
+          status: string
+        }
+        Insert: {
+          id?: string
+          created_at?: string
+          updated_at?: string
+          name: string
+          lines?: string[]
+          company_id?: string | null
+          status?: string
+        }
+        Update: {
+          id?: string
+          created_at?: string
+          updated_at?: string
+          name?: string
+          lines?: string[]
+          company_id?: string | null
+          status?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "drivers_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "partner_companies"
+            referencedColumns: ["id"]
+          }
+        ]
+      }
+      driver_evaluations: {
+        Row: {
+          id: string
+          created_at: string
+          driver_id: string
+          trip_id: string | null
+          observations: string
+          evaluator_name: string | null
+        }
+        Insert: {
+          id?: string
+          created_at?: string
+          driver_id: string
+          trip_id?: string | null
+          observations: string
+          evaluator_name?: string | null
+        }
+        Update: {
+          id?: string
+          created_at?: string
+          driver_id?: string
+          trip_id?: string | null
+          observations?: string
+          evaluator_name?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "driver_evaluations_driver_id_fkey"
+            columns: ["driver_id"]
+            isOneToOne: false
+            referencedRelation: "drivers"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "driver_evaluations_trip_id_fkey"
+            columns: ["trip_id"]
+            isOneToOne: false
+            referencedRelation: "trips"
+            referencedColumns: ["id"]
+          }
+        ]
+      }
+      crm_leads: {
+        Row: {
+          id: string
+          created_at: string
+          client_name: string
+          status: string
+          expected_value: number
+          estimated_commission: number | null
+          notes: string | null
+          phone: string | null
+          email: string | null
+          target_company_id: string | null
+          desired_destination: string | null
+          updated_at: string
+        }
+        Insert: {
+          id?: string
+          created_at?: string
+          client_name: string
+          status?: string
+          expected_value?: number
+          estimated_commission?: number | null
+          notes?: string | null
+          phone?: string | null
+          email?: string | null
+          target_company_id?: string | null
+          desired_destination?: string | null
+          updated_at?: string
+        }
+        Update: {
+          id?: string
+          created_at?: string
+          client_name?: string
+          status?: string
+          expected_value?: number
+          estimated_commission?: number | null
+          notes?: string | null
+          phone?: string | null
+          email?: string | null
+          target_company_id?: string | null
+          desired_destination?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "crm_leads_target_company_id_fkey"
+            columns: ["target_company_id"]
+            isOneToOne: false
+            referencedRelation: "partner_companies"
+            referencedColumns: ["id"]
+          }
+        ]
+      }
+      expenses: {
+        Row: {
+          amount: number
+          category: Database["public"]["Enums"]["expense_category"]
+          company_id: string | null
+          created_at: string
+          description: string
+          expense_date: string
+          id: string
+          updated_at: string
+        }
+        Insert: {
+          amount?: number
+          category?: Database["public"]["Enums"]["expense_category"]
+          company_id?: string | null
+          created_at?: string
+          description: string
+          expense_date?: string
+          id?: string
+          updated_at?: string
+        }
+        Update: {
+          amount?: number
+          category?: Database["public"]["Enums"]["expense_category"]
+          company_id?: string | null
+          created_at?: string
+          description?: string
+          expense_date?: string
+          id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "expenses_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "partner_companies"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      packages: {
+        Row: {
+          code: string
+          commission: number
+          company_id: string | null
+          created_at: string
+          destination: string
+          direction: string
+          id: string
+          origin: string
+          price: number
+          receiver_name: string
+          sender_name: string
+          status: Database["public"]["Enums"]["package_status"]
+          trip_id: string | null
+          updated_at: string
+        }
+        Insert: {
+          code: string
+          commission?: number
+          company_id?: string | null
+          created_at?: string
+          destination: string
+          direction?: string
+          id?: string
+          origin: string
+          price?: number
+          receiver_name: string
+          sender_name: string
+          status?: Database["public"]["Enums"]["package_status"]
+          trip_id?: string | null
+          updated_at?: string
+        }
+        Update: {
+          code?: string
+          commission?: number
+          company_id?: string | null
+          created_at?: string
+          destination?: string
+          direction?: string
+          id?: string
+          origin?: string
+          price?: number
+          receiver_name?: string
+          sender_name?: string
+          status?: Database["public"]["Enums"]["package_status"]
+          trip_id?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "packages_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "partner_companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "packages_trip_id_fkey"
+            columns: ["trip_id"]
+            isOneToOne: false
+            referencedRelation: "trips"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      seller_goals: {
+        Row: {
+          bonus_amount: number
+          created_at: string
+          description: string
+          id: string
+          seller_id: string
+          target_amount: number
+          updated_at: string
+        }
+        Insert: {
+          bonus_amount?: number
+          created_at?: string
+          description: string
+          id?: string
+          seller_id: string
+          target_amount?: number
+          updated_at?: string
+        }
+        Update: {
+          bonus_amount?: number
+          created_at?: string
+          description?: string
+          id?: string
+          seller_id?: string
+          target_amount?: number
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "seller_goals_seller_id_fkey"
+            columns: ["seller_id"]
+            isOneToOne: false
+            referencedRelation: "sellers"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       sellers: {
         Row: {
           active: boolean
+          base_salary: number
+          bonus_amount: number
           commission_rate: number
           company_id: string | null
           created_at: string
           email: string | null
           id: string
           name: string
+          role: string
+          sales_goal: number
           updated_at: string
         }
         Insert: {
           active?: boolean
+          base_salary?: number
+          bonus_amount?: number
           commission_rate?: number
           company_id?: string | null
           created_at?: string
           email?: string | null
           id?: string
           name: string
+          role?: string
+          sales_goal?: number
           updated_at?: string
         }
         Update: {
           active?: boolean
+          base_salary?: number
+          bonus_amount?: number
           commission_rate?: number
           company_id?: string | null
           created_at?: string
           email?: string | null
           id?: string
           name?: string
+          role?: string
+          sales_goal?: number
           updated_at?: string
         }
+
         Relationships: [
           {
             foreignKeyName: "sellers_company_id_fkey"
@@ -273,48 +668,72 @@ export type Database = {
       trips: {
         Row: {
           car_plate: string | null
+          cities: string[] | null
           code: string
           company_id: string | null
           created_at: string
           destination: string
+          direction: string | null
           driver_name: string | null
+          route_name: string | null
+          origin_code: string | null
+          destination_code: string | null
+          agent_indicated_time: string | null
           id: string
           notes: string | null
+          operating_days: number[] | null
           origin: string
           real_departure: string | null
           scheduled_departure: string
           status: Database["public"]["Enums"]["trip_status"]
           updated_at: string
+          hide_from_dashboard: boolean | null
         }
         Insert: {
           car_plate?: string | null
+          cities?: string[] | null
           code: string
           company_id?: string | null
           created_at?: string
           destination: string
+          direction?: string | null
           driver_name?: string | null
+          route_name?: string | null
+          origin_code?: string | null
+          destination_code?: string | null
+          agent_indicated_time?: string | null
           id?: string
           notes?: string | null
+          operating_days?: number[] | null
           origin: string
           real_departure?: string | null
           scheduled_departure: string
           status?: Database["public"]["Enums"]["trip_status"]
           updated_at?: string
+          hide_from_dashboard?: boolean | null
         }
         Update: {
           car_plate?: string | null
+          cities?: string[] | null
           code?: string
           company_id?: string | null
           created_at?: string
           destination?: string
+          direction?: string | null
           driver_name?: string | null
+          route_name?: string | null
+          origin_code?: string | null
+          destination_code?: string | null
+          agent_indicated_time?: string | null
           id?: string
           notes?: string | null
+          operating_days?: number[] | null
           origin?: string
           real_departure?: string | null
           scheduled_departure?: string
           status?: Database["public"]["Enums"]["trip_status"]
           updated_at?: string
+          hide_from_dashboard?: boolean | null
         }
         Relationships: [
           {
@@ -322,6 +741,69 @@ export type Database = {
             columns: ["company_id"]
             isOneToOne: false
             referencedRelation: "partner_companies"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      shifts: {
+        Row: {
+          covered_by_id: string | null
+          created_at: string
+          end_time: string | null
+          id: string
+          seller_id: string
+          shift_date: string
+          shift_type: Database["public"]["Enums"]["shift_type"]
+          start_time: string | null
+          status: Database["public"]["Enums"]["shift_status"]
+          swap_fee: number
+          swap_requested: boolean
+          swap_type: "money" | "time_off" | null
+          updated_at: string
+        }
+        Insert: {
+          covered_by_id?: string | null
+          created_at?: string
+          end_time?: string | null
+          id?: string
+          seller_id: string
+          shift_date: string
+          shift_type?: Database["public"]["Enums"]["shift_type"]
+          start_time?: string | null
+          status?: Database["public"]["Enums"]["shift_status"]
+          swap_fee?: number
+          swap_requested?: boolean
+          swap_type?: "money" | "time_off" | null
+          updated_at?: string
+        }
+        Update: {
+          covered_by_id?: string | null
+          created_at?: string
+          end_time?: string | null
+          id?: string
+          seller_id?: string
+          shift_date?: string
+          shift_type?: Database["public"]["Enums"]["shift_type"]
+          start_time?: string | null
+          status?: Database["public"]["Enums"]["shift_status"]
+          swap_fee?: number
+          swap_requested?: boolean
+          swap_type?: "money" | "time_off" | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "shifts_covered_by_id_fkey"
+            columns: ["covered_by_id"]
+            isOneToOne: false
+            referencedRelation: "sellers"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "shifts_seller_id_fkey"
+            columns: ["seller_id"]
+            isOneToOne: false
+            referencedRelation: "sellers"
             referencedColumns: ["id"]
           },
         ]
@@ -334,6 +816,10 @@ export type Database = {
       [_ in never]: never
     }
     Enums: {
+      expense_category: "fixo" | "variavel"
+      package_status: "aguardando" | "enviada" | "chegou" | "entregue"
+      shift_status: "agendado" | "realizado" | "trocado" | "falta"
+      shift_type: "completa" | "manha" | "tarde" | "folga"
       trip_status:
         | "scheduled"
         | "imminent"
@@ -467,6 +953,10 @@ export type CompositeTypes<
 export const Constants = {
   public: {
     Enums: {
+      expense_category: ["fixo", "variavel"],
+      package_status: ["aguardando", "enviada", "chegou", "entregue"],
+      shift_status: ["agendado", "realizado", "trocado", "falta"],
+      shift_type: ["completa", "manha", "tarde", "folga"],
       trip_status: ["scheduled", "imminent", "late", "checked_in", "cancelled"],
     },
   },

@@ -17,23 +17,24 @@ export function useTripsRealtime() {
     supabase
       .from("trips")
       .select("*")
-      .gte("scheduled_departure", startOfDay.toISOString())
-      .lte("scheduled_departure", endOfDay.toISOString())
-      .order("scheduled_departure", { ascending: true })
       .then(({ data }) => {
         if (!mounted) return;
         setRows(data ?? []);
         setLoading(false);
       });
 
+    const channelId = `trips-monitor-${Math.random()}`;
     const channel = supabase
-      .channel("trips-monitor")
+      .channel(channelId)
       .on(
         "postgres_changes",
         { event: "*", schema: "public", table: "trips" },
         (payload) => {
           setRows((prev) => {
-            if (payload.eventType === "INSERT") return [...prev, payload.new as DbTrip];
+            if (payload.eventType === "INSERT") {
+              if (prev.some(r => r.id === (payload.new as DbTrip).id)) return prev;
+              return [...prev, payload.new as DbTrip];
+            }
             if (payload.eventType === "UPDATE")
               return prev.map((r) => (r.id === (payload.new as DbTrip).id ? (payload.new as DbTrip) : r));
             if (payload.eventType === "DELETE")
@@ -56,5 +57,14 @@ export function useTripsRealtime() {
   const now = new Date();
   void tick;
   const trips: UiTrip[] = rows.map((r) => dbTripToUi(r, now));
+  
+  trips.sort((a, b) => {
+    const timeA = new Date(a.raw_scheduled_departure || 0);
+    const timeB = new Date(b.raw_scheduled_departure || 0);
+    const minsA = timeA.getHours() * 60 + timeA.getMinutes();
+    const minsB = timeB.getHours() * 60 + timeB.getMinutes();
+    return minsA - minsB;
+  });
+
   return { trips, loading };
 }

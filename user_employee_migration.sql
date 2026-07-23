@@ -1,0 +1,2 @@
+ALTER TABLE user_roles
+ADD COLUMN seller_id UUID REFERENCES sellers(id) ON DELETE SET NULL;

@@ -1,0 +1,4 @@
+ALTER TABLE cash_closings 
+ADD COLUMN IF NOT EXISTS boleto_generated BOOLEAN DEFAULT false,
+ADD COLUMN IF NOT EXISTS boleto_paid BOOLEAN DEFAULT false,
+ADD COLUMN IF NOT EXISTS boleto_receipt_url TEXT;

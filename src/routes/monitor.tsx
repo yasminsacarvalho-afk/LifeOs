@@ -1,10 +1,16 @@
 import { useMemo, useState } from "react";
 import { createFileRoute } from "@tanstack/react-router";
-import { AlertTriangle, FileText, MessageCircle, Send } from "lucide-react";
+import { AlertTriangle, FileText, MessageCircle, Send, CheckCircle2, RotateCcw, X, Eye, EyeOff } from "lucide-react";
 import { TopBar } from "@/components/TopBar";
 import { TripCard } from "@/components/TripCard";
 import { CheckinModal } from "@/components/CheckinModal";
+import { TripFormModal } from "@/components/TripFormModal";
+import { TripDetailsModal } from "@/components/TripDetailsModal";
+import { ItinerarySearchModal } from "@/components/ItinerarySearchModal";
+import { DriverEvaluationModal } from "@/components/DriverEvaluationModal";
+import { CityCodesModal } from "@/components/CityCodesModal";
 import { useTripsRealtime } from "@/hooks/use-trips-realtime";
+import { usePartnersRealtime } from "@/hooks/use-partners-realtime";
 import { supabase } from "@/integrations/supabase/client";
 import type { UiTrip } from "@/lib/trip-helpers";
 import { cn } from "@/lib/utils";
@@ -12,7 +18,7 @@ import { cn } from "@/lib/utils";
 export const Route = createFileRoute("/monitor")({
   head: () => ({
     meta: [
-      { title: "Torre de Controle · Voyage Flow" },
+      { title: "Torre de Controle · Agência de itambé" },
       {
         name: "description",
         content:
@@ -27,25 +33,61 @@ type Filter = "todas" | "imminent" | "delayed" | "checked-in" | "scheduled";
 
 function MonitorPage() {
   const { trips, loading } = useTripsRealtime();
+  const { partners } = usePartnersRealtime();
+
   const [activeTrip, setActiveTrip] = useState<UiTrip | null>(null);
   const [modalOpen, setModalOpen] = useState(false);
+  const [formModalOpen, setFormModalOpen] = useState(false);
+  const [detailsModalOpen, setDetailsModalOpen] = useState(false);
+  const [editingTrip, setEditingTrip] = useState<UiTrip | null>(null);
+  const [activeDetailsTrip, setActiveDetailsTrip] = useState<UiTrip | null>(null);
+  const [searchModalOpen, setSearchModalOpen] = useState(false);
+  const [cityCodesModalOpen, setCityCodesModalOpen] = useState(false);
+  
+  const [evalModalOpen, setEvalModalOpen] = useState(false);
+  const [evalTrip, setEvalTrip] = useState<UiTrip | null>(null);
+
+  const [isSelectionMode, setIsSelectionMode] = useState(false);
+  const [selectedTrips, setSelectedTrips] = useState<Set<string>>(new Set());
+
   const [filter, setFilter] = useState<Filter>("todas");
+  const [companyFilter, setCompanyFilter] = useState<string>("todas");
+  const [directionFilter, setDirectionFilter] = useState<string>("todas");
+  const [showHidden, setShowHidden] = useState(false);
   const [toast, setToast] = useState<string | null>(null);
+
+  const todayWeekDay = new Date().getDay();
+
+  const operatingTrips = useMemo(() => {
+    return trips.filter(t => {
+      if (!showHidden && t.hide_from_dashboard) return false;
+      return t.operating_days ? t.operating_days.includes(todayWeekDay) : true;
+    });
+  }, [trips, todayWeekDay, showHidden]);
 
   const counts = useMemo(() => {
     return {
-      total: trips.length,
-      checkedIn: trips.filter((t) => t.status === "checked-in").length,
-      imminent: trips.filter((t) => t.status === "imminent").length,
-      delayed: trips.filter((t) => t.status === "delayed").length,
-      scheduled: trips.filter((t) => t.status === "scheduled").length,
+      total: operatingTrips.length,
+      checkedIn: operatingTrips.filter((t) => t.status === "checked-in").length,
+      imminent: operatingTrips.filter((t) => t.status === "imminent").length,
+      delayed: operatingTrips.filter((t) => t.status === "delayed").length,
+      scheduled: operatingTrips.filter((t) => t.status === "scheduled").length,
     };
-  }, [trips]);
+  }, [operatingTrips]);
 
   const filtered = useMemo(() => {
-    if (filter === "todas") return trips;
-    return trips.filter((t) => t.status === filter);
-  }, [trips, filter]);
+    let result = operatingTrips;
+    if (companyFilter !== "todas") {
+      result = result.filter(t => t.company_id === companyFilter);
+    }
+    if (directionFilter !== "todas") {
+      result = result.filter(t => t.direction === directionFilter);
+    }
+    if (filter !== "todas") {
+      result = result.filter(t => t.status === filter);
+    }
+    return result;
+  }, [operatingTrips, filter, companyFilter, directionFilter]);
 
   const handleOpenCheckin = (trip: UiTrip) => {
     setActiveTrip(trip);
@@ -64,6 +106,78 @@ function MonitorPage() {
     setActiveTrip(null);
   };
 
+  const handleOpenForm = (trip?: UiTrip) => {
+    setEditingTrip(trip || null);
+    setFormModalOpen(true);
+  };
+
+  const handleDeleteTrip = async (trip: UiTrip) => {
+    if (confirm(`Tem certeza que deseja excluir a frota ${trip.code}?`)) {
+      try {
+        await supabase.from("trips").delete().eq("id", trip.id);
+        showToast(`🗑️ Frota ${trip.code} excluída com sucesso`);
+      } catch (e) {
+        showToast(`❌ Erro ao excluir frota`);
+      }
+    }
+  };
+
+  const handleResetDay = async () => {
+    if (confirm("ATENÇÃO: Isto irá reiniciar a Torre de Controle, voltando todas as frotas para o status 'Programado'. Deseja iniciar um novo dia de operação?")) {
+      try {
+        const ids = trips.map(t => t.id);
+        if (ids.length > 0) {
+          await supabase.from("trips").update({ status: "scheduled", real_departure: null }).in("id", ids);
+        }
+        showToast("🌅 Novo dia iniciado. Frotas reiniciadas.");
+      } catch(e) {
+        showToast("❌ Erro ao reiniciar as frotas.");
+      }
+    }
+  };
+
+  const handleResetTrip = async (trip: UiTrip) => {
+    if (confirm(`Tem certeza que deseja reiniciar a rota ${trip.code}? Ela voltará para o status 'Programado'.`)) {
+      try {
+        await supabase.from("trips").update({ status: "scheduled", real_departure: null }).eq("id", trip.id);
+        showToast(`🔄 Rota ${trip.code} reiniciada`);
+      } catch (e) {
+        showToast(`❌ Erro ao reiniciar rota`);
+      }
+    }
+  };
+
+  const handleBulkReset = async () => {
+    if (selectedTrips.size === 0) return;
+    if (confirm(`Tem certeza que deseja reiniciar ${selectedTrips.size} rotas? Elas voltarão para 'Programado'.`)) {
+      try {
+        const ids = Array.from(selectedTrips);
+        await supabase.from("trips").update({ status: "scheduled", real_departure: null }).in("id", ids);
+        showToast(`🔄 ${selectedTrips.size} rotas reiniciadas`);
+        setSelectedTrips(new Set());
+        setIsSelectionMode(false);
+      } catch (e) {
+        showToast(`❌ Erro ao reiniciar rotas`);
+      }
+    }
+  };
+
+  const handleBulkComplete = async () => {
+    if (selectedTrips.size === 0) return;
+    if (confirm(`Tem certeza que deseja regularizar (marcar como concluída) ${selectedTrips.size} rotas?`)) {
+      try {
+        const ids = Array.from(selectedTrips);
+        const now = new Date().toISOString();
+        await supabase.from("trips").update({ status: "checked_in", real_departure: now }).in("id", ids);
+        showToast(`✅ ${selectedTrips.size} rotas regularizadas com sucesso`);
+        setSelectedTrips(new Set());
+        setIsSelectionMode(false);
+      } catch (e) {
+        showToast(`❌ Erro ao regularizar rotas`);
+      }
+    }
+  };
+
   const handleSOS = async (trip: UiTrip) => {
     await supabase.from("sos_alerts").insert({
       trip_id: trip.id,
@@ -77,6 +191,11 @@ function MonitorPage() {
     showToast(`📋 Relatório de ${trip.code} pronto para compartilhar`);
   };
 
+  const handleEvaluate = (trip: UiTrip) => {
+    setEvalTrip(trip);
+    setEvalModalOpen(true);
+  };
+
 
   const showToast = (msg: string) => {
     setToast(msg);
@@ -86,18 +205,101 @@ function MonitorPage() {
   return (
     <>
       <TopBar
-        title="Torre de Controle Operacional"
-        subtitle="Timeline cronológica das partidas do dia · atualização em tempo real"
+        title="Torre de Controle"
+        subtitle="Gerencie as viagens, acompanhe as rotas e centralize a comunicação."
         actions={
-          <button className="inline-flex items-center gap-2 rounded-lg bg-gradient-to-r from-primary to-[oklch(0.7_0.16_295)] px-4 py-2 text-sm font-medium text-primary-foreground shadow-glow-accent hover:scale-[1.01] transition-transform">
-            <Send className="size-4" /> Enviar resumo do dia
-          </button>
+          <div className="flex items-center gap-2">
+            <button
+              onClick={() => {
+                setIsSelectionMode(!isSelectionMode);
+                if (isSelectionMode) setSelectedTrips(new Set());
+              }}
+              className={cn("inline-flex items-center gap-2 rounded-lg border px-4 py-2 text-sm font-medium transition-all shadow-sm",
+                isSelectionMode ? "bg-primary text-primary-foreground border-primary" : "bg-card border-border hover:bg-white/5"
+              )}
+            >
+              <CheckCircle2 className="size-4" />
+              {isSelectionMode ? "Sair" : "Selecionar"}
+            </button>
+            <button
+              onClick={() => handleOpenForm()}
+              className="inline-flex items-center gap-2 rounded-lg bg-primary text-primary-foreground px-4 py-2 text-sm font-medium hover:bg-primary/90 transition-all shadow-sm"
+            >
+              Nova Viagem
+            </button>
+            <button
+              onClick={() => setCityCodesModalOpen(true)}
+              className="inline-flex items-center gap-2 rounded-lg bg-[#8A05BE] text-white px-4 py-2 text-sm font-medium hover:bg-[#8A05BE]/90 transition-all shadow-sm"
+            >
+              Dicionário
+            </button>
+            <button
+              onClick={() => setSearchModalOpen(true)}
+              className="inline-flex items-center gap-2 rounded-lg bg-info/20 text-info px-4 py-2 text-sm font-medium hover:bg-info/30 transition-all shadow-sm"
+            >
+              Buscar Rota
+            </button>
+            <button
+              onClick={handleResetDay}
+              className="hidden sm:inline-flex items-center gap-2 rounded-lg bg-danger/20 border border-danger/50 px-4 py-2 text-sm font-medium text-danger hover:bg-danger/30 transition-all shadow-sm"
+            >
+              Reiniciar Dia
+            </button>
+            <button
+              onClick={() => setShowHidden(!showHidden)}
+              className={cn("inline-flex items-center gap-2 rounded-lg border px-3 py-2 text-sm font-medium transition-all shadow-sm",
+                showHidden ? "bg-warning/20 text-warning border-warning" : "bg-card border-border hover:bg-white/5 text-muted-foreground"
+              )}
+              title="Mostrar/Ocultar viagens marcadas para não aparecer no dashboard"
+            >
+              {showHidden ? <Eye className="size-4" /> : <EyeOff className="size-4" />}
+            </button>
+          </div>
         }
       />
 
-      <main className="px-8 py-8">
+      <main className="px-4 md:px-8 py-6 md:py-8">
+        {/* Filters */}
+        <div className="mb-4 flex flex-row items-center gap-4 bg-card border border-border rounded-xl p-2 px-4 shadow-sm w-full overflow-x-auto hide-scrollbar">
+          <div className="flex gap-2 min-w-max">
+            <select
+              value={companyFilter}
+              onChange={(e) => setCompanyFilter(e.target.value)}
+              className="rounded-md border border-border bg-background px-3 py-1.5 text-sm focus:outline-none focus:border-primary min-w-[180px]"
+            >
+              <option value="todas">Empresas</option>
+              {partners.map(p => (
+                <option key={p.id} value={p.id}>{p.name}</option>
+              ))}
+            </select>
+          </div>
+          
+          <div className="h-6 w-px bg-border hidden sm:block" />
+
+          <div className="flex bg-background border border-border rounded-lg p-0.5 min-w-max">
+            <button
+              onClick={() => setDirectionFilter("todas")}
+              className={cn("px-4 py-1.5 text-xs font-medium rounded-md transition-all", directionFilter === "todas" ? "bg-primary text-primary-foreground shadow-sm" : "text-muted-foreground hover:text-foreground")}
+            >
+              Todos Sentidos
+            </button>
+            <button
+              onClick={() => setDirectionFilter("descendo")}
+              className={cn("px-4 py-1.5 text-xs font-medium rounded-md transition-all", directionFilter === "descendo" ? "bg-cyan-500/20 text-cyan-500 border border-cyan-500/30" : "text-muted-foreground hover:text-foreground")}
+            >
+              Descendo ( PS/ILHEUS/CNV/MCR )
+            </button>
+            <button
+              onClick={() => setDirectionFilter("subindo")}
+              className={cn("px-4 py-1.5 text-xs font-medium rounded-md transition-all", directionFilter === "subindo" ? "bg-orange-500/20 text-orange-500 border border-orange-500/30" : "text-muted-foreground hover:text-foreground")}
+            >
+              Subindo (VCA / SSA / GO / BA / MG / RJ )
+            </button>
+          </div>
+        </div>
+
         {/* Status bar */}
-        <section className="mb-6 grid gap-3 sm:grid-cols-2 lg:grid-cols-5">
+        <section className="mb-6 flex gap-3 overflow-x-auto hide-scrollbar pb-2 snap-x">
           <StatusChip
             label="Total Hoje"
             value={counts.total}
@@ -137,7 +339,7 @@ function MonitorPage() {
           />
         </section>
 
-        <div className="grid gap-6 xl:grid-cols-[1fr_320px]">
+        <div className="grid gap-6 grid-cols-1 xl:grid-cols-[1fr_320px]">
           {/* Timeline */}
           <section>
             <div className="mb-3 flex items-center justify-between">
@@ -149,20 +351,54 @@ function MonitorPage() {
               </div>
             </div>
 
+            {isSelectionMode && selectedTrips.size > 0 && (
+              <div className="mb-4 bg-primary/10 border border-primary/20 p-3 rounded-xl flex items-center justify-between gap-3 animate-in slide-in-from-top-2">
+                <div className="text-sm font-semibold text-primary px-2">
+                  {selectedTrips.size} rota(s) selecionada(s)
+                </div>
+                <div className="flex gap-2">
+                  <button onClick={handleBulkComplete} className="px-3 py-1.5 bg-success/20 text-success border border-success/30 rounded shadow-sm text-xs font-bold hover:bg-success/30 transition-colors">
+                    <CheckCircle2 className="size-3 inline mr-1" /> Regularizar
+                  </button>
+                  <button onClick={handleBulkReset} className="px-3 py-1.5 bg-warning/20 text-warning border border-warning/30 rounded shadow-sm text-xs font-bold hover:bg-warning/30 transition-colors">
+                    <RotateCcw className="size-3 inline mr-1" /> Reiniciar
+                  </button>
+                  <button onClick={() => setSelectedTrips(new Set())} className="p-1.5 text-muted-foreground hover:text-foreground hover:bg-white/5 rounded ml-2 transition-colors"><X className="size-4" /></button>
+                </div>
+              </div>
+            )}
+
             <div className="space-y-3">
               {filtered.length === 0 ? (
                 <div className="rounded-2xl border border-dashed border-border bg-card/40 p-12 text-center text-sm text-muted-foreground">
                   Sem viagens neste filtro.
                 </div>
               ) : (
-                filtered.map((trip, i) => (
+                filtered.map((trip, idx) => (
                   <TripCard
                     key={trip.id}
                     trip={trip}
-                    index={i}
+                    index={idx}
+                    isSelected={selectedTrips.has(trip.id)}
                     onCheckIn={handleOpenCheckin}
                     onSOS={handleSOS}
                     onReport={handleReport}
+                    onEdit={handleOpenForm}
+                    onDelete={handleDeleteTrip}
+                    onEvaluate={handleEvaluate}
+                    onReset={handleResetTrip}
+                    partnerName={partners.find(p => p.id === trip.company_id)?.name}
+                    onClick={(trip) => {
+                      if (isSelectionMode) {
+                        const next = new Set(selectedTrips);
+                        if (next.has(trip.id)) next.delete(trip.id);
+                        else next.add(trip.id);
+                        setSelectedTrips(next);
+                      } else {
+                        setActiveDetailsTrip(trip);
+                        setDetailsModalOpen(true);
+                      }
+                    }}
                   />
                 ))
               )}
@@ -236,6 +472,32 @@ function MonitorPage() {
       </main>
 
       <CheckinModal trip={activeTrip} open={modalOpen} onClose={handleCloseCheckin} />
+      
+      <CityCodesModal 
+        open={cityCodesModalOpen}
+        onClose={() => setCityCodesModalOpen(false)}
+      />
+      
+      <TripFormModal trip={editingTrip} open={formModalOpen} onClose={() => setFormModalOpen(false)} />
+      
+      <TripDetailsModal
+        trip={activeDetailsTrip}
+        open={detailsModalOpen}
+        onClose={() => setDetailsModalOpen(false)}
+      />
+
+      <ItinerarySearchModal
+        open={searchModalOpen}
+        onClose={() => setSearchModalOpen(false)}
+        trips={trips}
+        partners={partners}
+      />
+
+      <DriverEvaluationModal
+        open={evalModalOpen}
+        onClose={() => setEvalModalOpen(false)}
+        trip={evalTrip}
+      />
 
       {toast && (
         <div className="fixed bottom-6 left-1/2 z-50 -translate-x-1/2 rounded-xl border border-border bg-card/95 px-5 py-3 text-sm shadow-2xl backdrop-blur-xl animate-slide-up">
@@ -265,7 +527,7 @@ function StatusChip({
     <button
       onClick={onClick}
       className={cn(
-        "group rounded-xl border p-4 text-left transition-all backdrop-blur-sm",
+        "group rounded-xl border p-4 text-left transition-all backdrop-blur-sm shrink-0 min-w-[140px] snap-center flex-1",
         tone,
         active && "ring-2 ring-primary/40 scale-[1.01]",
         !active && "opacity-90 hover:opacity-100",

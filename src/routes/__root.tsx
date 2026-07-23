@@ -12,6 +12,9 @@ import { useEffect, type ReactNode } from "react";
 import appCss from "../styles.css?url";
 import { reportLovableError } from "../lib/lovable-error-reporting";
 import { AppSidebar } from "@/components/AppSidebar";
+import { Toaster } from "sonner";
+import { AuthProvider, useAuth } from "@/contexts/AuthContext";
+import { useRouterState, Navigate } from "@tanstack/react-router";
 
 function NotFoundComponent() {
   return (
@@ -116,17 +119,39 @@ function RootShell({ children }: { children: ReactNode }) {
   );
 }
 
+function AuthGuard({ children }: { children: ReactNode }) {
+  const { session, loading } = useAuth();
+  const routerState = useRouterState();
+  const isLoginPage = routerState.location.pathname === "/login";
+
+  if (loading) {
+    return <div className="min-h-screen bg-background flex items-center justify-center">Carregando...</div>;
+  }
+
+  if (!session && !isLoginPage) {
+    return <Navigate to="/login" replace />;
+  }
+
+  return (
+    <div className="min-h-screen bg-background text-foreground">
+      <div className="w-full">
+        {children}
+      </div>
+    </div>
+  );
+}
+
 function RootComponent() {
   const { queryClient } = Route.useRouteContext();
 
   return (
     <QueryClientProvider client={queryClient}>
-      <div className="min-h-screen bg-background text-foreground">
-        <AppSidebar />
-        <div className="lg:pl-64">
+      <AuthProvider>
+        <AuthGuard>
           <Outlet />
-        </div>
-      </div>
+        </AuthGuard>
+      </AuthProvider>
+      <Toaster position="top-center" theme="dark" richColors />
     </QueryClientProvider>
   );
 }

@@ -1,0 +1,8 @@
+ALTER TABLE cash_closings
+ADD COLUMN IF NOT EXISTS system_cash_total DECIMAL(10,2) DEFAULT 0,
+ADD COLUMN IF NOT EXISTS actual_cash_total DECIMAL(10,2) DEFAULT 0,
+ADD COLUMN IF NOT EXISTS difference DECIMAL(10,2) DEFAULT 0,
+ADD COLUMN IF NOT EXISTS bills_breakdown JSONB DEFAULT '{}'::jsonb,
+ADD COLUMN IF NOT EXISTS company_totals JSONB DEFAULT '{}'::jsonb,
+ADD COLUMN IF NOT EXISTS company_settlements JSONB DEFAULT '[]'::jsonb,
+ADD COLUMN IF NOT EXISTS initial_change_fund DECIMAL(10,2) DEFAULT 0;
