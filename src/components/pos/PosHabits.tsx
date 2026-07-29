@@ -2,9 +2,11 @@ import { useState } from "react";
 import { usePosHabits } from "@/hooks/use-pos-habits";
 import { usePosGoals } from "@/hooks/use-pos-goals";
 import { usePosLibrary } from "@/hooks/use-pos-library";
+import { usePosStudies } from "@/hooks/use-pos-studies";
+import { usePosAgenda } from "@/hooks/use-pos-agenda";
 import { 
   Plus, Trash2, CheckCircle2, Circle, Flame, Activity, TrendingUp, 
-  Calendar as CalendarIcon, Clock, Target, Edit2, Sparkles, AlertCircle, BarChart3, Pause, Play, BookOpen, X
+  Calendar as CalendarIcon, Clock, Target, Edit2, Sparkles, AlertCircle, BarChart3, Pause, Play, BookOpen, X, GraduationCap, CalendarDays
 } from "lucide-react";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
@@ -19,17 +21,23 @@ const evolutionData = [
 export function PosHabits() {
   const { habits, logs, loading, addHabit, updateHabit, deleteHabit, toggleHabitToday, logHabitPartial } = usePosHabits();
   const [isCreating, setIsCreating] = useState(false);
+  const [editingHabitId, setEditingHabitId] = useState<string | null>(null);
   const [selectedCategory, setSelectedCategory] = useState("Todas");
   const [expandedHistory, setExpandedHistory] = useState<Record<string, boolean>>({});
   const [newHabit, setNewHabit] = useState({
     title: "", category: "Saúde", icon: "Activity", color: "blue",
     description: "", objective: "", frequency: "diaria",
     goal_type: "conclusao", goal_value: 0, unit: "", preferred_time: "08:00", priority: "alta",
-    goal_id: "", book_id: "", days_of_week: [] as any[]
+    goal_id: "", book_id: "", course_id: "", event_id: "", days_of_week: [] as any[]
   });
 
-  const { goals } = usePosGoals();
-  const { books } = usePosLibrary();
+  const { goals, addGoal } = usePosGoals();
+  const { books, addReadingSession } = usePosLibrary();
+  const { courses } = usePosStudies();
+  const { events } = usePosAgenda();
+
+  const allCategories = ["Saúde", "Intelecto", "Trabalho", "Espiritualidade", ...new Set(habits.map(h => h.category))].filter(Boolean);
+  const uniqueCategories = [...new Set(allCategories)];
 
   const today = format(new Date(), 'yyyy-MM-dd');
 
@@ -39,10 +47,18 @@ export function PosHabits() {
     const payload: any = { ...newHabit };
     if (!payload.goal_id) delete payload.goal_id;
     if (!payload.book_id) delete payload.book_id;
+    if (!payload.course_id) delete payload.course_id;
+    if (!payload.event_id) delete payload.event_id;
     if (payload.days_of_week && payload.days_of_week.length === 0) delete payload.days_of_week;
-    await addHabit(payload);
+    
+    if (editingHabitId) {
+       await updateHabit(editingHabitId, payload);
+    } else {
+       await addHabit(payload);
+    }
     setIsCreating(false);
-    setNewHabit({ ...newHabit, title: "", description: "", goal_value: 0, goal_id: "", book_id: "", days_of_week: [] });
+    setEditingHabitId(null);
+    setNewHabit({ title: "", category: "Saúde", icon: "Activity", color: "blue", description: "", objective: "", frequency: "diaria", goal_type: "conclusao", goal_value: 0, unit: "", preferred_time: "08:00", priority: "alta", goal_id: "", book_id: "", course_id: "", event_id: "", days_of_week: [] });
   };
 
   const isHabitCompletedToday = (habitId: string) => {
@@ -170,7 +186,11 @@ export function PosHabits() {
           <p className="text-[#A1A1AA] text-sm mt-1">Consistência, padrões e inteligência de execução diária.</p>
         </div>
         <button 
-          onClick={() => setIsCreating(!isCreating)}
+          onClick={() => {
+             setIsCreating(!isCreating);
+             setEditingHabitId(null);
+             setNewHabit({ title: "", category: "Saúde", icon: "Activity", color: "blue", description: "", objective: "", frequency: "diaria", goal_type: "conclusao", goal_value: 0, unit: "", preferred_time: "08:00", priority: "alta", goal_id: "", book_id: "", course_id: "", event_id: "", days_of_week: [] });
+          }}
           className="flex items-center gap-2 bg-rose-500 text-white px-4 py-2 rounded-xl text-sm font-bold shadow-[0_0_15px_rgba(59,130,246,0.2)] hover:bg-rose-600 transition-colors"
         >
           <Plus className="size-4" /> Novo Hábito
@@ -268,7 +288,7 @@ export function PosHabits() {
                <h3 className="text-xl font-bold text-white flex items-center gap-2">
                  <Sparkles className="size-5 text-rose-500" /> Engenharia do Hábito
                </h3>
-               <button type="button" onClick={() => setIsCreating(false)} className="p-2 bg-[#1A1A1E] hover:bg-rose-500/20 text-[#A1A1AA] hover:text-rose-500 rounded-full transition-colors">
+               <button type="button" onClick={() => { setIsCreating(false); setEditingHabitId(null); setNewHabit({ title: "", category: "Saúde", icon: "Activity", color: "blue", description: "", objective: "", frequency: "diaria", goal_type: "conclusao", goal_value: 0, unit: "", preferred_time: "08:00", priority: "alta", goal_id: "", book_id: "", course_id: "", event_id: "", days_of_week: [] }); }} className="p-2 bg-[#1A1A1E] hover:bg-rose-500/20 text-[#A1A1AA] hover:text-rose-500 rounded-full transition-colors">
                  <X className="size-5" />
                </button>
             </div>
@@ -287,15 +307,14 @@ export function PosHabits() {
             </div>
             <div>
               <label className="text-[11px] uppercase tracking-widest text-[#71717A] font-bold mb-1 block">Categoria</label>
-              <select 
-                value={newHabit.category} onChange={e => setNewHabit({...newHabit, category: e.target.value})}
+              <input 
+                type="text" list="habit-categories" required value={newHabit.category} onChange={e => setNewHabit({...newHabit, category: e.target.value})}
                 className="w-full bg-[#1A1A1E] border border-[rgba(255,255,255,0.06)] rounded-xl px-4 py-3 text-white focus:border-rose-500 focus:outline-none transition-colors"
-              >
-                <option value="Saúde">Saúde Física</option>
-                <option value="Intelecto">Intelecto</option>
-                <option value="Trabalho">Trabalho/Carreira</option>
-                <option value="Espiritualidade">Espiritualidade</option>
-              </select>
+                placeholder="Ex: Saúde, Finanças..."
+              />
+              <datalist id="habit-categories">
+                {uniqueCategories.map(cat => <option key={cat} value={cat} />)}
+              </datalist>
             </div>
             <div>
               <label className="text-[11px] uppercase tracking-widest text-[#71717A] font-bold mb-1 block">Prioridade</label>
@@ -410,7 +429,7 @@ export function PosHabits() {
             </div>
           )}
 
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8 p-4 bg-[#1A1A1E]/50 rounded-xl border border-[rgba(255,255,255,0.02)]">
+          <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-4 gap-6 mb-8 p-4 bg-[#1A1A1E]/50 rounded-xl border border-[rgba(255,255,255,0.02)]">
             <div>
               <label className="text-[11px] uppercase tracking-widest text-[#71717A] font-bold mb-1 block">Tipo de Meta</label>
               <select 
@@ -447,13 +466,27 @@ export function PosHabits() {
             <div>
               <label className="text-[11px] uppercase tracking-widest text-[#71717A] font-bold mb-1 block">Vincular Meta Estratégica</label>
               <select 
-                value={newHabit.goal_id || ''} onChange={e => setNewHabit({...newHabit, goal_id: e.target.value})}
+                value={newHabit.goal_id || ''} 
+                onChange={async e => {
+                  if (e.target.value === "new") {
+                    const title = window.prompt("Qual o nome da nova Meta Estratégica?");
+                    if (title) {
+                      const newGoal = await addGoal({
+                        title, type: 'habito', reason: '', deadline: null, progress_percentage: 0, milestones: null, status: 'em_andamento'
+                      });
+                      if (newGoal) setNewHabit({...newHabit, goal_id: newGoal.id});
+                    }
+                  } else {
+                    setNewHabit({...newHabit, goal_id: e.target.value});
+                  }
+                }}
                 className="w-full bg-[#1A1A1E] border border-[rgba(255,255,255,0.06)] rounded-xl px-4 py-3 text-white focus:border-rose-500 focus:outline-none transition-colors"
               >
                 <option value="">Nenhuma Meta Vinculada</option>
                 {goals.map(g => (
                   <option key={g.id} value={g.id}>{g.title}</option>
                 ))}
+                <option value="new" className="text-rose-400 font-bold">+ Criar Nova Meta Rápida</option>
               </select>
             </div>
             
@@ -469,11 +502,40 @@ export function PosHabits() {
                 ))}
               </select>
             </div>
+            
+            <div>
+              <label className="text-[11px] uppercase tracking-widest text-[#71717A] font-bold mb-1 block">Vincular Curso (Opcional)</label>
+              <select 
+                value={newHabit.course_id || ''} onChange={e => setNewHabit({...newHabit, course_id: e.target.value})}
+                className="w-full bg-[#1A1A1E] border border-[rgba(255,255,255,0.06)] rounded-xl px-4 py-3 text-white focus:border-rose-500 focus:outline-none transition-colors"
+              >
+                <option value="">Nenhum Curso</option>
+                {courses.filter(c => c.status !== 'concluido').map(c => (
+                  <option key={c.id} value={c.id}>{c.title}</option>
+                ))}
+              </select>
+            </div>
+            
+            <div>
+              <label className="text-[11px] uppercase tracking-widest text-[#71717A] font-bold mb-1 block">Vincular Agenda (Opcional)</label>
+              <select 
+                value={newHabit.event_id || ''} onChange={e => setNewHabit({...newHabit, event_id: e.target.value})}
+                className="w-full bg-[#1A1A1E] border border-[rgba(255,255,255,0.06)] rounded-xl px-4 py-3 text-white focus:border-rose-500 focus:outline-none transition-colors"
+              >
+                <option value="">Nenhum Compromisso</option>
+                {events.map(ev => (
+                  <option key={ev.id} value={ev.id}>{ev.title}</option>
+                ))}
+              </select>
+            </div>
           </div>
-
                 <div className="flex flex-col-reverse md:flex-row justify-end gap-3 mt-8 pt-6 border-t border-[rgba(255,255,255,0.04)]">
-                  <button type="button" onClick={() => setIsCreating(false)} className="px-6 py-4 md:py-3 rounded-xl text-sm font-medium text-[#A1A1AA] hover:bg-[#1A1A1E]">Cancelar</button>
-                  <button type="submit" className="px-6 py-4 md:py-3 rounded-xl text-sm font-bold bg-rose-500 text-white hover:bg-rose-600 shadow-[0_0_20px_rgba(225,29,72,0.3)]">Cadastrar Hábito</button>
+                  <button type="button" onClick={() => { setIsCreating(false); setEditingHabitId(null); setNewHabit({ title: "", category: "Saúde", icon: "Activity", color: "blue", description: "", objective: "", frequency: "diaria", goal_type: "conclusao", goal_value: 0, unit: "", preferred_time: "08:00", priority: "alta", goal_id: "", book_id: "", course_id: "", event_id: "", days_of_week: [] }); }} className="w-full md:w-auto px-6 py-3.5 bg-[#1A1A1E] hover:bg-[#27272A] text-white font-bold rounded-xl transition-all border border-[rgba(255,255,255,0.06)]">
+                    Cancelar
+                  </button>
+                  <button type="submit" className="w-full md:w-auto px-8 py-3.5 bg-rose-500 hover:bg-rose-600 text-white font-bold rounded-xl transition-all shadow-[0_0_20px_rgba(225,29,72,0.3)] flex items-center justify-center gap-2">
+                    <CheckCircle2 className="size-5" /> {editingHabitId ? "Salvar Alterações" : "Ativar Hábito"}
+                  </button>
                 </div>
               </form>
             </div>
@@ -490,7 +552,7 @@ export function PosHabits() {
           </h3>
           
           <div className="flex flex-wrap items-center gap-2 bg-[#111113] p-1 rounded-xl border border-[rgba(255,255,255,0.06)]">
-            {["Hoje", "Todas", "Saúde", "Intelecto", "Trabalho", "Espiritualidade"].map(cat => (
+            {["Hoje", "Todas", ...uniqueCategories].map(cat => (
               <button
                 key={cat}
                 onClick={() => setSelectedCategory(cat)}
@@ -548,10 +610,35 @@ export function PosHabits() {
                     </div>
                     
                     <div className="flex gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                      <button onClick={() => {
+                        setNewHabit({
+                           title: habit.title || "",
+                           category: habit.category || "Saúde",
+                           icon: habit.icon || "Activity",
+                           color: habit.color || "blue",
+                           description: habit.description || "",
+                           objective: habit.objective || "",
+                           frequency: habit.frequency || "diaria",
+                           goal_type: habit.goal_type || "conclusao",
+                           goal_value: habit.goal_value || 0,
+                           unit: habit.unit || "",
+                           preferred_time: habit.preferred_time || "08:00",
+                           priority: habit.priority || "alta",
+                           goal_id: habit.goal_id || "",
+                           book_id: habit.book_id || "",
+                           course_id: habit.course_id || "",
+                           event_id: habit.event_id || "",
+                           days_of_week: habit.days_of_week || []
+                        } as any);
+                        setEditingHabitId(habit.id);
+                        setIsCreating(true);
+                      }} className="text-[#71717A] hover:text-cyan-500 p-1">
+                        <Edit2 className="size-3.5" />
+                      </button>
                       <button onClick={() => updateHabit(habit.id, { status: isPaused ? 'ativo' : 'pausado' })} className="text-[#71717A] hover:text-amber-500 p-1">
                         {isPaused ? <Play className="size-3.5" /> : <Pause className="size-3.5" />}
                       </button>
-                      <button onClick={() => deleteHabit(habit.id)} className="text-[#71717A] hover:text-rose-500 p-1">
+                      <button onClick={() => { if(window.confirm('Tem certeza que deseja excluir este hábito e todo seu histórico?')) deleteHabit(habit.id); }} className="text-[#71717A] hover:text-rose-500 p-1">
                         <Trash2 className="size-3.5" />
                       </button>
                     </div>
@@ -593,26 +680,91 @@ export function PosHabits() {
                        <span className="text-[10px] uppercase font-bold text-emerald-400 tracking-widest truncate">Leitura: {books.find(b => b.id === habit.book_id)?.title || 'Desconhecida'}</span>
                      </div>
                   )}
+                  {habit.course_id && (
+                     <div className="mb-4 bg-cyan-500/10 border border-cyan-500/20 px-3 py-1.5 rounded-lg flex items-center gap-2">
+                       <GraduationCap className="size-3 text-cyan-400" />
+                       <span className="text-[10px] uppercase font-bold text-cyan-400 tracking-widest truncate">Curso: {courses.find(c => c.id === habit.course_id)?.title || 'Desconhecido'}</span>
+                     </div>
+                  )}
+                  {habit.event_id && (
+                     <div className="mb-4 bg-indigo-500/10 border border-indigo-500/20 px-3 py-1.5 rounded-lg flex items-center gap-2">
+                       <CalendarIcon className="size-3 text-indigo-400" />
+                       <span className="text-[10px] uppercase font-bold text-indigo-400 tracking-widest truncate">Agenda: {events.find(e => e.id === habit.event_id)?.title || 'Desconhecido'}</span>
+                     </div>
+                  )}
 
-                  {/* Input Quantidade / Tempo (Se aplicável) */}
+                  {/* Input Quantidade / Tempo (Progressivo) */}
                   {!isPaused && habit.goal_type !== 'conclusao' && (
-                     <div className="mt-4 mb-2 flex items-center gap-3 bg-[#1A1A1E] p-2 rounded-xl border border-[rgba(255,255,255,0.02)]">
-                       <input 
-                         type="number"
-                         min="0"
-                         placeholder={`Alvo: ${habit.goal_value}`}
-                         defaultValue={logToday?.value_achieved || ''}
-                         className="w-20 bg-[#111113] border border-[rgba(255,255,255,0.06)] rounded-lg px-3 py-1.5 text-sm text-white focus:border-rose-500 focus:outline-none"
-                         onBlur={(e) => {
-                            const val = Number(e.target.value);
-                            if (val > 0) {
-                              const status = val >= (habit.goal_value || 0) ? 'concluido' : 'parcial';
-                              logHabitPartial(habit.id, val, status);
-                            }
-                         }}
-                       />
-                       <span className="text-[11px] text-[#A1A1AA] font-medium">{habit.unit || 'unid'}</span>
-                       {isCompleted && <CheckCircle2 className="size-4 text-emerald-500 ml-auto mr-2" />}
+                     <div className="mt-4 mb-2 flex flex-col gap-3 bg-[#1A1A1E] p-3 rounded-xl border border-[rgba(255,255,255,0.02)]">
+                       <div className="flex items-center justify-between">
+                         <span className="text-xs font-bold text-[#A1A1AA]">Progresso Diário</span>
+                         <span className="text-xs font-mono font-bold text-cyan-400">
+                           {logToday?.value_achieved || 0} <span className="text-[#71717A]">/ {habit.goal_value} {habit.unit}</span>
+                         </span>
+                       </div>
+                       
+                       <div className="h-1.5 w-full bg-black/50 rounded-full overflow-hidden">
+                         <div className="h-full bg-cyan-500 transition-all duration-700" style={{ width: `${Math.min(100, ((logToday?.value_achieved || 0) / (habit.goal_value || 1)) * 100)}%` }}></div>
+                       </div>
+                       
+                       <div className="flex items-center gap-2 mt-1">
+                         <input 
+                           type="number"
+                           placeholder="+ Adicionar..."
+                           className="w-full bg-[#111113] border border-[rgba(255,255,255,0.06)] rounded-lg px-3 py-1.5 text-sm text-white focus:border-rose-500 focus:outline-none"
+                           onKeyDown={async (e) => {
+                              if (e.key === 'Enter') {
+                                const addVal = Number(e.currentTarget.value);
+                                if (addVal !== 0) {
+                                  const current = logToday?.value_achieved || 0;
+                                  const newVal = Math.max(0, current + addVal);
+                                  const status = newVal >= (habit.goal_value || 0) ? 'concluido' : 'parcial';
+                                  await logHabitPartial(habit.id, newVal, status);
+                                  e.currentTarget.value = '';
+                                  
+                                  if (habit.book_id && addVal > 0) {
+                                    const todayStr = format(new Date(), 'yyyy-MM-dd');
+                                    await addReadingSession({ 
+                                      book_id: habit.book_id,
+                                      pages_read: addVal,
+                                      duration_minutes: 30,
+                                      session_date: todayStr,
+                                      notes: `Registrado via módulo de Hábitos (${habit.title})`
+                                    });
+                                  }
+                                }
+                              }
+                           }}
+                         />
+                         <button 
+                            className="bg-[#111113] hover:bg-cyan-500/20 text-cyan-500 border border-[rgba(255,255,255,0.06)] hover:border-cyan-500/30 px-3 py-1.5 rounded-lg text-xs font-bold transition-colors whitespace-nowrap flex items-center gap-1"
+                            onClick={async (e) => {
+                              const inputEl = e.currentTarget.previousElementSibling as HTMLInputElement;
+                              const addVal = Number(inputEl.value);
+                              if (addVal !== 0) {
+                                const current = logToday?.value_achieved || 0;
+                                const newVal = Math.max(0, current + addVal);
+                                const status = newVal >= (habit.goal_value || 0) ? 'concluido' : 'parcial';
+                                await logHabitPartial(habit.id, newVal, status);
+                                inputEl.value = '';
+                                
+                                if (habit.book_id && addVal > 0) {
+                                  const todayStr = format(new Date(), 'yyyy-MM-dd');
+                                  await addReadingSession({ 
+                                    book_id: habit.book_id,
+                                    pages_read: addVal,
+                                    duration_minutes: 30,
+                                    session_date: todayStr,
+                                    notes: `Registrado via módulo de Hábitos (${habit.title})`
+                                  });
+                                }
+                              }
+                            }}
+                         >
+                            <Plus className="size-3" /> Somar
+                         </button>
+                         {isCompleted && <CheckCircle2 className="size-4 text-emerald-500 shrink-0 ml-1" />}
+                       </div>
                      </div>
                   )}
 

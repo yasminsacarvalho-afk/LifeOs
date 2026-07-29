@@ -4,7 +4,7 @@ import { usePosTasks } from "@/hooks/use-pos-tasks";
 import {
   Calendar as CalendarIcon, Clock, Plus, Video, Briefcase, 
   MapPin, CheckCircle2, Circle, Trash2, ChevronLeft, ChevronRight,
-  Coffee, CalendarDays, X
+  Coffee, CalendarDays, X, Search, Repeat
 } from "lucide-react";
 import { format, addDays, startOfWeek, isSameDay, parseISO, isToday, addWeeks, subWeeks } from "date-fns";
 import { ptBR } from "date-fns/locale";
@@ -25,6 +25,11 @@ export function PosAgenda() {
     type: "reuniao",
     status: "agendado"
   });
+
+  // Switch states
+  const [syncGoogle, setSyncGoogle] = useState(false);
+  const [syncMeet, setSyncMeet] = useState(false);
+  const [repeatEvent, setRepeatEvent] = useState(false);
 
   const handleCreate = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -122,53 +127,234 @@ export function PosAgenda() {
       </div>
 
       {isCreating && (
-        <div className="fixed inset-0 z-[100] flex items-end md:items-center justify-center bg-black/80 backdrop-blur-sm p-0 md:p-4 animate-in fade-in">
-          <div className="w-full md:max-w-3xl max-h-[90vh] bg-[#111113] border border-[rgba(255,255,255,0.06)] md:rounded-3xl rounded-t-3xl shadow-2xl overflow-hidden flex flex-col animate-in slide-in-from-bottom-8 md:zoom-in-95">
-            <div className="p-5 md:p-6 border-b border-[rgba(255,255,255,0.06)] flex justify-between items-center bg-[#09090B]/80 backdrop-blur-md sticky top-0 z-10 shrink-0">
-               <h3 className="text-xl font-bold text-white flex items-center gap-2">
-                 <CalendarDays className="size-5 text-rose-500" /> Agendar Compromisso
-               </h3>
-               <button type="button" onClick={() => setIsCreating(false)} className="p-2 bg-[#1A1A1E] hover:bg-rose-500/20 text-[#A1A1AA] hover:text-rose-500 rounded-full transition-colors">
-                 <X className="size-5" />
-               </button>
-            </div>
+        <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/60 backdrop-blur-sm p-4 animate-in fade-in">
+          <div className="w-[90vw] h-[90vh] max-w-[1200px] bg-[#070707] border border-[rgba(255,255,255,0.06)] rounded-[28px] shadow-2xl overflow-hidden flex flex-col relative animate-in zoom-in-95 duration-200">
             
-            <div className="p-6 md:p-8 overflow-y-auto custom-scrollbar flex-1 pb-safe">
-              <form onSubmit={handleCreate}>
-                <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-                  <div className="md:col-span-2">
-                    <label className="text-[11px] uppercase font-bold text-[#71717A] mb-1 block">Título do Evento</label>
-                    <input required type="text" value={newEvent.title} onChange={e=>setNewEvent({...newEvent, title: e.target.value})} className="w-full bg-[#1A1A1E] border border-[rgba(255,255,255,0.06)] rounded-xl px-4 py-3 text-white text-sm focus:outline-none focus:border-rose-500" placeholder="Ex: Reunião de Diretoria" />
+            {/* Modal Header */}
+            <div className="h-[88px] md:h-[96px] px-8 border-b border-[rgba(255,255,255,0.05)] flex justify-between items-center shrink-0">
+              <div className="flex items-center gap-4">
+                <div className="size-12 rounded-[14px] bg-[#EEF4FF] flex items-center justify-center shrink-0">
+                  <CalendarIcon className="size-6 text-[#3B82F6]" />
+                </div>
+                <div>
+                  <h3 className="text-[24px] font-bold text-white leading-tight">Novo Compromisso</h3>
+                  <p className="text-[15px] font-normal text-[#A1A1AA]">Agende um novo evento</p>
+                </div>
+              </div>
+              <button 
+                type="button" 
+                onClick={() => setIsCreating(false)} 
+                className="size-10 rounded-full bg-[rgba(255,255,255,0.08)] hover:bg-[rgba(255,255,255,0.14)] flex items-center justify-center transition-colors shrink-0"
+              >
+                <X className="size-5 text-white" />
+              </button>
+            </div>
+
+            {/* Modal Body */}
+            <div className="flex-1 overflow-y-auto custom-scrollbar p-8">
+              <form onSubmit={handleCreate} className="h-full flex flex-col">
+                <div className="flex flex-col lg:flex-row gap-10 flex-1">
+                  
+                  {/* Left Column (65%) */}
+                  <div className="w-full lg:w-[65%] flex flex-col gap-7">
+                    <div className="flex items-center gap-2 mb-2">
+                      <div className="size-1.5 rounded-full bg-[#3B82F6]" />
+                      <h4 className="text-[13px] font-semibold uppercase tracking-wider text-[#CFCFCF]">Informações Básicas</h4>
+                    </div>
+
+                    <div className="flex flex-col gap-[10px]">
+                      <label className="text-[13px] font-semibold uppercase text-[#71717A]">Descrição</label>
+                      <input 
+                        required 
+                        type="text" 
+                        value={newEvent.title} 
+                        onChange={e=>setNewEvent({...newEvent, title: e.target.value})} 
+                        className="h-[52px] w-full bg-[#1C1C1F] border border-transparent focus:border-[#3B82F6] rounded-[14px] px-[18px] text-[16px] font-medium text-white placeholder-[#71717A] outline-none transition-colors" 
+                        placeholder="Ex: Reunião com cliente" 
+                      />
+                    </div>
+
+                    <div className="flex flex-col gap-[10px]">
+                      <label className="text-[13px] font-semibold uppercase text-[#71717A]">Data</label>
+                      <div className="relative">
+                        <div className="absolute left-[18px] top-1/2 -translate-y-1/2 text-[#71717A] pointer-events-none">
+                          <CalendarIcon className="size-5" />
+                        </div>
+                        <input 
+                          required 
+                          type="date" 
+                          value={newEvent.event_date} 
+                          onChange={e=>setNewEvent({...newEvent, event_date: e.target.value})} 
+                          className="h-[52px] w-full bg-[#1C1C1F] border border-transparent focus:border-[#3B82F6] rounded-[14px] pl-[50px] pr-[18px] text-[16px] font-medium text-white outline-none transition-colors dark-date-input" 
+                        />
+                      </div>
+                    </div>
+
+                    <div className="flex gap-7">
+                      <div className="flex flex-col gap-[10px] w-1/2">
+                        <label className="text-[13px] font-semibold uppercase text-[#71717A]">Início</label>
+                        <div className="relative">
+                          <input 
+                            type="time" 
+                            value={newEvent.start_time} 
+                            onChange={e=>setNewEvent({...newEvent, start_time: e.target.value})} 
+                            className="h-[52px] w-full bg-[#1C1C1F] border border-transparent focus:border-[#3B82F6] rounded-[14px] px-[18px] text-[16px] font-medium text-white outline-none transition-colors dark-time-input" 
+                          />
+                          <div className="absolute right-[18px] top-1/2 -translate-y-1/2 text-[#71717A] pointer-events-none">
+                            <Clock className="size-5" />
+                          </div>
+                        </div>
+                      </div>
+                      
+                      <div className="flex flex-col gap-[10px] w-1/2">
+                        <label className="text-[13px] font-semibold uppercase text-[#71717A]">Término</label>
+                        <div className="relative">
+                          <input 
+                            type="time" 
+                            value={newEvent.end_time} 
+                            onChange={e=>setNewEvent({...newEvent, end_time: e.target.value})} 
+                            className="h-[52px] w-full bg-[#1C1C1F] border border-transparent focus:border-[#3B82F6] rounded-[14px] px-[18px] text-[16px] font-medium text-white outline-none transition-colors dark-time-input" 
+                          />
+                          <div className="absolute right-[18px] top-1/2 -translate-y-1/2 text-[#71717A] pointer-events-none">
+                            <Clock className="size-5" />
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+
+                    <div className="flex flex-col gap-[10px] mt-2">
+                      <label className="text-[13px] font-semibold uppercase text-[#71717A]">Tipo</label>
+                      <select 
+                        value={newEvent.type} 
+                        onChange={e=>setNewEvent({...newEvent, type: e.target.value})} 
+                        className="h-[52px] w-full bg-[#1C1C1F] border border-transparent focus:border-[#3B82F6] rounded-[14px] px-[18px] text-[16px] font-medium text-white outline-none transition-colors appearance-none"
+                      >
+                        <option value="reuniao">Reunião</option>
+                        <option value="call">Call / Alinhamento</option>
+                        <option value="foco">Trabalho Focado</option>
+                        <option value="pessoal">Pessoal</option>
+                      </select>
+                    </div>
                   </div>
-                  <div>
-                    <label className="text-[11px] uppercase font-bold text-[#71717A] mb-1 block">Data</label>
-                    <input required type="date" value={newEvent.event_date} onChange={e=>setNewEvent({...newEvent, event_date: e.target.value})} className="w-full bg-[#1A1A1E] border border-[rgba(255,255,255,0.06)] rounded-xl px-4 py-3 text-white text-sm focus:outline-none focus:border-rose-500" />
-                  </div>
-                  <div>
-                    <label className="text-[11px] uppercase font-bold text-[#71717A] mb-1 block">Tipo</label>
-                    <select value={newEvent.type} onChange={e=>setNewEvent({...newEvent, type: e.target.value})} className="w-full bg-[#1A1A1E] border border-[rgba(255,255,255,0.06)] rounded-xl px-4 py-3 text-white text-sm focus:outline-none focus:border-rose-500">
-                      <option value="reuniao">Reunião</option>
-                      <option value="call">Call / Alinhamento</option>
-                      <option value="foco">Trabalho Focado</option>
-                      <option value="pessoal">Pessoal</option>
-                    </select>
-                  </div>
-                  <div>
-                    <label className="text-[11px] uppercase font-bold text-[#71717A] mb-1 block">Início (Opcional)</label>
-                    <input type="time" value={newEvent.start_time} onChange={e=>setNewEvent({...newEvent, start_time: e.target.value})} className="w-full bg-[#1A1A1E] border border-[rgba(255,255,255,0.06)] rounded-xl px-4 py-3 text-white text-sm focus:outline-none focus:border-rose-500" />
-                  </div>
-                  <div>
-                    <label className="text-[11px] uppercase font-bold text-[#71717A] mb-1 block">Término (Opcional)</label>
-                    <input type="time" value={newEvent.end_time} onChange={e=>setNewEvent({...newEvent, end_time: e.target.value})} className="w-full bg-[#1A1A1E] border border-[rgba(255,255,255,0.06)] rounded-xl px-4 py-3 text-white text-sm focus:outline-none focus:border-rose-500" />
-                  </div>
-                  <div className="md:col-span-2">
-                    <label className="text-[11px] uppercase font-bold text-[#71717A] mb-1 block">Descrição / Links</label>
-                    <input type="text" value={newEvent.description} onChange={e=>setNewEvent({...newEvent, description: e.target.value})} className="w-full bg-[#1A1A1E] border border-[rgba(255,255,255,0.06)] rounded-xl px-4 py-3 text-white text-sm focus:outline-none focus:border-rose-500" placeholder="Link do meet, pauta..." />
+
+                  {/* Right Column (35%) */}
+                  <div className="w-full lg:w-[35%] flex flex-col gap-6">
+                    <div className="flex items-center gap-2 mb-1">
+                      <div className="size-1.5 rounded-full bg-[#3B82F6]" />
+                      <h4 className="text-[13px] font-semibold uppercase tracking-wider text-[#CFCFCF]">Opções Adicionais</h4>
+                    </div>
+
+                    <div className="flex flex-col gap-6">
+                      {/* Lembrete */}
+                      <div className="bg-[#1C1C1F] rounded-[18px] p-[18px] border border-[rgba(255,255,255,0.05)] flex flex-col gap-3">
+                        <div className="flex items-center gap-3">
+                          <div className="p-2 rounded-xl bg-[#3B82F6]/10 text-[#3B82F6]">
+                            <Clock className="size-5" />
+                          </div>
+                          <div>
+                            <h5 className="text-[16px] font-semibold text-white">Lembrete</h5>
+                          </div>
+                        </div>
+                        <select className="h-[42px] w-full bg-[#232326] border border-transparent rounded-[12px] px-3 text-[14px] font-medium text-white outline-none transition-colors appearance-none mt-1">
+                          <option>30 minutos antes</option>
+                          <option>1 hora antes</option>
+                          <option>1 dia antes</option>
+                        </select>
+                      </div>
+
+                      {/* Vincular Pessoas */}
+                      <div className="bg-[#1C1C1F] rounded-[18px] p-[18px] border border-[#3B82F6] flex flex-col gap-3">
+                        <div className="flex items-center gap-3 mb-1">
+                          <div className="p-2 rounded-xl bg-[#3B82F6]/10 text-[#3B82F6]">
+                            <Briefcase className="size-5" />
+                          </div>
+                          <div>
+                            <h5 className="text-[16px] font-semibold text-white">Vincular Pessoas</h5>
+                          </div>
+                        </div>
+                        <p className="text-[14px] font-normal text-[#A1A1AA]">Nenhuma pessoa vinculada.</p>
+                        <div className="relative mt-1">
+                          <input 
+                            type="text" 
+                            placeholder="Busque por nome ou documento" 
+                            className="h-[42px] w-full bg-[#2A2A2D] border border-transparent focus:border-[#3B82F6] rounded-[12px] pl-[14px] pr-10 text-[14px] font-medium text-white placeholder-[#71717A] outline-none transition-colors" 
+                          />
+                          <div className="absolute right-[14px] top-1/2 -translate-y-1/2 text-[#71717A] pointer-events-none">
+                            <Search className="size-4" />
+                          </div>
+                        </div>
+                      </div>
+
+                      {/* Google Agenda */}
+                      <div className="bg-[#1C1C1F] rounded-[18px] p-[18px] border border-[rgba(255,255,255,0.05)] flex items-center justify-between">
+                        <div className="flex items-center gap-3">
+                          <div className="p-2 rounded-xl bg-[#22C55E]/10 text-[#22C55E]">
+                            <CalendarIcon className="size-5" />
+                          </div>
+                          <div>
+                            <h5 className="text-[16px] font-semibold text-white">Google Agenda</h5>
+                            <p className="text-[14px] font-normal text-[#A1A1AA]">Sincronize este compromisso.</p>
+                          </div>
+                        </div>
+                        <button 
+                          type="button" 
+                          onClick={() => setSyncGoogle(!syncGoogle)}
+                          className={cn("w-[44px] h-[24px] rounded-full relative transition-colors duration-200 shrink-0", syncGoogle ? "bg-[#3B82F6]" : "bg-[#4A4A4A]")}
+                        >
+                          <div className={cn("size-[20px] rounded-full bg-white absolute top-[2px] transition-transform duration-200", syncGoogle ? "translate-x-[22px]" : "translate-x-[2px]")} />
+                        </button>
+                      </div>
+
+                      {/* Google Meet */}
+                      <div className="bg-[#1C1C1F] rounded-[18px] p-[18px] border border-[rgba(255,255,255,0.05)] flex items-center justify-between">
+                        <div className="flex items-center gap-3">
+                          <div className="p-2 rounded-xl bg-[#14B8A6]/10 text-[#14B8A6]">
+                            <Video className="size-5" />
+                          </div>
+                          <div>
+                            <h5 className="text-[16px] font-semibold text-white">Google Meet</h5>
+                            <p className="text-[14px] font-normal text-[#A1A1AA]">Gerar link de reunião.</p>
+                          </div>
+                        </div>
+                        <button 
+                          type="button" 
+                          onClick={() => setSyncMeet(!syncMeet)}
+                          className={cn("w-[44px] h-[24px] rounded-full relative transition-colors duration-200 shrink-0", syncMeet ? "bg-[#3B82F6]" : "bg-[#4A4A4A]")}
+                        >
+                          <div className={cn("size-[20px] rounded-full bg-white absolute top-[2px] transition-transform duration-200", syncMeet ? "translate-x-[22px]" : "translate-x-[2px]")} />
+                        </button>
+                      </div>
+
+                      {/* Repetir */}
+                      <div className="bg-[#1C1C1F] rounded-[18px] p-[18px] border border-[rgba(255,255,255,0.05)] flex items-center justify-between">
+                        <div className="flex items-center gap-3">
+                          <div className="p-2 rounded-xl bg-[#8B5CF6]/10 text-[#8B5CF6]">
+                            <Repeat className="size-5" />
+                          </div>
+                          <div>
+                            <h5 className="text-[16px] font-semibold text-white">Repetir</h5>
+                          </div>
+                        </div>
+                        <button 
+                          type="button" 
+                          onClick={() => setRepeatEvent(!repeatEvent)}
+                          className={cn("w-[44px] h-[24px] rounded-full relative transition-colors duration-200 shrink-0", repeatEvent ? "bg-[#3B82F6]" : "bg-[#4A4A4A]")}
+                        >
+                          <div className={cn("size-[20px] rounded-full bg-white absolute top-[2px] transition-transform duration-200", repeatEvent ? "translate-x-[22px]" : "translate-x-[2px]")} />
+                        </button>
+                      </div>
+                    </div>
                   </div>
                 </div>
-                <div className="flex flex-col-reverse md:flex-row justify-end gap-3 mt-8 pt-6 border-t border-[rgba(255,255,255,0.04)]">
-                   <button type="button" onClick={() => setIsCreating(false)} className="px-6 py-4 md:py-3 rounded-xl text-sm font-medium text-[#A1A1AA] hover:bg-[#1A1A1E]">Cancelar</button>
-                   <button type="submit" className="px-6 py-4 md:py-3 rounded-xl text-sm font-bold text-white bg-rose-500 hover:bg-rose-600 shadow-[0_0_20px_rgba(225,29,72,0.3)]">Agendar Evento</button>
+
+                {/* Footer / Submit */}
+                <div className="mt-8 flex justify-end shrink-0 pt-4 pb-2">
+                  <button 
+                    type="submit" 
+                    className="h-[46px] px-7 bg-[#171717] hover:bg-[#232323] border border-[rgba(255,255,255,0.08)] rounded-[14px] text-white font-medium flex items-center gap-2 transition-colors"
+                  >
+                    <CheckCircle2 className="size-5" /> Salvar Compromisso
+                  </button>
                 </div>
               </form>
             </div>

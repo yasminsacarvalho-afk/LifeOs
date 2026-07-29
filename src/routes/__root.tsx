@@ -15,6 +15,8 @@ import { AppSidebar } from "@/components/AppSidebar";
 import { Toaster } from "sonner";
 import { AuthProvider, useAuth } from "@/contexts/AuthContext";
 import { useRouterState, Navigate } from "@tanstack/react-router";
+// @ts-ignore
+import { registerSW } from "virtual:pwa-register";
 
 function NotFoundComponent() {
   return (
@@ -97,6 +99,8 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
         rel: "stylesheet",
         href: "https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap",
       },
+      { rel: "manifest", href: "/manifest.webmanifest" },
+      { rel: "apple-touch-icon", href: "/pwa-192x192.png" },
     ],
   }),
   shellComponent: RootShell,
@@ -143,6 +147,12 @@ function AuthGuard({ children }: { children: ReactNode }) {
 
 function RootComponent() {
   const { queryClient } = Route.useRouteContext();
+
+  useEffect(() => {
+    if ("serviceWorker" in navigator) {
+      registerSW({ immediate: true });
+    }
+  }, []);
 
   return (
     <QueryClientProvider client={queryClient}>

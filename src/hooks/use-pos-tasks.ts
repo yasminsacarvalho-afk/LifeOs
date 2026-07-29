@@ -24,6 +24,7 @@ export interface PosTask {
   is_focus_mode: boolean;
   delayed_count: number;
   created_at?: string;
+  updated_at?: string;
 }
 
 export function usePosTasks() {
@@ -43,7 +44,32 @@ export function usePosTasks() {
         .order('created_at', { ascending: false });
 
       if (error && error.code !== '42P01') console.error("Error fetching tasks:", error);
-      if (data) setTasks(data);
+      if (data) {
+        const now = new Date();
+        const tasksToDelete: string[] = [];
+        
+        const activeTasks = data.filter(task => {
+          if (task.status === 'concluida') {
+             const refDate = new Date(task.updated_at || task.created_at || now.toISOString());
+             const diffDays = (now.getTime() - refDate.getTime()) / (1000 * 3600 * 24);
+             
+             if (diffDays >= 5) {
+                tasksToDelete.push(task.id);
+                return false;
+             }
+          }
+          return true;
+        });
+
+        // Trigger cleanup in background
+        if (tasksToDelete.length > 0) {
+          supabase.from('pos_tasks').delete().in('id', tasksToDelete).then(({ error }) => {
+            if (error) console.error("Error auto-deleting old completed tasks:", error);
+          });
+        }
+
+        setTasks(activeTasks);
+      }
     } catch (err) {
       console.error(err);
     } finally {

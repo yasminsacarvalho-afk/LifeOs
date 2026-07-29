@@ -16,6 +16,8 @@ export interface PosHabit {
   goal_value: number | null;
   unit: string | null;
   book_id?: string | null;
+  course_id?: string | null;
+  event_id?: string | null;
   days_of_week: any | null;
   preferred_time: string | null;
   priority: string | null;
@@ -41,6 +43,13 @@ export function usePosHabits() {
 
   useEffect(() => {
     fetchHabitsData();
+    
+    const handleSync = () => {
+      fetchHabitsData();
+    };
+    
+    window.addEventListener('pos-habits-sync', handleSync);
+    return () => window.removeEventListener('pos-habits-sync', handleSync);
   }, []);
 
   const fetchHabitsData = async () => {

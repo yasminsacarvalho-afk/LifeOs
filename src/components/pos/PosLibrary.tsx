@@ -1,8 +1,10 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import { PosLibraryGraph } from "./PosLibraryGraph";
+import { PosLibraryAchievements } from "./PosLibraryAchievements";
 import { usePosLibrary } from "@/hooks/use-pos-library";
 import { 
   Plus, Trash2, BookOpen, Star, Play, Pause, Bookmark, Brain, Sparkles, 
-  TrendingUp, Clock, Calendar as CalendarIcon, AlignLeft, Target, CheckCircle2, Edit2, RotateCcw, X
+  TrendingUp, Clock, Calendar as CalendarIcon, AlignLeft, Target, CheckCircle2, Edit2, RotateCcw, X, ExternalLink
 } from "lucide-react";
 import { format, isToday, parseISO, differenceInDays } from "date-fns";
 import { ptBR } from "date-fns/locale";
@@ -11,19 +13,101 @@ import { usePosGoals } from "@/hooks/use-pos-goals";
 import { LineChart, Line, XAxis, Tooltip, ResponsiveContainer } from 'recharts';
 
 export function PosLibrary() {
-  const { books, sessions, loading, addBook, updateBook, deleteBook, addReadingSession, resetBookProgress } = usePosLibrary();
+  const { books, sessions, loading, addBook, updateBook, deleteBook, addReadingSession, resetBookProgress, deleteReadingSession } = usePosLibrary();
   const { goals } = usePosGoals();
   const [isCreating, setIsCreating] = useState(false);
   const [activeSessionBook, setActiveSessionBook] = useState<string | null>(null);
   const [editingBookId, setEditingBookId] = useState<string | null>(null);
+  const [viewHistoryBookId, setViewHistoryBookId] = useState<string | null>(null);
   const [editBookData, setEditBookData] = useState<any>(null);
   const [filterStatus, setFilterStatus] = useState<string>('todos');
   const [filterCategory, setFilterCategory] = useState<string>('todas');
   const [searchQuery, setSearchQuery] = useState<string>('');
+  
+  // Persistent Active Sessions
+  const [activeSessions, setActiveSessions] = useState<any[]>(() => {
+    try {
+      const stored = localStorage.getItem('voyage_active_reading_sessions');
+      return stored ? JSON.parse(stored) : [];
+    } catch {
+      return [];
+    }
+  });
+
+  const [finishingSessionId, setFinishingSessionId] = useState<string | null>(null);
+  const [now, setNow] = useState(Date.now());
+
+  // Update timer every minute
+  useEffect(() => {
+    const interval = setInterval(() => setNow(Date.now()), 60000);
+    return () => clearInterval(interval);
+  }, []);
+
+  const saveActiveSessions = (sessions: any[]) => {
+    setActiveSessions(sessions);
+    localStorage.setItem('voyage_active_reading_sessions', JSON.stringify(sessions));
+  };
+
+  const startReadingSession = (book: any) => {
+    const existing = activeSessions.find(s => s.bookId === book.id);
+    if (existing) {
+       alert("Você já tem uma sessão ativa para este livro!");
+       return;
+    }
+    const newSession = {
+      id: Math.random().toString(36).substring(2, 15) + Date.now().toString(36),
+      bookId: book.id,
+      bookTitle: book.title,
+      startTime: Date.now(),
+      notes: ""
+    };
+    saveActiveSessions([...activeSessions, newSession]);
+    
+    if (book.drive_link || book.buy_link) {
+      window.open(book.drive_link || book.buy_link, '_blank');
+    }
+  };
+
+  const cancelReadingSession = (id: string) => {
+    saveActiveSessions(activeSessions.filter(s => s.id !== id));
+  };
+
+  const openFinishSession = (session: any) => {
+    const diffMs = Date.now() - session.startTime;
+    const durationMinutes = Math.max(1, Math.round(diffMs / 60000));
+    setFinishingSessionId(session.id);
+    setNewSession({ duration_minutes: durationMinutes, pages_read: 0, concentration_level: 8, notes: session.notes || "" });
+  };
+
+  const handleLogActiveSession = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!finishingSessionId) return;
+    const session = activeSessions.find(s => s.id === finishingSessionId);
+    if (!session) return;
+    
+    const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
+    const deviceName = isMobile ? "Celular/Tablet" : "PC/Desktop";
+    const userLocation = Intl.DateTimeFormat().resolvedOptions().timeZone || "Desconhecido";
+    
+    const startDate = new Date(session.startTime);
+    const timeStr = `${startDate.getHours().toString().padStart(2,'0')}:${startDate.getMinutes().toString().padStart(2,'0')}`;
+
+    await addReadingSession({ 
+      ...newSession, 
+      book_id: session.bookId, 
+      session_date: format(startDate, 'yyyy-MM-dd'),
+      start_time: timeStr,
+      device: deviceName,
+      location: userLocation
+    } as any);
+    
+    cancelReadingSession(session.id);
+    setFinishingSessionId(null);
+  };
 
   const [newBook, setNewBook] = useState({
     title: "", author: "", category: "Negócios", knowledge_area: "Estratégia",
-    format: "fisico", status: "quero_ler", total_pages: 0, language: "pt-br", start_date: format(new Date(), 'yyyy-MM-dd'), end_date: "", goal_id: ""
+    format: "fisico", status: "quero_ler", total_pages: 0, language: "pt-br", start_date: format(new Date(), 'yyyy-MM-dd'), end_date: "", goal_id: "", buy_link: ""
   });
 
   const getSafeDate = (dateStr: string | null | undefined) => {
@@ -48,15 +132,8 @@ export function PosLibrary() {
   };
 
   const handleLogSession = async (e: React.FormEvent) => {
+    // Legacy generic session logging if needed, replaced by active session flow
     e.preventDefault();
-    if (!activeSessionBook) return;
-    await addReadingSession({ 
-      ...newSession, 
-      book_id: activeSessionBook, 
-      session_date: format(new Date(), 'yyyy-MM-dd') 
-    } as any);
-    setActiveSessionBook(null);
-    setNewSession({ duration_minutes: 30, pages_read: 15, concentration_level: 8, notes: "" });
   };
 
   const handleUpdateBook = async (e: React.FormEvent) => {
@@ -218,17 +295,27 @@ export function PosLibrary() {
                   </div>
                 </div>
 
-                <div className="mb-6">
-                  <label className="text-[11px] uppercase tracking-widest text-[#71717A] font-bold mb-1 block">Vincular Meta Estratégica (Opcional)</label>
-                  <select 
-                    value={newBook.goal_id || ''} onChange={e => setNewBook({...newBook, goal_id: e.target.value})}
-                    className="w-full bg-[#1A1A1E] border border-[rgba(255,255,255,0.06)] rounded-xl px-4 py-3 text-white focus:border-rose-500 focus:outline-none transition-colors"
-                  >
-                    <option value="">Nenhuma Meta Vinculada</option>
-                    {goals.map(g => (
-                      <option key={g.id} value={g.id}>{g.title}</option>
-                    ))}
-                  </select>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
+                  <div>
+                    <label className="text-[11px] uppercase tracking-widest text-[#71717A] font-bold mb-1 block">Vincular Meta Estratégica (Opcional)</label>
+                    <select 
+                      value={newBook.goal_id || ''} onChange={e => setNewBook({...newBook, goal_id: e.target.value})}
+                      className="w-full bg-[#1A1A1E] border border-[rgba(255,255,255,0.06)] rounded-xl px-4 py-3 text-white focus:border-rose-500 focus:outline-none transition-colors"
+                    >
+                      <option value="">Nenhuma Meta Vinculada</option>
+                      {goals.map(g => (
+                        <option key={g.id} value={g.id}>{g.title}</option>
+                      ))}
+                    </select>
+                  </div>
+                  <div>
+                    <label className="text-[11px] uppercase tracking-widest text-[#71717A] font-bold mb-1 block">Link do Drive / Arquivo (Opcional)</label>
+                    <input 
+                      type="url" value={newBook.buy_link || ''} onChange={e => setNewBook({...newBook, buy_link: e.target.value})}
+                      className="w-full bg-[#1A1A1E] border border-[rgba(255,255,255,0.06)] rounded-xl px-4 py-3 text-white focus:border-rose-500 focus:outline-none transition-colors"
+                      placeholder="https://drive.google.com/..."
+                    />
+                  </div>
                 </div>
 
                 <div className="flex flex-col-reverse md:flex-row justify-end gap-3 mt-8 pt-6 border-t border-[rgba(255,255,255,0.04)]">
@@ -295,7 +382,7 @@ export function PosLibrary() {
                     <label className="text-[11px] uppercase font-bold text-[#71717A] mb-1 block">Meta de Conclusão</label>
                     <input type="date" value={editBookData.end_date ? editBookData.end_date.split('T')[0] : ''} onChange={e => setEditBookData({...editBookData, end_date: e.target.value})} className="w-full bg-[#1A1A1E] border border-[rgba(255,255,255,0.06)] rounded-lg text-sm px-3 py-3 text-white focus:outline-none focus:border-rose-500" />
                   </div>
-                  <div className="md:col-span-2">
+                  <div className="md:col-span-1">
                     <label className="text-[11px] uppercase font-bold text-[#71717A] mb-1 block">Meta Estratégica</label>
                     <select value={editBookData.goal_id || ''} onChange={e => setEditBookData({...editBookData, goal_id: e.target.value})} className="w-full bg-[#1A1A1E] border border-[rgba(255,255,255,0.06)] rounded-lg text-sm px-3 py-3 text-white focus:outline-none focus:border-rose-500">
                       <option value="">Nenhuma</option>
@@ -303,6 +390,10 @@ export function PosLibrary() {
                         <option key={g.id} value={g.id}>{g.title}</option>
                       ))}
                     </select>
+                  </div>
+                  <div className="md:col-span-1">
+                    <label className="text-[11px] uppercase font-bold text-[#71717A] mb-1 block">Link do Drive / Arquivo</label>
+                    <input type="url" value={editBookData.buy_link || ''} onChange={e => setEditBookData({...editBookData, buy_link: e.target.value})} className="w-full bg-[#1A1A1E] border border-[rgba(255,255,255,0.06)] rounded-lg text-sm px-3 py-3 text-white focus:outline-none focus:border-rose-500" placeholder="https://..." />
                   </div>
                 </div>
                 <div className="flex flex-col-reverse md:flex-row justify-end gap-3 mt-8 pt-6 border-t border-[rgba(255,255,255,0.04)]">
@@ -428,19 +519,33 @@ export function PosLibrary() {
                  <Brain className="size-4 text-rose-400" />
                </div>
                <div className="text-rose-200/90 text-sm font-medium">
-                 {cbRemainingDaysToFinish > 0 
-                   ? `Mantendo este ritmo, você termina o livro em ${cbRemainingDaysToFinish} dias.` 
-                   : "Falta muito pouco! Mantenha o ritmo para concluir o livro em breve."}
+                 {currentBook.end_date && currentBook.total_pages && getSafeDate(currentBook.end_date) ? (
+                   <div className="flex flex-col gap-1.5">
+                     <span>Para concluir até <strong className="text-rose-100">{format(getSafeDate(currentBook.end_date)!, "dd/MM/yyyy")}</strong>, você precisa ler <strong className="text-white bg-rose-500/30 px-2 py-0.5 rounded">{cbPagesPerDay} páginas por dia</strong>.</span>
+                     {cbRemainingDaysToFinish > 0 && (
+                       <span className="text-[11px] opacity-70">Ritmo atual: previsão de conclusão em {cbRemainingDaysToFinish} dias.</span>
+                     )}
+                   </div>
+                 ) : (
+                   cbRemainingDaysToFinish > 0 
+                     ? `Mantendo este ritmo, você conclui em ${cbRemainingDaysToFinish} dias. (Defina uma Data de Conclusão para calcular a meta diária)` 
+                     : "Falta muito pouco! Mantenha o ritmo para concluir em breve."
+                 )}
                </div>
             </div>
             
             <div className="flex flex-col md:flex-row gap-3 pt-2 relative z-10">
                <button 
-                 onClick={() => { setActiveSessionBook(currentBook.id); }}
+                 onClick={() => startReadingSession(currentBook)}
                  className="flex-1 bg-rose-600 text-white font-bold py-3.5 rounded-xl hover:bg-rose-500 shadow-[0_0_15px_rgba(225,29,72,0.3)] transition-all flex items-center justify-center gap-2"
                >
                  <Play className="size-4" fill="currentColor" /> Continuar Lendo
                </button>
+               {currentBook.buy_link && (
+                 <a href={currentBook.buy_link} target="_blank" rel="noopener noreferrer" className="flex-1 bg-blue-500/10 text-blue-400 border border-blue-500/20 font-bold py-3.5 rounded-xl hover:bg-blue-500/20 transition-all flex items-center justify-center gap-2">
+                   <ExternalLink className="size-4" /> Acessar Arquivo
+                 </a>
+               )}
                <button 
                  onClick={() => { setEditingBookId(currentBook.id); setEditBookData(currentBook); }}
                  className="flex-1 bg-white/5 text-white border border-white/10 font-bold py-3.5 rounded-xl hover:bg-white/10 transition-all flex items-center justify-center gap-2"
@@ -448,31 +553,92 @@ export function PosLibrary() {
                  Ver Detalhes
                </button>
             </div>
-            
-            {activeSessionBook === currentBook.id && (
-               <div className="mt-2 p-5 bg-black/40 backdrop-blur-xl rounded-2xl border border-[rgba(255,255,255,0.08)] animate-in slide-in-from-top-2 relative z-10">
-                 <h4 className="text-sm font-bold text-white mb-4 flex items-center gap-2"><AlignLeft className="size-4 text-rose-500"/> Registrar Leitura</h4>
-                 <form onSubmit={handleLogSession}>
-                   <div className="grid grid-cols-2 gap-4 mb-5">
-                     <div>
-                       <label className="text-[10px] uppercase tracking-widest text-[#71717A] font-bold mb-1 block">Páginas Lidas</label>
-                       <input type="number" min="1" required value={newSession.pages_read} onChange={e => setNewSession({...newSession, pages_read: Number(e.target.value)})} className="w-full bg-[#111113]/80 backdrop-blur-md border border-[rgba(255,255,255,0.1)] rounded-xl text-sm font-bold px-4 py-3 text-white focus:outline-none focus:border-rose-500 transition-colors shadow-inner" />
-                     </div>
-                     <div>
-                       <label className="text-[10px] uppercase tracking-widest text-[#71717A] font-bold mb-1 block">Tempo (Minutos)</label>
-                       <input type="number" min="1" required value={newSession.duration_minutes} onChange={e => setNewSession({...newSession, duration_minutes: Number(e.target.value)})} className="w-full bg-[#111113]/80 backdrop-blur-md border border-[rgba(255,255,255,0.1)] rounded-xl text-sm font-bold px-4 py-3 text-white focus:outline-none focus:border-rose-500 transition-colors shadow-inner" />
-                     </div>
-                   </div>
-                   <div className="flex gap-3">
-                     <button type="button" onClick={() => setActiveSessionBook(null)} className="flex-1 px-4 py-3.5 rounded-xl text-sm font-bold text-[#A1A1AA] bg-[#1A1A1E] border border-[rgba(255,255,255,0.05)] hover:bg-white/5 transition-colors">Cancelar</button>
-                     <button type="submit" className="flex-1 px-4 py-3.5 rounded-xl text-sm font-bold text-black bg-white hover:bg-gray-200 transition-colors shadow-[0_0_15px_rgba(255,255,255,0.2)]">Salvar Sessão</button>
-                   </div>
-                 </form>
-               </div>
-            )}
           </div>
         );
       })}
+
+      {/* Tabela de Sessões Ativas Seguras */}
+      {activeSessions.length > 0 && (
+         <div className="mt-2 animate-in fade-in slide-in-from-bottom-4">
+            <h3 className="text-lg font-bold text-white mb-4 flex items-center gap-2">
+              <Play className="size-5 text-rose-500" fill="currentColor" /> Sessões em Andamento (Seguras)
+            </h3>
+            <div className="space-y-3">
+               {activeSessions.map(session => {
+                  const elapsedMinutes = Math.max(0, Math.floor((now - session.startTime) / 60000));
+                  return (
+                    <div key={session.id} className="bg-[#111113] border border-rose-500/30 rounded-2xl p-5 shadow-[0_0_20px_rgba(225,29,72,0.1)] flex flex-col md:flex-row md:items-center justify-between gap-4">
+                       <div>
+                          <div className="flex items-center gap-2 mb-1">
+                             <span className="flex size-2 rounded-full bg-rose-500 animate-pulse"></span>
+                             <span className="text-[10px] font-bold text-rose-500 uppercase tracking-widest">Gravando Sessão</span>
+                          </div>
+                          <h4 className="text-white font-bold text-lg">{session.bookTitle}</h4>
+                          <p className="text-sm text-[#A1A1AA] mt-1 flex items-center gap-2">
+                             <Clock className="size-4" /> Iniciado às {format(new Date(session.startTime), 'HH:mm')} ({elapsedMinutes} min. lidos)
+                          </p>
+                       </div>
+                       
+                       <div className="flex gap-2">
+                          <button onClick={() => cancelReadingSession(session.id)} className="px-4 py-2.5 rounded-xl bg-[#1A1A1E] text-[#A1A1AA] hover:text-white hover:bg-white/10 text-sm font-bold border border-[rgba(255,255,255,0.05)] transition-colors">
+                             Cancelar
+                          </button>
+                          <button onClick={() => openFinishSession(session)} className="px-6 py-2.5 rounded-xl bg-rose-600 text-white hover:bg-rose-500 text-sm font-bold shadow-lg transition-colors flex items-center gap-2">
+                             <CheckCircle2 className="size-4" /> Concluir Leitura
+                          </button>
+                       </div>
+                    </div>
+                  )
+               })}
+            </div>
+         </div>
+      )}
+
+      {/* Modal Concluir Sessão */}
+      {finishingSessionId && (
+        <div className="fixed inset-0 z-[100] flex items-end sm:items-center justify-center bg-black/60 backdrop-blur-sm sm:p-4">
+          <form onSubmit={handleLogActiveSession} className="bg-[#111113] border border-[rgba(255,255,255,0.1)] rounded-t-3xl sm:rounded-3xl p-6 md:p-8 shadow-2xl w-full max-w-lg relative animate-in slide-in-from-bottom duration-300">
+            <button type="button" onClick={() => setFinishingSessionId(null)} className="absolute top-6 right-6 text-[#71717A] hover:text-white bg-white/5 p-2 rounded-full transition-colors"><X className="size-4"/></button>
+            <h3 className="text-xl font-bold text-white mb-6 border-b border-[rgba(255,255,255,0.06)] pb-4 flex items-center gap-2">
+               <AlignLeft className="size-5 text-rose-500" /> Registrar Leitura
+            </h3>
+            
+            <div className="space-y-5">
+              <div className="grid grid-cols-2 gap-4">
+                 <div>
+                   <label className="text-[10px] uppercase tracking-widest text-[#71717A] font-bold mb-2 block">Páginas Lidas Hoje</label>
+                   <input 
+                     type="number" min="1" required value={newSession.pages_read || ''} onChange={e => setNewSession({...newSession, pages_read: Number(e.target.value)})}
+                     className="w-full bg-[#1A1A1E] border border-[rgba(255,255,255,0.06)] rounded-xl px-4 py-3 text-sm text-white focus:border-rose-500 focus:outline-none transition-colors"
+                   />
+                 </div>
+                 <div>
+                   <label className="text-[10px] uppercase tracking-widest text-[#71717A] font-bold mb-2 block">Duração (Minutos)</label>
+                   <input 
+                     type="number" min="1" required value={newSession.duration_minutes || ''} onChange={e => setNewSession({...newSession, duration_minutes: Number(e.target.value)})}
+                     className="w-full bg-[#1A1A1E] border border-[rgba(255,255,255,0.06)] rounded-xl px-4 py-3 text-sm text-white focus:border-rose-500 focus:outline-none transition-colors"
+                   />
+                 </div>
+              </div>
+              
+              <div>
+                <label className="text-[10px] uppercase tracking-widest text-[#71717A] font-bold mb-2 block">Anotações / Resumo</label>
+                <textarea 
+                  value={newSession.notes} onChange={e => setNewSession({...newSession, notes: e.target.value})}
+                  className="w-full bg-[#1A1A1E] border border-[rgba(255,255,255,0.06)] rounded-xl px-4 py-3 text-sm text-white focus:border-rose-500 focus:outline-none transition-colors min-h-[120px] custom-scrollbar"
+                  placeholder="O que você aprendeu hoje? Faça um resumo..."
+                />
+              </div>
+            </div>
+            
+            <div className="flex justify-end mt-6">
+              <button type="submit" className="w-full sm:w-auto px-8 py-3 rounded-xl text-sm font-bold bg-rose-600 text-white hover:bg-rose-500 shadow-lg shadow-rose-500/20 transition-all flex items-center justify-center gap-2">
+                 Salvar Sessão <Target className="size-4" />
+              </button>
+            </div>
+          </form>
+        </div>
+      )}
 
       {/* Historico & Acervo */}
       <div className="mt-4 md:mt-8">
@@ -529,6 +695,12 @@ export function PosLibrary() {
                     <p className="text-sm text-[#71717A] mt-1">{book.author}</p>
                   </div>
                   <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity shrink-0">
+                     {book.buy_link && (
+                       <a href={book.buy_link} target="_blank" rel="noopener noreferrer" className="p-1.5 hover:bg-blue-500/20 rounded-lg text-blue-400 transition-colors" title="Acessar Livro/Drive">
+                         <ExternalLink className="size-3.5" />
+                       </a>
+                     )}
+                     <button onClick={() => { setViewHistoryBookId(book.id); }} className="p-1.5 hover:bg-white/10 rounded-lg text-[#71717A] hover:text-cyan-400 transition-colors" title="Ver Histórico"><Clock className="size-3.5" /></button>
                      <button onClick={() => { setEditingBookId(book.id); setEditBookData(book); }} className="p-1.5 hover:bg-white/10 rounded-lg text-[#71717A] hover:text-white transition-colors" title="Editar"><Edit2 className="size-3.5" /></button>
                      <button onClick={() => { if(window.confirm('Tem certeza que deseja zerar o progresso de leitura?')) resetBookProgress(book.id); }} className="p-1.5 hover:bg-white/10 rounded-lg text-[#71717A] hover:text-amber-500 transition-colors" title="Zerar Progresso"><RotateCcw className="size-3.5" /></button>
                      <button onClick={() => { if(window.confirm('Tem certeza que deseja excluir esta obra?')) deleteBook(book.id); }} className="p-1.5 hover:bg-white/10 rounded-lg text-[#71717A] hover:text-rose-500 transition-colors" title="Excluir"><Trash2 className="size-3.5" /></button>
@@ -569,6 +741,74 @@ export function PosLibrary() {
              </div>
            )}
          </div>
+      </div>
+
+      {/* Modal Histórico de Leitura */}
+      {viewHistoryBookId && (
+        <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/80 backdrop-blur-sm p-4 animate-in fade-in">
+          <div className="w-full max-w-2xl max-h-[85vh] bg-[#111113] border border-[rgba(255,255,255,0.06)] rounded-3xl shadow-2xl flex flex-col animate-in zoom-in-95">
+             <div className="p-5 border-b border-[rgba(255,255,255,0.06)] flex justify-between items-center bg-[#1A1A1E] rounded-t-3xl">
+                <h3 className="text-lg font-bold text-white flex items-center gap-2">
+                  <Clock className="size-5 text-cyan-400" /> Histórico de Sessões
+                </h3>
+                <button onClick={() => setViewHistoryBookId(null)} className="p-2 bg-white/5 hover:bg-white/10 text-[#A1A1AA] hover:text-white rounded-full transition-colors">
+                  <X className="size-4" />
+                </button>
+             </div>
+             <div className="p-6 overflow-y-auto custom-scrollbar flex-1 space-y-4">
+                {sessions.filter(s => s.book_id === viewHistoryBookId).length === 0 ? (
+                   <div className="text-center py-10 text-[#71717A] border border-dashed border-[rgba(255,255,255,0.05)] rounded-2xl">
+                     <AlignLeft className="size-8 mx-auto mb-3 opacity-50" />
+                     <p>Nenhuma sessão registrada para esta obra ainda.</p>
+                   </div>
+                ) : (
+                   sessions.filter(s => s.book_id === viewHistoryBookId).map(session => (
+                     <div key={session.id} className="bg-[#1A1A1E] border border-[rgba(255,255,255,0.04)] rounded-2xl p-4">
+                        <div className="flex justify-between items-center mb-3">
+                           <div className="flex items-center gap-2">
+                             <span className="text-xs font-bold text-[#A1A1AA] bg-black/30 px-3 py-1 rounded-lg border border-[rgba(255,255,255,0.03)]">
+                               {format(parseISO(`${session.session_date}T12:00:00`), "dd 'de' MMM, yyyy", { locale: ptBR })} {session.start_time ? `às ${session.start_time}` : ''}
+                             </span>
+                             {(session.device || session.location) && (
+                               <div className="hidden sm:flex items-center gap-2 text-[10px] text-[#71717A] uppercase tracking-wider font-bold">
+                                 {session.device && <span>• {session.device}</span>}
+                                 {session.location && <span>• {session.location}</span>}
+                               </div>
+                             )}
+                           </div>
+                           <div className="flex gap-2 items-center">
+                             <span className="text-xs font-bold text-rose-400 bg-rose-500/10 px-2 py-1 rounded border border-rose-500/20">+{session.pages_read} págs</span>
+                             <span className="text-xs font-bold text-cyan-400 bg-cyan-500/10 px-2 py-1 rounded border border-cyan-500/20">{session.duration_minutes} min</span>
+                             <button onClick={() => { if(window.confirm('Excluir esta sessão de leitura? As páginas serão subtraídas do total.')) deleteReadingSession(session.id); }} className="p-1 hover:bg-rose-500/20 rounded text-[#71717A] hover:text-rose-500 transition-colors ml-2">
+                               <Trash2 className="size-3.5" />
+                             </button>
+                           </div>
+                        </div>
+                        {(session.device || session.location) && (
+                          <div className="sm:hidden flex items-center gap-2 text-[10px] text-[#71717A] uppercase tracking-wider font-bold mb-3">
+                            {session.device && <span>{session.device}</span>}
+                            {session.location && <span>• {session.location}</span>}
+                          </div>
+                        )}
+                        {session.notes && (
+                           <div className="text-sm text-[#D4D4D8] leading-relaxed bg-[#111113] p-4 rounded-xl border border-[rgba(255,255,255,0.02)]">
+                             {session.notes}
+                           </div>
+                        )}
+                     </div>
+                   ))
+                )}
+             </div>
+          </div>
+        </div>
+      )}
+
+      {/* Achievements / Conquistas */}
+      <PosLibraryAchievements books={books} sessions={sessions} />
+
+      {/* Brain Graph - Moved to Bottom */}
+      <div className="mt-8 md:mt-12">
+         <PosLibraryGraph books={books} sessions={sessions} />
       </div>
 
     </div>

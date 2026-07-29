@@ -11,6 +11,11 @@ export interface PosGoal {
   progress_percentage: number;
   milestones: string | null;
   status: string;
+  target_value?: number | null;
+  unit?: string | null;
+  description?: string | null;
+  icon?: string | null;
+  color?: string | null;
   created_at?: string;
 }
 

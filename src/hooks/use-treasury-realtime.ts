@@ -46,8 +46,9 @@ export function useTreasuryRealtime() {
   useEffect(() => {
     fetchAccounts();
 
+    const channelId = `schema-db-changes-treasury-${Math.random()}`;
     const channel = supabase
-      .channel("schema-db-changes-treasury")
+      .channel(channelId)
       .on(
         "postgres_changes",
         {

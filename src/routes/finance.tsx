@@ -1,7 +1,7 @@
 import { useState, useMemo, useEffect } from "react";
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { TopBar } from "@/components/TopBar";
-import { Plus, Wallet, ShieldAlert, TrendingUp, TrendingDown, RefreshCw, Calendar, Edit2, Trash2, PieChart, Info, BookOpen, Target, ChevronLeft, ChevronRight, Calculator, X, Settings, Activity, BellRing, CheckCircle2, AlertTriangle, CheckSquare, Search, Filter, Copy, ArrowLeft, LayoutGrid, List, LayoutTemplate, Database, PiggyBank, Building2 } from 'lucide-react';
+import { Plus, Wallet, ShieldAlert, TrendingUp, TrendingDown, RefreshCw, Calendar, Edit2, Trash2, PieChart, Info, BookOpen, Target, ChevronLeft, ChevronRight, Calculator, X, Settings, Activity, BellRing, CheckCircle2, AlertTriangle, CheckSquare, Search, Filter, Copy, ArrowLeft, LayoutGrid, List, LayoutTemplate, Database, PiggyBank, Building2, CreditCard, Receipt } from 'lucide-react';
 import { supabase } from "@/integrations/supabase/client";
 import { cn } from "@/lib/utils";
 import { useCashClosingsRealtime } from "@/hooks/use-cash-closings-realtime";
@@ -10,7 +10,7 @@ import { usePartnersRealtime } from "@/hooks/use-partners-realtime";
 import { ComposedChart, Bar, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart as RechartsPieChart, Pie, Cell, Legend } from "recharts";
 import { useTreasuryRealtime, type TreasuryAccount } from "@/hooks/use-treasury-realtime";
 import { TreasuryAccountModal } from "@/components/TreasuryAccountModal";
-
+import { usePosFinance } from "@/hooks/use-pos-finance";
 export const Route = createFileRoute("/finance")({
   component: FinanceDashboard,
 });
@@ -132,6 +132,11 @@ function AnnualFinanceView({ transactions, activeContext, year }: { transactions
   const aPagar7d = futureExpenses.filter(t => parseLocalDate(t.date) >= today && parseLocalDate(t.date) <= new Date(today.getTime() + 7 * 86400000)).reduce((s, t) => s + t.amount, 0);
   const aPagar30d = futureExpenses.filter(t => parseLocalDate(t.date) > new Date(today.getTime() + 7 * 86400000) && parseLocalDate(t.date) <= new Date(today.getTime() + 30 * 86400000)).reduce((s, t) => s + t.amount, 0);
 
+  const pendentesPagar = futureExpenses.reduce((s, t) => s + t.amount, 0);
+  const pendentesReceber = futureIncomes.reduce((s, t) => s + t.amount, 0);
+  const caixaAtual = allPastTx.filter(t => t.paid && t.type === 'income').reduce((s, t) => s + t.amount, 0) - allPastTx.filter(t => t.paid && t.type === 'expense').reduce((s, t) => s + t.amount, 0);
+  const caixaProjetado = caixaAtual + pendentesReceber - pendentesPagar;
+
   // 6. CHARTS DATA
   let acmPatrimonio = totalAtivos - totalPassivos - (totalIncome - totalExpense); // start of year estimate
   const monthlyData = Array.from({ length: 12 }).map((_, i) => {
@@ -221,6 +226,30 @@ function AnnualFinanceView({ transactions, activeContext, year }: { transactions
           <div className="text-[10px] uppercase font-bold tracking-widest text-[#888] mb-1">MRR (Recorrente)</div>
           <div className="text-2xl font-light text-[#3B82F6]">{formatBRL(mrr)}</div>
           <div className="text-[10px] text-[#555] mt-2">Receita Mensal Previsível</div>
+        </div>
+      </div>
+
+      {/* Caixa & Projeções (Operational Cash KPIs) */}
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+        <div className="bg-[#111] border border-[#222] rounded-xl p-4 shadow-xl group hover:border-[#333] transition-colors cursor-help" title="Saldo atual efetivamente em conta.">
+          <div className="text-[10px] uppercase font-bold tracking-widest text-[#888] mb-1">Caixa Atual</div>
+          <div className="text-2xl font-light text-white">{formatBRL(caixaAtual)}</div>
+          <div className="text-[10px] text-[#555] mt-2">Saldo Global Executado</div>
+        </div>
+        <div className="bg-[#111] border border-[#222] rounded-xl p-4 shadow-xl group hover:border-[#333] transition-colors cursor-help" title="Saldo previsto após recebimentos e pagamentos pendentes.">
+          <div className="text-[10px] uppercase font-bold tracking-widest text-[#888] mb-1">Caixa Projetado</div>
+          <div className="text-2xl font-light text-white">{formatBRL(caixaProjetado)}</div>
+          <div className="text-[10px] text-[#555] mt-2">Projeção Futura (Op.)</div>
+        </div>
+        <div className="bg-[#111] border border-[#222] rounded-xl p-4 shadow-xl group hover:border-[#333] transition-colors cursor-help" title="Soma total das despesas ainda não pagas.">
+          <div className="text-[10px] uppercase font-bold tracking-widest text-[#888] mb-1">Total A Pagar</div>
+          <div className="text-2xl font-light text-rose-500">{formatBRL(pendentesPagar)}</div>
+          <div className="text-[10px] text-[#555] mt-2">Pendências Abertas</div>
+        </div>
+        <div className="bg-[#111] border border-[#222] rounded-xl p-4 shadow-xl group hover:border-[#333] transition-colors cursor-help" title="Soma total das receitas ainda não recebidas.">
+          <div className="text-[10px] uppercase font-bold tracking-widest text-[#888] mb-1">Total A Receber</div>
+          <div className="text-2xl font-light text-emerald-500">{formatBRL(pendentesReceber)}</div>
+          <div className="text-[10px] text-[#555] mt-2">Receitas a Entrar</div>
         </div>
       </div>
 
@@ -477,7 +506,7 @@ function AnnualFinanceView({ transactions, activeContext, year }: { transactions
                     </tr>
                   );
                 })}
-                {expensePieData.length === 0 && (
+              {expensePieData.length === 0 && (
                   <tr>
                     <td colSpan={6} className="py-8 text-center text-[#555] italic">Nenhuma despesa registrada neste ano.</td>
                   </tr>
@@ -491,7 +520,17 @@ function AnnualFinanceView({ transactions, activeContext, year }: { transactions
   );
 }
 
-function FinanceDashboard() {
+export function FinanceDashboard({ 
+  hideHeader = false,
+  onNewBudget,
+  onNewPersonalExpense,
+  onNewCard
+}: { 
+  hideHeader?: boolean;
+  onNewBudget?: () => void;
+  onNewPersonalExpense?: () => void;
+  onNewCard?: () => void;
+}) {
   const [viewMode, setViewMode] = useState<'monthly' | 'annual'>('monthly');
   const [activeContext, setActiveContext] = useState<'personal' | 'business'>('business');
   const [transactions, setTransactions] = useState<Transaction[]>([]);
@@ -507,6 +546,8 @@ function FinanceDashboard() {
   const { accounts: treasuryAccounts, refetch: refetchTreasury, loading: loadingTreasury } = useTreasuryRealtime();
   const [isTreasuryModalOpen, setIsTreasuryModalOpen] = useState(false);
   const [editingTreasuryAcc, setEditingTreasuryAcc] = useState<TreasuryAccount | null>(null);
+
+  const { creditCards: personalCards, expenses: personalExpenses, budgets: personalBudgets } = usePosFinance();
 
   // Modal states
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -573,7 +614,6 @@ function FinanceDashboard() {
     return {
       bankName: 'Nubank / CDI',
       yieldRate: 1.0, // 1% ao mês
-      cashbackRate: 1.0, // 1% em despesas pagas
     };
   });
 
@@ -621,6 +661,18 @@ function FinanceDashboard() {
   const removeTask = (id: string) => {
     setTasks(tasks.filter(t => t.id !== id));
   };
+
+  // Cross-reference computations
+  const currentMonthPrefix = `${selectedDate.getFullYear()}-${String(selectedDate.getMonth() + 1).padStart(2, '0')}`;
+  
+  const totalInvoices = activeContext === 'personal'
+    ? personalCards.map(c => personalExpenses.filter(e => e.card_id === c.id && e.expense_date?.startsWith(currentMonthPrefix)).reduce((sum, e) => sum + e.amount, 0)).reduce((a, b) => a + b, 0)
+    : treasuryAccounts.filter(a => a.account_context === 'business').reduce((acc, a) => acc + Number(a.invoice_amount || 0), 0);
+
+  const totalTreasury = treasuryAccounts.filter(a => a.account_context === activeContext).reduce((acc, a) => acc + Number(a.current_balance || 0), 0);
+  const totalCaixinhas = treasuryAccounts.filter(a => a.account_context === activeContext).reduce((acc, a) => acc + (a.allocations || []).reduce((sum, al) => sum + Number(al.amount), 0), 0);
+  const totalBudgets = activeContext === 'personal' ? personalBudgets.reduce((sum, b) => sum + (b.amount_limit || 0), 0) : 0;
+
 
   const [visibleKPIs, setVisibleKPIs] = useState<Record<string, boolean>>(() => {
     try {
@@ -1029,23 +1081,6 @@ function FinanceDashboard() {
     });
   }
 
-  if (bankConfig.cashbackRate > 0) {
-    const totalDespesasPagas = bizTxIni.filter(t => t.type === 'expense' && t.paid && t.category !== 'Pró-Labore / Distribuição' && t.category !== 'CAPEX / Aquisições').reduce((a,b) => a+b.amount, 0);
-    const cashbackAmount = totalDespesasPagas * (bankConfig.cashbackRate / 100);
-    if (cashbackAmount > 0) {
-      injectedTransactions.push({
-        id: 'auto-cashback-biz',
-        type: 'income',
-        context: 'business',
-        description: `Cashback Boletos & Despesas (${bankConfig.cashbackRate}%)`,
-        category: 'Outros',
-        amount: cashbackAmount,
-        date: `${currentYear}-${String(currentMonth+1).padStart(2,'0')}-28`,
-        paid: true,
-        is_recurring: false
-      });
-    }
-  }
 
   // --- 2. Pro-Labore Automático ---
   if (proLaboreConfig.enabled) {
@@ -1332,8 +1367,9 @@ function FinanceDashboard() {
   const lucroRetido = cfoLucroOperacional; 
 
   return (
-    <div className="min-h-screen bg-[#050505] text-[#FAFAFA] font-sans selection:bg-[#EBB52C]/30 selection:text-[#EBB52C]">
-      <header className="px-4 md:px-8 py-6 border-b border-[#222] bg-[#0A0A0A] flex flex-col md:flex-row justify-between items-start md:items-center gap-4 sticky top-0 z-30">
+    <div className="w-full text-[#FAFAFA] font-sans selection:bg-[#EBB52C]/30 selection:text-[#EBB52C]">
+      {!hideHeader && (
+      <header className="px-4 md:px-8 py-6 border-b border-[rgba(255,255,255,0.02)] flex flex-col md:flex-row justify-between items-start md:items-center gap-4 sticky top-0 z-30 bg-[#09090B]/95 backdrop-blur-md">
         <div className="flex items-center gap-4">
           <Link to="/" className="p-2 bg-[#111] border border-[#222] rounded-xl text-[#888] hover:text-white hover:bg-[#222] transition-colors cursor-pointer group" title="Voltar ao Início">
             <ArrowLeft className="size-5 group-hover:-translate-x-1 transition-transform" />
@@ -1400,125 +1436,284 @@ function FinanceDashboard() {
           </div>
         </div>
       </header>
+      )}
 
       <main className="p-4 md:p-8 max-w-7xl mx-auto space-y-6">
         {viewMode === 'annual' ? (
           <AnnualFinanceView 
-            transactions={injectedTransactions} 
-            activeContext={activeContext} 
-            year={selectedDate.getFullYear()} 
+            transactions={transactions}
+            activeContext={activeContext}
+            year={selectedDate.getFullYear()}
           />
         ) : (
           <>
-        
-        {/* Mobile Month Selector */}
-        <div className="flex items-center justify-between gap-4 bg-[#111] border border-[#222] rounded-xl p-1 shadow-inner lg:hidden mb-4">
-          <button 
-            onClick={() => { const d = new Date(selectedDate); d.setMonth(d.getMonth() - 1); setSelectedDate(d); }}
-            className="p-3 text-[#888] hover:text-white transition-colors hover:bg-[#222] rounded-lg"
-          >
-            <ChevronLeft className="size-5" />
-          </button>
-          <div className="text-center flex flex-col items-center justify-center">
-            <span className="text-[10px] font-bold text-[#EBB52C] uppercase tracking-widest">{selectedDate.getFullYear()}</span>
-            <span className="text-sm font-medium text-white capitalize">
-              {selectedDate.toLocaleDateString('pt-BR', { month: 'long' })}
-            </span>
-          </div>
-          <button 
-             onClick={() => { const d = new Date(selectedDate); d.setMonth(d.getMonth() + 1); setSelectedDate(d); }}
-            className="p-3 text-[#888] hover:text-white transition-colors hover:bg-[#222] rounded-lg"
-          >
-            <ChevronRight className="size-5" />
-          </button>
-        </div>
+            {hideHeader ? (
+              <div className="flex flex-col gap-4 mb-2 bg-[#0A0A0A] p-4 md:p-6 rounded-3xl border border-[rgba(255,255,255,0.04)] shadow-xl relative overflow-hidden">
+            <div className="absolute top-0 right-0 p-16 bg-rose-500/10 blur-[100px] w-64 h-64 rounded-full pointer-events-none"></div>
+            
+            {/* Top Row: Greeting left, Avatar right */}
+            <div className="flex justify-between items-center w-full z-10 relative">
+              <div>
+                <h1 className="text-2xl sm:text-3xl font-bold text-white tracking-tight">Bom dia, Bruno</h1>
+                <p className="text-xs sm:text-sm text-[#A1A1AA] mt-0.5 capitalize">{new Date().toLocaleDateString('pt-BR', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' })} • <span className="text-emerald-400 font-medium">Personal OS Ativo</span></p>
+              </div>
+              <div className="flex items-center gap-3">
+                <button className="relative p-2 rounded-full bg-[rgba(255,255,255,0.05)] hover:bg-[rgba(255,255,255,0.1)] transition-colors border border-[rgba(255,255,255,0.1)]">
+                  <BellRing className="size-5 text-[#A1A1AA] hover:text-white" />
+                  <span className="absolute top-1 right-1 w-2 h-2 bg-rose-500 rounded-full border border-[#09090B]"></span>
+                </button>
+                <div className="w-10 h-10 sm:w-11 sm:h-11 rounded-full bg-gradient-to-tr from-rose-500 to-orange-400 p-0.5 shadow-lg shadow-rose-500/20">
+                  <div className="w-full h-full rounded-full bg-[#1A1A1E] border-2 border-[#09090B] overflow-hidden flex items-center justify-center">
+                    <span className="text-white text-xs sm:text-sm font-bold tracking-wider">BA</span>
+                  </div>
+                </div>
+              </div>
+            </div>
 
-        {/* Header Controls */}
-        <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
-          <div className="flex flex-wrap gap-2 w-full md:w-auto">
-            <button 
-              onClick={() => setIsSimulatorActive(!isSimulatorActive)}
-              className={cn("flex items-center gap-2 px-3 md:px-4 py-2 rounded-xl text-xs md:text-sm font-bold transition-all border flex-1 justify-center md:flex-none backdrop-blur-md shadow-lg", isSimulatorActive ? "bg-[#EBB52C]/20 border-[#EBB52C] text-[#EBB52C]" : "bg-white/5 hover:bg-white/10 border-white/10 text-[#aaa]")}
-            >
-              <Calculator className="size-4 shrink-0" />
-              <span className="hidden sm:inline">{isSimulatorActive ? "Sair do Simulador" : "Simulador de Cenários"}</span>
-              <span className="sm:hidden">{isSimulatorActive ? "Sair" : "Simular"}</span>
-            </button>
-            <button 
-              onClick={() => setIsGlossaryOpen(true)}
-              className="flex items-center gap-2 px-3 md:px-4 py-2 rounded-xl text-xs md:text-sm font-bold transition-all border bg-white/5 hover:bg-white/10 border-white/10 text-[#aaa] flex-1 justify-center md:flex-none backdrop-blur-md shadow-lg"
-            >
-              <BookOpen className="size-4 shrink-0" />
-              <span className="hidden sm:inline">Dicionário CFO</span>
-              <span className="sm:hidden">Dicionário</span>
-            </button>
-            <button 
-              onClick={() => setIsCategoriesModalOpen(true)}
-              className="flex items-center gap-2 px-3 md:px-4 py-2 rounded-xl text-xs md:text-sm font-bold transition-all border bg-white/5 hover:bg-white/10 border-white/10 text-[#aaa] flex-1 justify-center md:flex-none backdrop-blur-md shadow-lg"
-            >
-              <Database className="size-4 shrink-0" />
-              <span className="hidden sm:inline">Categorias</span>
-              <span className="sm:hidden">Categorias</span>
-            </button>
-            <button 
-              onClick={() => setIsProLaboreModalOpen(true)}
-              className="flex items-center gap-2 px-3 md:px-4 py-2 rounded-xl text-xs md:text-sm font-bold transition-all border bg-white/5 hover:bg-white/10 border-white/10 text-[#aaa] flex-1 justify-center md:flex-none backdrop-blur-md shadow-lg"
-            >
-              <Wallet className="size-4 shrink-0" />
-              <span className="hidden sm:inline">Tesouraria & Pró-Labore</span>
-              <span className="sm:hidden">Tesouraria</span>
-            </button>
-            <button 
-              onClick={() => setIsTasksOpen(true)}
-              className="flex items-center gap-2 px-3 md:px-4 py-2 rounded-xl text-xs md:text-sm font-bold transition-all border bg-white/5 hover:bg-white/10 border-white/10 text-[#aaa] flex-1 justify-center md:flex-none relative backdrop-blur-md shadow-lg"
-            >
-              <CheckSquare className="size-4 shrink-0" />
-              <span className="hidden sm:inline">Tarefas / Pendências</span>
-              <span className="sm:hidden">Tarefas</span>
-              {tasks.filter(t => !t.done).length > 0 && (
-                <span className="absolute -top-1.5 -right-1.5 bg-rose-500 text-white text-[9px] font-bold w-4 h-4 rounded-full flex items-center justify-center">
-                  {tasks.filter(t => !t.done).length}
-                </span>
+            {/* Middle Row: Centralized Month Selector and Filters */}
+            <div className="flex flex-col items-center justify-center gap-3 w-full mt-2 z-10 relative">
+              <div className="flex items-center justify-between gap-4 bg-[#111] border border-[#222] rounded-xl p-1 shadow-inner w-full max-w-[280px]">
+                <button 
+                  onClick={() => { const d = new Date(selectedDate); d.setMonth(d.getMonth() - 1); setSelectedDate(d); }}
+                  className="p-1.5 text-[#888] hover:text-white transition-colors hover:bg-[#222] rounded-lg"
+                >
+                  <ChevronLeft className="size-5" />
+                </button>
+                <div className="text-center flex flex-col items-center justify-center">
+                  <span className="text-[10px] font-bold text-rose-500 uppercase tracking-widest">{selectedDate.getFullYear()}</span>
+                  <span className="text-sm font-bold text-white capitalize leading-none mt-0.5">
+                    {selectedDate.toLocaleDateString('pt-BR', { month: 'long' })}
+                  </span>
+                </div>
+                <button 
+                  onClick={() => { const d = new Date(selectedDate); d.setMonth(d.getMonth() + 1); setSelectedDate(d); }}
+                  className="p-1.5 text-[#888] hover:text-white transition-colors hover:bg-[#222] rounded-lg"
+                >
+                  <ChevronRight className="size-5" />
+                </button>
+              </div>
+
+              <div className="flex flex-col sm:flex-row items-center gap-2">
+                <div className="flex bg-[#111] p-1 rounded-full border border-[#222] shadow-inner gap-1">
+                  <button 
+                    onClick={() => setViewMode('monthly')}
+                    className={cn("px-4 py-1.5 rounded-full text-xs font-bold transition-all", viewMode === 'monthly' ? "bg-[#333] text-white shadow-md" : "text-[#888] hover:text-white")}
+                  >
+                    Mensal
+                  </button>
+                  <button 
+                    onClick={() => setViewMode('annual')}
+                    className={cn("px-4 py-1.5 rounded-full text-xs font-bold transition-all", viewMode === 'annual' ? "bg-[#333] text-white shadow-md" : "text-[#888] hover:text-white")}
+                  >
+                    Anual
+                  </button>
+                </div>
+
+                <div className="flex bg-[#111] p-1 rounded-full border border-[#222] shadow-inner gap-1">
+                  <button 
+                    onClick={() => setActiveContext('business')}
+                    className={cn("px-4 py-1.5 rounded-full text-xs font-bold transition-all", activeContext === 'business' ? "bg-rose-500 text-white shadow-md" : "text-[#888] hover:text-white")}
+                  >
+                    🏢 Empresa
+                  </button>
+                  <button 
+                    onClick={() => setActiveContext('personal')}
+                    className={cn("px-4 py-1.5 rounded-full text-xs font-bold transition-all", activeContext === 'personal' ? "bg-rose-500 text-white shadow-md" : "text-[#888] hover:text-white")}
+                  >
+                    👤 Pessoal
+                  </button>
+                </div>
+              </div>
+            </div>
+
+            {/* Bottom Row: Action Buttons in a single line */}
+            <div className="flex flex-wrap items-center justify-center gap-2 mt-3 z-10 relative w-full">
+              {activeContext === 'business' && (
+                <button 
+                  onClick={() => { setEditingId(null); setModalType('expense'); setForm({...form, description: '', amount: '', reservePercentage: 0, category: 'CAPEX / Aquisições'}); setIsModalOpen(true); }}
+                  className="flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-bold border border-rose-500/30 bg-rose-500/10 text-rose-500 hover:bg-rose-500/20 transition-all shadow-lg"
+                >
+                  <Plus className="size-3.5 shrink-0" /> CAPEX
+                </button>
               )}
-            </button>
-          </div>
-          <div className="flex flex-wrap items-center gap-2 w-full md:w-auto">
-            {activeContext === 'business' && (
+              
               <button 
-                onClick={() => { setEditingId(null); setModalType('expense'); setForm({...form, description: '', amount: '', reservePercentage: 0, category: 'CAPEX / Aquisições'}); setIsModalOpen(true); }}
-                className="flex items-center gap-1.5 md:gap-2 px-3 md:px-5 py-2.5 rounded-lg text-[10px] md:text-xs font-bold border border-[#EBB52C]/30 bg-[#EBB52C]/10 text-[#EBB52C] hover:bg-[#EBB52C]/20 transition-all shadow-lg shadow-[#EBB52C]/5 flex-1 justify-center md:flex-none"
+                onClick={handleCloneMonth}
+                title="Clonar lançamentos"
+                className="flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-bold border border-[#3B82F6]/30 bg-[#3B82F6]/10 text-[#3B82F6] hover:bg-[#3B82F6]/20 transition-all shadow-lg"
               >
-                <Plus className="size-3 md:size-4 shrink-0" /> CAPEX
+                <Copy className="size-3.5 shrink-0" /> Clonar Mês
               </button>
-            )}
-            <button 
-              onClick={handleCloneMonth}
-              title="Clonar lançamentos deste mês para o mês seguinte"
-              className="flex items-center gap-1.5 md:gap-2 px-3 md:px-5 py-2.5 rounded-lg text-[10px] md:text-xs font-bold border border-[#3B82F6]/30 bg-[#3B82F6]/10 text-[#3B82F6] hover:bg-[#3B82F6]/20 transition-all shadow-lg shadow-[#3B82F6]/5 flex-1 justify-center md:flex-none"
-            >
-              <Copy className="size-3 md:size-4 shrink-0" /> Clonar Mês
-            </button>
-            <button 
-              onClick={() => { setIsCaixinhasModalOpen(true); setIsCaixinhaFormOpen(true); setCaixinhaFormName(''); setCaixinhaFormAmount(''); setCaixinhaFormType('aporte'); }}
-              title="Criar ou adicionar fundos a uma caixinha/reserva"
-              className="flex items-center gap-1.5 md:gap-2 px-3 md:px-5 py-2.5 rounded-lg text-[10px] md:text-xs font-bold border border-[#EBB52C]/30 bg-[#EBB52C]/10 text-[#EBB52C] hover:bg-[#EBB52C]/20 transition-all shadow-lg shadow-[#EBB52C]/5 flex-1 justify-center md:flex-none"
-            >
-              <PiggyBank className="size-3 md:size-4 shrink-0" /> <span className="hidden sm:inline">Aporte Caixinha</span><span className="sm:hidden">Caixinha</span>
-            </button>
-            <button 
-              onClick={() => { setEditingId(null); setModalType('income'); setForm({...form, description: '', amount: '', reservePercentage: 0, category: ''}); setIsModalOpen(true); }}
-              className="flex items-center gap-1.5 md:gap-2 px-3 md:px-5 py-2.5 rounded-lg text-[10px] md:text-xs font-bold bg-[#EBB52C] text-black hover:bg-[#d4a327] transition-all shadow-lg shadow-[#EBB52C]/20 flex-1 justify-center md:flex-none"
-            >
-              <Plus className="size-3 md:size-4 shrink-0" /> <span className="hidden sm:inline">Nova Receita</span><span className="sm:hidden">Receita</span>
-            </button>
-            <button 
-              onClick={() => { setEditingId(null); setModalType('expense'); setForm({...form, description: '', amount: '', reservePercentage: 0, category: ''}); setIsModalOpen(true); }}
-              className="flex items-center gap-1.5 md:gap-2 px-3 md:px-5 py-2.5 rounded-lg text-[10px] md:text-xs font-bold border border-[#333] bg-[#111] text-white hover:bg-[#222] transition-all flex-1 justify-center md:flex-none"
-            >
-              <Plus className="size-3 md:size-4 shrink-0" /> <span className="hidden sm:inline">Nova Despesa</span><span className="sm:hidden">Despesa</span>
-            </button>
+              
+              <button 
+                onClick={() => { setIsCaixinhasModalOpen(true); setIsCaixinhaFormOpen(true); setCaixinhaFormName(''); setCaixinhaFormAmount(''); setCaixinhaFormType('aporte'); }}
+                title="Criar ou adicionar fundos a uma caixinha/reserva"
+                className="flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-bold border border-[#EBB52C]/30 bg-[#EBB52C]/10 text-[#EBB52C] hover:bg-[#EBB52C]/20 transition-all shadow-lg"
+              >
+                <PiggyBank className="size-3.5 shrink-0" /> Caixinha
+              </button>
+              
+              <button 
+                onClick={() => { setEditingId(null); setModalType('income'); setForm({...form, description: '', amount: '', reservePercentage: 0, category: ''}); setIsModalOpen(true); }}
+                className={cn("flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-bold transition-all shadow-lg", activeContext === 'personal' ? "bg-emerald-500 text-white hover:bg-emerald-600 shadow-emerald-500/20" : "bg-[#EBB52C] text-black hover:bg-[#d4a327] shadow-[#EBB52C]/20")}
+              >
+                <Plus className="size-3.5 shrink-0" /> Nova Receita
+              </button>
+              
+              <button 
+                onClick={() => { 
+                  if (activeContext === 'personal' && onNewPersonalExpense) {
+                    onNewPersonalExpense();
+                  } else {
+                    setEditingId(null); setModalType('expense'); setForm({...form, description: '', amount: '', reservePercentage: 0, category: ''}); setIsModalOpen(true); 
+                  }
+                }}
+                className={cn("flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-bold transition-all shadow-lg text-white", activeContext === 'personal' ? "bg-rose-500 hover:bg-rose-600 shadow-rose-500/20" : "bg-rose-500 hover:bg-rose-600 shadow-rose-500/20")}
+              >
+                <Plus className="size-3.5 shrink-0" /> Nova Despesa
+              </button>
+
+              {onNewBudget && activeContext === 'personal' && (
+                <button 
+                  onClick={onNewBudget}
+                  className="flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-bold border border-[#333] bg-[#111] text-white hover:bg-[#222] transition-all"
+                >
+                  <Wallet className="size-3.5 shrink-0" /> Orçamento
+                </button>
+              )}
+
+              {onNewCard && activeContext === 'personal' && (
+                <button 
+                  onClick={onNewCard}
+                  className="flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-bold border border-[#333] bg-[#111] text-white hover:bg-[#222] transition-all"
+                >
+                  <CreditCard className="size-3.5 shrink-0" /> Cartão
+                </button>
+              )}
+            </div>
           </div>
-        </div>
+        ) : (
+          <>
+            {/* Inline Month Selector for regular Finance View */}
+            <div className="flex items-center justify-between gap-4 bg-[#111] border border-[#222] rounded-xl p-1 shadow-inner mb-4 max-w-[280px] mx-auto lg:hidden">
+              <button 
+                onClick={() => { const d = new Date(selectedDate); d.setMonth(d.getMonth() - 1); setSelectedDate(d); }}
+                className="p-3 text-[#888] hover:text-white transition-colors hover:bg-[#222] rounded-lg"
+              >
+                <ChevronLeft className="size-5" />
+              </button>
+              <div className="text-center flex flex-col items-center justify-center">
+                <span className="text-[10px] font-bold text-[#EBB52C] uppercase tracking-widest">{selectedDate.getFullYear()}</span>
+                <span className="text-sm font-medium text-white capitalize">
+                  {selectedDate.toLocaleDateString('pt-BR', { month: 'long' })}
+                </span>
+              </div>
+              <button 
+                onClick={() => { const d = new Date(selectedDate); d.setMonth(d.getMonth() + 1); setSelectedDate(d); }}
+                className="p-3 text-[#888] hover:text-white transition-colors hover:bg-[#222] rounded-lg"
+              >
+                <ChevronRight className="size-5" />
+              </button>
+            </div>
+
+            {/* Header Controls for regular Finance View */}
+            <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+              <div className="flex flex-wrap gap-2 w-full md:w-auto">
+                <button 
+                  onClick={() => setIsSimulatorActive(!isSimulatorActive)}
+                  className={cn("flex items-center gap-2 px-3 md:px-4 py-2 rounded-xl text-xs md:text-sm font-bold transition-all border flex-1 justify-center md:flex-none backdrop-blur-md shadow-lg", isSimulatorActive ? "bg-[#EBB52C]/20 border-[#EBB52C] text-[#EBB52C]" : "bg-white/5 hover:bg-white/10 border-white/10 text-[#aaa]")}
+                >
+                  <Calculator className="size-4 shrink-0" />
+                  <span className="hidden sm:inline">{isSimulatorActive ? "Sair do Simulador" : "Simulador de Cenários"}</span>
+                  <span className="sm:hidden">{isSimulatorActive ? "Sair" : "Simular"}</span>
+                </button>
+                <button 
+                  onClick={() => setIsGlossaryOpen(true)}
+                  className="flex items-center gap-2 px-3 md:px-4 py-2 rounded-xl text-xs md:text-sm font-bold transition-all border bg-white/5 hover:bg-white/10 border-white/10 text-[#aaa] flex-1 justify-center md:flex-none backdrop-blur-md shadow-lg"
+                >
+                  <BookOpen className="size-4 shrink-0" />
+                  <span className="hidden sm:inline">Dicionário CFO</span>
+                  <span className="sm:hidden">Dicionário</span>
+                </button>
+                <button 
+                  onClick={() => setIsCategoriesModalOpen(true)}
+                  className="flex items-center gap-2 px-3 md:px-4 py-2 rounded-xl text-xs md:text-sm font-bold transition-all border bg-white/5 hover:bg-white/10 border-white/10 text-[#aaa] flex-1 justify-center md:flex-none backdrop-blur-md shadow-lg"
+                >
+                  <Database className="size-4 shrink-0" />
+                  <span className="hidden sm:inline">Categorias</span>
+                  <span className="sm:hidden">Categorias</span>
+                </button>
+                <button 
+                  onClick={() => setIsProLaboreModalOpen(true)}
+                  className="flex items-center gap-2 px-3 md:px-4 py-2 rounded-xl text-xs md:text-sm font-bold transition-all border bg-white/5 hover:bg-white/10 border-white/10 text-[#aaa] flex-1 justify-center md:flex-none backdrop-blur-md shadow-lg"
+                >
+                  <Wallet className="size-4 shrink-0" />
+                  <span className="hidden sm:inline">Tesouraria & Pró-Labore</span>
+                  <span className="sm:hidden">Tesouraria</span>
+                </button>
+                <button 
+                  onClick={() => setIsTasksOpen(true)}
+                  className="flex items-center gap-2 px-3 md:px-4 py-2 rounded-xl text-xs md:text-sm font-bold transition-all border bg-white/5 hover:bg-white/10 border-white/10 text-[#aaa] flex-1 justify-center md:flex-none relative backdrop-blur-md shadow-lg"
+                >
+                  <CheckSquare className="size-4 shrink-0" />
+                  <span className="hidden sm:inline">Tarefas / Pendências</span>
+                  <span className="sm:hidden">Tarefas</span>
+                  {tasks.filter(t => !t.done).length > 0 && (
+                    <span className="absolute -top-1.5 -right-1.5 bg-rose-500 text-white text-[9px] font-bold w-4 h-4 rounded-full flex items-center justify-center">
+                      {tasks.filter(t => !t.done).length}
+                    </span>
+                  )}
+                </button>
+              </div>
+              <div className="flex flex-wrap items-center gap-2 w-full md:w-auto">
+                {activeContext === 'business' && (
+                  <button 
+                    onClick={() => { setEditingId(null); setModalType('expense'); setForm({...form, description: '', amount: '', reservePercentage: 0, category: 'CAPEX / Aquisições'}); setIsModalOpen(true); }}
+                    className="flex items-center gap-1.5 md:gap-2 px-3 md:px-5 py-2.5 rounded-lg text-[10px] md:text-xs font-bold border border-[#EBB52C]/30 bg-[#EBB52C]/10 text-[#EBB52C] hover:bg-[#EBB52C]/20 transition-all shadow-lg shadow-[#EBB52C]/5 flex-1 justify-center md:flex-none"
+                  >
+                    <Plus className="size-3 md:size-4 shrink-0" /> CAPEX
+                  </button>
+                )}
+                <button 
+                  onClick={handleCloneMonth}
+                  title="Clonar lançamentos deste mês para o mês seguinte"
+                  className="flex items-center gap-1.5 md:gap-2 px-3 md:px-5 py-2.5 rounded-lg text-[10px] md:text-xs font-bold border border-[#3B82F6]/30 bg-[#3B82F6]/10 text-[#3B82F6] hover:bg-[#3B82F6]/20 transition-all shadow-lg shadow-[#3B82F6]/5 flex-1 justify-center md:flex-none"
+                >
+                  <Copy className="size-3 md:size-4 shrink-0" /> Clonar Mês
+                </button>
+                <button 
+                  onClick={() => { setIsCaixinhasModalOpen(true); setIsCaixinhaFormOpen(true); setCaixinhaFormName(''); setCaixinhaFormAmount(''); setCaixinhaFormType('aporte'); }}
+                  title="Criar ou adicionar fundos a uma caixinha/reserva"
+                  className="flex items-center gap-1.5 md:gap-2 px-3 md:px-5 py-2.5 rounded-lg text-[10px] md:text-xs font-bold border border-[#EBB52C]/30 bg-[#EBB52C]/10 text-[#EBB52C] hover:bg-[#EBB52C]/20 transition-all shadow-lg shadow-[#EBB52C]/5 flex-1 justify-center md:flex-none"
+                >
+                  <PiggyBank className="size-3 md:size-4 shrink-0" /> <span className="hidden sm:inline">Aporte Caixinha</span><span className="sm:hidden">Caixinha</span>
+                </button>
+                <button 
+                  onClick={() => { setEditingId(null); setModalType('income'); setForm({...form, description: '', amount: '', reservePercentage: 0, category: ''}); setIsModalOpen(true); }}
+                  className="flex items-center gap-1.5 md:gap-2 px-3 md:px-5 py-2.5 rounded-lg text-[10px] md:text-xs font-bold bg-[#EBB52C] text-black hover:bg-[#d4a327] transition-all shadow-lg shadow-[#EBB52C]/20 flex-1 justify-center md:flex-none"
+                >
+                  <Plus className="size-3 md:size-4 shrink-0" /> <span className="hidden sm:inline">Nova Receita</span><span className="sm:hidden">Receita</span>
+                </button>
+                <button 
+                  onClick={() => { 
+                    if (activeContext === 'personal' && onNewPersonalExpense) {
+                      onNewPersonalExpense();
+                    } else {
+                      setEditingId(null); setModalType('expense'); setForm({...form, description: '', amount: '', reservePercentage: 0, category: ''}); setIsModalOpen(true); 
+                    }
+                  }}
+                  className={cn("flex items-center gap-1.5 md:gap-2 px-3 md:px-5 py-2.5 rounded-lg text-[10px] md:text-xs font-bold transition-all shadow-lg flex-1 justify-center md:flex-none", 
+                    activeContext === 'personal' && onNewPersonalExpense
+                      ? "bg-rose-500 text-white hover:bg-rose-600 shadow-rose-500/20"
+                      : "border border-[#333] bg-[#111] text-white hover:bg-[#222]"
+                  )}
+                >
+                  <Plus className="size-3 md:size-4 shrink-0" /> <span className="hidden sm:inline">Nova Despesa</span><span className="sm:hidden">Despesa</span>
+                </button>
+              </div>
+            </div>
+          </>
+        )}
 
         {/* Tesouraria e Caixinhas Bancárias */}
         <section id="tesouraria" className="relative overflow-hidden rounded-3xl border border-blue-500/20 bg-black/60 p-8 backdrop-blur-2xl shadow-2xl mt-4 space-y-6">
@@ -1531,7 +1726,7 @@ function FinanceDashboard() {
                 <h2 className="text-2xl font-bold tracking-tight text-white flex items-center gap-2">
                   Tesouraria & Caixinhas
                 </h2>
-                <p className="text-sm text-muted-foreground">Distribuição de capital, caixinhas de reserva e saldo consolidado.</p>
+                <p className="text-sm text-muted-foreground">Distribuição de capital, caixinhas de reserva e cruzamento consolidado de saldos.</p>
               </div>
             </div>
             <button
@@ -1543,6 +1738,43 @@ function FinanceDashboard() {
             >
               <Plus className="size-4" /> Adicionar Conta
             </button>
+          </div>
+
+          {/* Cross-Reference Global View */}
+          <div className="grid grid-cols-1 md:grid-cols-4 gap-4 pb-4">
+            <div className="bg-[#111] p-5 rounded-2xl border border-white/5 shadow-inner">
+              <p className="text-[10px] text-muted-foreground uppercase font-bold tracking-widest mb-1 flex items-center gap-1.5"><Building2 className="size-3 text-emerald-500" /> Saldo Global</p>
+              <p className="text-2xl font-bold text-white">
+                {totalTreasury.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}
+              </p>
+              <p className="text-xs text-muted-foreground mt-1">Soma de todas as contas ({activeContext === 'personal' ? 'Pessoal' : 'Empresa'})</p>
+            </div>
+            
+            <div className="bg-[#111] p-5 rounded-2xl border border-white/5 shadow-inner">
+              <p className="text-[10px] text-muted-foreground uppercase font-bold tracking-widest mb-1 flex items-center gap-1.5"><CreditCard className="size-3 text-rose-500" /> Faturas e Passivos</p>
+              <p className="text-2xl font-bold text-rose-500">
+                {totalInvoices.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}
+              </p>
+              <p className="text-xs text-muted-foreground mt-1">
+                {activeContext === 'personal' ? 'Total atual dos cartões de crédito' : 'Próximas faturas a pagar'}
+              </p>
+            </div>
+
+            <div className="bg-[#111] p-5 rounded-2xl border border-white/5 shadow-inner">
+              <p className="text-[10px] text-muted-foreground uppercase font-bold tracking-widest mb-1 flex items-center gap-1.5"><PiggyBank className="size-3 text-[#EBB52C]" /> Caixinhas (Reserva)</p>
+              <p className="text-2xl font-bold text-[#EBB52C]">
+                {totalCaixinhas.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}
+              </p>
+              <p className="text-xs text-muted-foreground mt-1">Capital alocado e protegido</p>
+            </div>
+
+            <div className="bg-[#111] p-5 rounded-2xl border border-white/5 shadow-inner">
+              <p className="text-[10px] text-muted-foreground uppercase font-bold tracking-widest mb-1 flex items-center gap-1.5"><Activity className="size-3 text-[#3B82F6]" /> Liquidez Livre</p>
+              <p className="text-2xl font-bold text-[#3B82F6]">
+                {(totalTreasury - totalCaixinhas).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}
+              </p>
+              <p className="text-xs text-muted-foreground mt-1">Disponível para uso imediato</p>
+            </div>
           </div>
           
           {loadingTreasury ? (
@@ -2105,25 +2337,55 @@ function FinanceDashboard() {
             </div>
           </div>
 
-          <div className="bg-[#111] border border-[#222] rounded-2xl shadow-xl p-6 lg:col-span-2">
-            <h3 className="font-bold text-[#EBB52C] text-sm uppercase tracking-widest mb-6 flex items-center gap-2">
-              <PieChart className="size-4" /> Projeção de Fluxo (Ano Atual)
-            </h3>
-            <div className="h-[300px]">
-              <ResponsiveContainer width="100%" height="100%">
-                <ComposedChart data={chartData} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
-                  <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#222" />
-                  <XAxis dataKey="name" fontSize={10} tickLine={false} axisLine={false} stroke="#888" />
-                  <YAxis fontSize={10} tickLine={false} axisLine={false} stroke="#888" tickFormatter={(v) => `R$${v/1000}k`} />
-                  <Tooltip 
-                    formatter={(v: number) => formatBRL(v)} 
-                    contentStyle={{ backgroundColor: '#0a0a0a', borderColor: '#222', borderRadius: '8px', color: '#fff' }}
-                  />
-                  <Bar dataKey="Ativos" fill="#10B981" radius={[2, 2, 0, 0]} maxBarSize={20} />
-                  <Bar dataKey="Passivos" fill="#F43F5E" radius={[2, 2, 0, 0]} maxBarSize={20} />
-                  <Line type="monotone" name="Caixa Acumulado" dataKey="Projetado" stroke="#EBB52C" strokeWidth={2} dot={{ r: 3, fill: '#EBB52C' }} activeDot={{ r: 5 }} />
-                </ComposedChart>
-              </ResponsiveContainer>
+          <div className="bg-gradient-to-br from-[#1A1A1E] to-[#111113] border border-[rgba(255,255,255,0.06)] rounded-3xl shadow-2xl p-6 lg:p-8 lg:col-span-2 relative overflow-hidden group">
+            {/* Ambient Background Glows */}
+            <div className="absolute -top-24 -right-24 w-96 h-96 bg-emerald-500/5 rounded-full blur-[100px] pointer-events-none transition-opacity duration-700 opacity-50 group-hover:opacity-100" />
+            <div className="absolute -bottom-24 -left-24 w-96 h-96 bg-rose-500/5 rounded-full blur-[100px] pointer-events-none transition-opacity duration-700 opacity-50 group-hover:opacity-100" />
+            
+            <div className="relative z-10">
+              <div className="flex items-center justify-between mb-8">
+                <h3 className="font-bold text-white text-base md:text-lg tracking-tight flex items-center gap-3">
+                  <div className="p-2 bg-[#EBB52C]/10 text-[#EBB52C] rounded-xl border border-[#EBB52C]/20">
+                    <Activity className="size-5" />
+                  </div>
+                  Projeção de Fluxo <span className="text-[#71717A] font-normal text-sm ml-1 hidden sm:inline">/ Ano Atual</span>
+                </h3>
+              </div>
+              
+              <div className="h-[320px]">
+                <ResponsiveContainer width="100%" height="100%">
+                  <ComposedChart data={chartData} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
+                    <defs>
+                      <linearGradient id="colorAtivos" x1="0" y1="0" x2="0" y2="1">
+                        <stop offset="0%" stopColor="#10B981" stopOpacity={0.9}/>
+                        <stop offset="100%" stopColor="#10B981" stopOpacity={0.3}/>
+                      </linearGradient>
+                      <linearGradient id="colorPassivos" x1="0" y1="0" x2="0" y2="1">
+                        <stop offset="0%" stopColor="#F43F5E" stopOpacity={0.9}/>
+                        <stop offset="100%" stopColor="#F43F5E" stopOpacity={0.3}/>
+                      </linearGradient>
+                    </defs>
+                    <CartesianGrid strokeDasharray="4 4" vertical={false} stroke="rgba(255,255,255,0.04)" />
+                    <XAxis dataKey="name" fontSize={11} tickLine={false} axisLine={false} stroke="#71717A" dy={10} />
+                    <YAxis fontSize={11} tickLine={false} axisLine={false} stroke="#71717A" tickFormatter={(v) => `R$${v/1000}k`} dx={-10} />
+                    <Tooltip 
+                      formatter={(v: number) => formatBRL(v)} 
+                      contentStyle={{ backgroundColor: 'rgba(23, 23, 26, 0.95)', backdropFilter: 'blur(12px)', borderColor: 'rgba(255,255,255,0.08)', borderRadius: '16px', color: '#fff', boxShadow: '0 20px 40px rgba(0,0,0,0.5)', padding: '12px 16px' }}
+                      itemStyle={{ fontWeight: '600', fontSize: '13px', paddingTop: '4px' }}
+                      labelStyle={{ color: '#A1A1AA', fontSize: '12px', paddingBottom: '4px', borderBottom: '1px solid rgba(255,255,255,0.05)', marginBottom: '4px' }}
+                      cursor={{ fill: 'rgba(255,255,255,0.02)' }}
+                    />
+                    <Legend 
+                      wrapperStyle={{ paddingTop: '20px', fontSize: '12px', fontWeight: '500' }}
+                      iconType="circle"
+                      iconSize={8}
+                    />
+                    <Bar dataKey="Ativos" fill="url(#colorAtivos)" radius={[6, 6, 0, 0]} maxBarSize={28} />
+                    <Bar dataKey="Passivos" fill="url(#colorPassivos)" radius={[6, 6, 0, 0]} maxBarSize={28} />
+                    <Line type="monotone" name="Caixa Acumulado" dataKey="Projetado" stroke="#EBB52C" strokeWidth={3} dot={{ r: 4, fill: '#17171A', stroke: '#EBB52C', strokeWidth: 2 }} activeDot={{ r: 7, fill: '#EBB52C', stroke: '#fff', strokeWidth: 2 }} />
+                  </ComposedChart>
+                </ResponsiveContainer>
+              </div>
             </div>
           </div>
         </div>
@@ -2892,17 +3154,6 @@ function FinanceDashboard() {
                   </div>
                 </div>
                 
-                <div>
-                  <label className="text-[10px] font-bold text-[#888] uppercase tracking-widest block mb-1">Cashback de Boletos Pagos (%)</label>
-                  <input 
-                    type="number" 
-                    step="0.1"
-                    value={bankConfig.cashbackRate} 
-                    onChange={e => setBankConfig({...bankConfig, cashbackRate: Number(e.target.value)})} 
-                    className="w-full p-3 border border-white/10 rounded-xl bg-white/5 text-white focus:border-[#EBB52C] focus:outline-none focus:bg-white/10 transition-colors shadow-inner" 
-                  />
-                  <div className="text-[10px] text-[#555] mt-1">Gera receita automática baseada no volume de despesas pagas.</div>
-                </div>
               </div>
 
               {/* PRO LABORE */}

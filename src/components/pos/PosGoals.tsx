@@ -20,17 +20,23 @@ export function PosGoals() {
     reason: "",
     deadline: "",
     progress_percentage: 0,
-    status: "ativa"
+    status: "ativa",
+    target_value: 0,
+    unit: "",
+    description: "",
+    icon: "Target",
+    color: "rose"
   });
 
   const handleCreate = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!newGoal.title) return;
     const payload: any = { ...newGoal };
-    if (!payload.deadline) delete payload.deadline;
+    if (!payload.target_value) delete payload.target_value;
+    if (!payload.unit) delete payload.unit;
     await addGoal(payload);
     setIsCreating(false);
-    setNewGoal({...newGoal, title: "", reason: "", deadline: "", progress_percentage: 0});
+    setNewGoal({...newGoal, title: "", reason: "", deadline: "", progress_percentage: 0, target_value: 0, unit: "", description: "", icon: "Target", color: "rose"});
   };
 
   const handleUpdate = async (e: React.FormEvent) => {
@@ -49,7 +55,7 @@ export function PosGoals() {
       case 'diaria': return 'Meta Diária';
       case 'leitura': return 'Meta de Leitura';
       case 'habito': return 'Meta de Hábitos';
-      default: return 'Objetivo Estratégico';
+      default: return type || 'Objetivo Estratégico';
     }
   };
 
@@ -91,13 +97,24 @@ export function PosGoals() {
                   </div>
                   <div>
                     <label className="text-[11px] uppercase tracking-widest text-[#71717A] font-bold mb-1 block">Categoria / Tipo</label>
-                    <select value={newGoal.type} onChange={e => setNewGoal({...newGoal, type: e.target.value})} className="w-full bg-[#1A1A1E] border border-[rgba(255,255,255,0.06)] rounded-xl px-4 py-3 text-white focus:border-rose-500 focus:outline-none">
-                      <option value="anual">Meta Anual (Estratégico)</option>
-                      <option value="mensal">Meta Mensal (Tático)</option>
-                      <option value="diaria">Meta Diária (Operacional)</option>
-                      <option value="leitura">Meta de Leitura</option>
-                      <option value="habito">Meta de Hábitos</option>
-                    </select>
+                    <input 
+                      type="text" 
+                      list="goal-types"
+                      value={newGoal.type} 
+                      onChange={e => setNewGoal({...newGoal, type: e.target.value})} 
+                      className="w-full bg-[#1A1A1E] border border-[rgba(255,255,255,0.06)] rounded-xl px-4 py-3 text-white focus:border-rose-500 focus:outline-none"
+                      placeholder="Ex: Saúde, Financeiro, Anual..."
+                    />
+                    <datalist id="goal-types">
+                      <option value="Estratégico (Anual)" />
+                      <option value="Tático (Mensal)" />
+                      <option value="Operacional (Diário)" />
+                      <option value="Saúde & Corpo" />
+                      <option value="Intelecto & Estudos" />
+                      <option value="Finanças" />
+                      <option value="Carreira" />
+                      <option value="Networking" />
+                    </datalist>
                   </div>
                   <div>
                     <label className="text-[11px] uppercase tracking-widest text-[#71717A] font-bold mb-1 block">Deadline (Prazo Fim)</label>
@@ -106,6 +123,33 @@ export function PosGoals() {
                   <div className="md:col-span-4">
                     <label className="text-[11px] uppercase tracking-widest text-[#71717A] font-bold mb-1 block">Propósito (Por que isso é importante?)</label>
                     <input type="text" value={newGoal.reason} onChange={e => setNewGoal({...newGoal, reason: e.target.value})} className="w-full bg-[#1A1A1E] border border-[rgba(255,255,255,0.06)] rounded-xl px-4 py-3 text-white focus:border-rose-500 focus:outline-none" placeholder="Qual o impacto real de alcançar essa meta?" />
+                  </div>
+                  <div className="md:col-span-4">
+                    <label className="text-[11px] uppercase tracking-widest text-[#71717A] font-bold mb-1 block">Descrição Detalhada</label>
+                    <textarea value={newGoal.description} onChange={e => setNewGoal({...newGoal, description: e.target.value})} className="w-full bg-[#1A1A1E] border border-[rgba(255,255,255,0.06)] rounded-xl px-4 py-3 text-white focus:border-rose-500 focus:outline-none min-h-[80px]" placeholder="Mais detalhes sobre a execução da meta..."></textarea>
+                  </div>
+                  <div>
+                    <label className="text-[11px] uppercase tracking-widest text-[#71717A] font-bold mb-1 block">Alvo Numérico (Opcional)</label>
+                    <input type="number" min="0" value={newGoal.target_value || ''} onChange={e => setNewGoal({...newGoal, target_value: Number(e.target.value)})} className="w-full bg-[#1A1A1E] border border-[rgba(255,255,255,0.06)] rounded-xl px-4 py-3 text-white focus:border-rose-500 focus:outline-none" placeholder="Ex: 10000" />
+                  </div>
+                  <div>
+                    <label className="text-[11px] uppercase tracking-widest text-[#71717A] font-bold mb-1 block">Unidade</label>
+                    <input type="text" value={newGoal.unit || ''} onChange={e => setNewGoal({...newGoal, unit: e.target.value})} className="w-full bg-[#1A1A1E] border border-[rgba(255,255,255,0.06)] rounded-xl px-4 py-3 text-white focus:border-rose-500 focus:outline-none" placeholder="Ex: R$, Km, Livros..." />
+                  </div>
+                  <div>
+                    <label className="text-[11px] uppercase tracking-widest text-[#71717A] font-bold mb-1 block">Ícone</label>
+                    <input type="text" value={newGoal.icon || ''} onChange={e => setNewGoal({...newGoal, icon: e.target.value})} className="w-full bg-[#1A1A1E] border border-[rgba(255,255,255,0.06)] rounded-xl px-4 py-3 text-white focus:border-rose-500 focus:outline-none" placeholder="Ex: Target, Activity..." />
+                  </div>
+                  <div>
+                    <label className="text-[11px] uppercase tracking-widest text-[#71717A] font-bold mb-1 block">Cor Tema</label>
+                    <select value={newGoal.color || 'rose'} onChange={e => setNewGoal({...newGoal, color: e.target.value})} className="w-full bg-[#1A1A1E] border border-[rgba(255,255,255,0.06)] rounded-xl px-4 py-3 text-white focus:border-rose-500 focus:outline-none">
+                      <option value="rose">Rose (Padrão)</option>
+                      <option value="emerald">Verde</option>
+                      <option value="blue">Azul</option>
+                      <option value="amber">Amarelo</option>
+                      <option value="indigo">Índigo</option>
+                      <option value="cyan">Ciano</option>
+                    </select>
                   </div>
                 </div>
 
@@ -152,8 +196,31 @@ export function PosGoals() {
                     </select>
                   </div>
                   <div className="md:col-span-4">
-                     <label className="text-[11px] uppercase font-bold text-[#71717A] mb-1 block">Por que?</label>
+                     <label className="text-[11px] uppercase font-bold text-[#71717A] mb-1 block">Propósito (Razão)</label>
                      <input type="text" value={editGoalData.reason || ''} onChange={e => setEditGoalData({...editGoalData, reason: e.target.value})} className="w-full bg-[#1A1A1E] border border-[rgba(255,255,255,0.06)] rounded-lg text-sm px-3 py-3 text-white focus:outline-none focus:border-rose-500" />
+                  </div>
+                  <div className="md:col-span-4">
+                     <label className="text-[11px] uppercase font-bold text-[#71717A] mb-1 block">Descrição Detalhada</label>
+                     <textarea value={editGoalData.description || ''} onChange={e => setEditGoalData({...editGoalData, description: e.target.value})} className="w-full bg-[#1A1A1E] border border-[rgba(255,255,255,0.06)] rounded-lg text-sm px-3 py-3 text-white focus:outline-none focus:border-rose-500 min-h-[80px]"></textarea>
+                  </div>
+                  <div>
+                    <label className="text-[11px] uppercase font-bold text-[#71717A] mb-1 block">Alvo</label>
+                    <input type="number" min="0" value={editGoalData.target_value || ''} onChange={e => setEditGoalData({...editGoalData, target_value: Number(e.target.value)})} className="w-full bg-[#1A1A1E] border border-[rgba(255,255,255,0.06)] rounded-lg text-sm px-3 py-3 text-white focus:outline-none focus:border-rose-500" />
+                  </div>
+                  <div>
+                    <label className="text-[11px] uppercase font-bold text-[#71717A] mb-1 block">Unidade</label>
+                    <input type="text" value={editGoalData.unit || ''} onChange={e => setEditGoalData({...editGoalData, unit: e.target.value})} className="w-full bg-[#1A1A1E] border border-[rgba(255,255,255,0.06)] rounded-lg text-sm px-3 py-3 text-white focus:outline-none focus:border-rose-500" />
+                  </div>
+                  <div>
+                    <label className="text-[11px] uppercase font-bold text-[#71717A] mb-1 block">Cor Tema</label>
+                    <select value={editGoalData.color || 'rose'} onChange={e => setEditGoalData({...editGoalData, color: e.target.value})} className="w-full bg-[#1A1A1E] border border-[rgba(255,255,255,0.06)] rounded-lg text-sm px-3 py-3 text-white focus:outline-none focus:border-rose-500">
+                      <option value="rose">Rose</option>
+                      <option value="emerald">Verde</option>
+                      <option value="blue">Azul</option>
+                      <option value="amber">Amarelo</option>
+                      <option value="indigo">Índigo</option>
+                      <option value="cyan">Ciano</option>
+                    </select>
                   </div>
                 </div>
                 <div className="flex flex-col-reverse md:flex-row justify-end gap-3 mt-8 pt-6 border-t border-[rgba(255,255,255,0.04)]">
@@ -197,11 +264,11 @@ export function PosGoals() {
               
               <div className="mt-auto">
                 <div className="flex justify-between items-center text-[10px] font-bold uppercase tracking-widest text-[#A1A1AA] mb-2">
-                  <span>Progresso</span>
-                  <span className={goal.progress_percentage === 100 ? "text-emerald-500" : "text-rose-400"}>{goal.progress_percentage}%</span>
+                  <span>Progresso {goal.target_value ? `(${((goal.progress_percentage/100) * goal.target_value).toFixed(1)} / ${goal.target_value} ${goal.unit || ''})` : ''}</span>
+                  <span className={goal.progress_percentage === 100 ? "text-emerald-500" : `text-${goal.color || 'rose'}-400`}>{goal.progress_percentage}%</span>
                 </div>
                 <div className="h-1.5 w-full bg-[#1A1A1E] rounded-full overflow-hidden">
-                  <div className={cn("h-full transition-all duration-1000", goal.progress_percentage === 100 ? "bg-emerald-500" : "bg-rose-500")} style={{width: `${goal.progress_percentage}%`}}></div>
+                  <div className={cn("h-full transition-all duration-1000", goal.progress_percentage === 100 ? "bg-emerald-500" : `bg-${goal.color || 'rose'}-500`)} style={{width: `${goal.progress_percentage}%`}}></div>
                 </div>
                 
                 {goal.deadline && (
