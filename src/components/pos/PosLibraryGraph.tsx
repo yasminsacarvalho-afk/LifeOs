@@ -1,6 +1,6 @@
 import { useState, useMemo } from 'react';
 import { PosBook, PosReadingSession } from '@/hooks/use-pos-library';
-import { BookOpen, Brain, Network } from 'lucide-react';
+import { BookOpen, Brain, Network, ChevronDown, ChevronUp } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 interface PosLibraryGraphProps {
@@ -27,6 +27,7 @@ interface Link {
 
 export function PosLibraryGraph({ books, sessions }: PosLibraryGraphProps) {
   const [selectedNode, setSelectedNode] = useState<Node | null>(null);
+  const [isExpanded, setIsExpanded] = useState(false);
 
   const { nodes, links } = useMemo(() => {
     const newNodes: Node[] = [];
@@ -130,7 +131,24 @@ export function PosLibraryGraph({ books, sessions }: PosLibraryGraphProps) {
   };
 
   return (
-    <div className="bg-[#111113] border border-[rgba(255,255,255,0.06)] rounded-3xl p-6 relative overflow-hidden flex flex-col xl:flex-row gap-6 shadow-2xl h-[600px] mb-8">
+    <div className="bg-[#111113] border border-[rgba(255,255,255,0.06)] rounded-3xl overflow-hidden mt-8 flex flex-col transition-all duration-500 shadow-2xl mb-8">
+      {/* HEADER */}
+      <div 
+        className="p-6 md:p-8 flex flex-col md:flex-row md:items-center justify-between gap-4 cursor-pointer hover:bg-[rgba(255,255,255,0.02)] transition-colors"
+        onClick={() => setIsExpanded(!isExpanded)}
+      >
+        <div className="flex items-center gap-3">
+           <Network className="size-6 text-rose-500" />
+           <h3 className="text-xl font-bold text-white tracking-tight">Gráfico Neural (Inspetor de Conhecimento)</h3>
+        </div>
+        <div className="p-2 bg-white/5 rounded-full text-white shrink-0">
+           {isExpanded ? <ChevronUp className="size-5" /> : <ChevronDown className="size-5" />}
+        </div>
+      </div>
+      
+      {/* EXPANDED CONTENT */}
+      {isExpanded && (
+        <div className="p-6 md:p-8 pt-0 border-t border-[rgba(255,255,255,0.06)] animate-in fade-in duration-500 flex flex-col xl:flex-row gap-6 h-[600px] mt-4">
       {/* Graphic Area */}
       <div className="flex-1 relative bg-black/40 rounded-2xl border border-[rgba(255,255,255,0.04)] overflow-auto custom-scrollbar flex items-center justify-center">
         <svg viewBox="0 0 800 800" className="w-full h-full min-w-[600px] min-h-[600px]">
@@ -241,8 +259,10 @@ export function PosLibraryGraph({ books, sessions }: PosLibraryGraphProps) {
                   <p className="text-sm text-[#A1A1AA]">Navegue pelo seu gráfico neural de conhecimento.<br/><br/>Clique em um nó para explorar a tese, os livros e os insights capturados.</p>
                </div>
             )}
-         </div>
-      </div>
+          </div>
+       </div>
+       </div>
+       )}
     </div>
   );
 }

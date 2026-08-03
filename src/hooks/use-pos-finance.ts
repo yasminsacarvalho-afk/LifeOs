@@ -157,6 +157,10 @@ export function usePosFinance() {
       if (payload.card_id === "") {
         payload.card_id = null;
       }
+      
+      if (!payload.budget_id) {
+        payload.budget_id = null;
+      }
 
       let { data, error } = await supabase
         .from('pos_expenses')
@@ -186,7 +190,7 @@ export function usePosFinance() {
         // Sincroniza com Lançamentos Recentes (financial_records)
         try {
           const budget = budgets.find(b => b.id === expense.budget_id);
-          const categoryName = budget ? budget.name : "Geral";
+          const categoryName = budget ? budget.name : "Sem Orçamento";
           
           await supabase.from('financial_records').insert([{
             type: 'expense',
@@ -195,7 +199,7 @@ export function usePosFinance() {
             category: categoryName,
             amount: expense.amount || 0,
             date: payload.expense_date,
-            paid: true,
+            paid: payload.card_id ? false : true,
             is_recurring: false
           }]);
         } catch (syncErr) {

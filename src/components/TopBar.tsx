@@ -1,7 +1,6 @@
 import { useEffect, useState } from "react";
-import { Bell, Search, Menu } from "lucide-react";
-import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
-import { SidebarContent } from "./AppSidebar";
+import { Bell, Search } from "lucide-react";
+import { ThemeSwitcher } from "./ThemeSwitcher";
 
 interface TopBarProps {
   title: string;
@@ -27,20 +26,7 @@ export function TopBar({ title, subtitle, actions }: TopBarProps) {
   return (
     <header className="sticky top-0 z-30 flex flex-wrap items-end justify-between gap-4 border-b border-border bg-background/60 px-4 md:px-8 py-5 backdrop-blur-xl print:hidden">
       <div className="flex items-center gap-4">
-        <Sheet open={sheetOpen} onOpenChange={setSheetOpen}>
-          <SheetTrigger asChild>
-            <button className="relative grid size-10 place-items-center rounded-lg border border-border bg-card/60 text-muted-foreground transition-colors hover:text-foreground shrink-0">
-              <Menu className="size-5" />
-            </button>
-          </SheetTrigger>
-          <SheetContent side="left" className="w-[280px] p-5 flex flex-col bg-background/95 backdrop-blur-xl border-r-border/50">
-             {/* Using a wrapper to close the sheet when links are clicked if needed, but react-router links navigate normally */}
-             <div onClick={() => setSheetOpen(false)} className="flex flex-col h-full">
-               <SidebarContent />
-             </div>
-          </SheetContent>
-        </Sheet>
-        
+
         <div>
           <div className="mb-1 flex items-center gap-2 text-[11px] font-medium uppercase tracking-widest text-muted-foreground">
             <span className="size-1.5 rounded-full bg-success animate-pulse" />
@@ -66,6 +52,8 @@ export function TopBar({ title, subtitle, actions }: TopBarProps) {
             BRT
           </span>
         </div>
+
+        <ThemeSwitcher />
 
         <button className="relative grid size-9 place-items-center rounded-lg border border-border bg-card/60 text-muted-foreground transition-colors hover:text-foreground shrink-0">
           <Bell className="size-4" />

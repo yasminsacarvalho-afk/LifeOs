@@ -14,6 +14,7 @@ import { reportLovableError } from "../lib/lovable-error-reporting";
 import { AppSidebar } from "@/components/AppSidebar";
 import { Toaster } from "sonner";
 import { AuthProvider, useAuth } from "@/contexts/AuthContext";
+import { ThemeProvider } from "@/contexts/ThemeContext";
 import { useRouterState, Navigate } from "@tanstack/react-router";
 // @ts-ignore
 import { registerSW } from "virtual:pwa-register";
@@ -137,10 +138,11 @@ function AuthGuard({ children }: { children: ReactNode }) {
   }
 
   return (
-    <div className="min-h-screen bg-background text-foreground">
+    <div className="min-h-screen bg-background text-foreground pb-24">
       <div className="w-full">
         {children}
       </div>
+      {!isLoginPage && <AppSidebar />}
     </div>
   );
 }
@@ -156,11 +158,13 @@ function RootComponent() {
 
   return (
     <QueryClientProvider client={queryClient}>
-      <AuthProvider>
-        <AuthGuard>
-          <Outlet />
-        </AuthGuard>
-      </AuthProvider>
+      <ThemeProvider>
+        <AuthProvider>
+          <AuthGuard>
+            <Outlet />
+          </AuthGuard>
+        </AuthProvider>
+      </ThemeProvider>
       <Toaster position="top-center" theme="dark" richColors />
     </QueryClientProvider>
   );

@@ -1,4 +1,5 @@
 @import "tailwindcss" source(none);
+@plugin "@tailwindcss/typography";
 @source "../src";
 @import "tw-animate-css";
 
@@ -161,4 +162,61 @@
     to { opacity: 1; transform: translateY(0); }
   }
   .animate-slide-up { animation: slide-up 0.5s cubic-bezier(0.16, 1, 0.3, 1) both; }
+}
+
+/* Themes */
+.theme-cosmos {
+  /* Default, uses root variables */
+}
+
+.theme-ocean {
+  --background: oklch(0.12 0.02 240);
+  --surface: oklch(0.15 0.03 240);
+  --surface-elevated: oklch(0.18 0.04 240);
+  --card: oklch(0.15 0.03 240);
+  --primary: oklch(0.65 0.15 210); /* Blue */
+  --accent: oklch(0.7 0.15 180); /* Teal */
+  --success: oklch(0.72 0.17 158);
+  --warning: oklch(0.75 0.15 70);
+  --danger: oklch(0.65 0.15 25);
+  --ring: oklch(0.65 0.15 210);
+}
+
+.theme-forest {
+  --background: oklch(0.12 0.02 150);
+  --surface: oklch(0.15 0.03 150);
+  --surface-elevated: oklch(0.18 0.04 150);
+  --card: oklch(0.15 0.03 150);
+  --primary: oklch(0.65 0.15 140); /* Green */
+  --accent: oklch(0.7 0.15 120); /* Lime/Emerald */
+  --success: oklch(0.72 0.17 158);
+  --warning: oklch(0.75 0.15 70);
+  --danger: oklch(0.65 0.15 25);
+  --ring: oklch(0.65 0.15 140);
+}
+
+.theme-dracula {
+  --background: oklch(0.15 0.02 300);
+  --surface: oklch(0.18 0.03 300);
+  --surface-elevated: oklch(0.2 0.04 300);
+  --card: oklch(0.18 0.03 300);
+  --primary: oklch(0.7 0.2 320); /* Purple/Pink */
+  --accent: oklch(0.75 0.15 280); /* Indigo */
+  --success: oklch(0.72 0.17 158);
+  --warning: oklch(0.75 0.15 70);
+  --danger: oklch(0.65 0.15 25);
+  --ring: oklch(0.7 0.2 320);
+}
+
+.theme-monochrome {
+  --background: oklch(0.1 0 0);
+  --surface: oklch(0.15 0 0);
+  --surface-elevated: oklch(0.18 0 0);
+  --card: oklch(0.15 0 0);
+  --primary: oklch(0.9 0 0); /* White/Silver */
+  --accent: oklch(0.7 0 0); /* Gray */
+  --success: oklch(0.7 0 0); /* Grayscale */
+  --warning: oklch(0.6 0 0);
+  --danger: oklch(0.5 0 0);
+  --ring: oklch(0.9 0 0);
 }

@@ -1,7 +1,8 @@
 import { useState } from "react";
-import { usePosIdeas } from "@/hooks/use-pos-ideas";
-import { Plus, Trash2, Lightbulb, Zap, Rocket, CheckCircle2 } from "lucide-react";
+import { usePosIdeas, PosIdea } from "@/hooks/use-pos-ideas";
+import { Plus, Trash2, Lightbulb, Zap, Rocket, CheckCircle2, Pencil } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 
 export function PosIdeas() {
   const { ideas, loading, addIdea, updateIdea, deleteIdea } = usePosIdeas();
@@ -9,6 +10,7 @@ export function PosIdeas() {
   const [newIdea, setNewIdea] = useState({
     title: "", category: "negocios", priority: "media", potential: "alto", complexity: "media", status: "capturada"
   });
+  const [editingIdea, setEditingIdea] = useState<PosIdea | null>(null);
 
   const handleCreate = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -16,6 +18,13 @@ export function PosIdeas() {
     await addIdea(newIdea as any);
     setIsCreating(false);
     setNewIdea({ ...newIdea, title: "" });
+  };
+
+  const handleUpdate = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!editingIdea || !editingIdea.title) return;
+    await updateIdea(editingIdea.id, editingIdea);
+    setEditingIdea(null);
   };
 
   const getPriorityColor = (priority: string) => {
@@ -131,6 +140,9 @@ export function PosIdeas() {
                   <button onClick={() => updateIdea(idea.id, { status: idea.status === 'concluida' ? 'capturada' : 'concluida' })} className="text-[#71717A] hover:text-emerald-500 transition-colors">
                     {idea.status === 'concluida' ? <CheckCircle2 className="size-4 text-emerald-500" /> : <CheckCircle2 className="size-4" />}
                   </button>
+                  <button onClick={() => setEditingIdea(idea)} className="opacity-0 group-hover:opacity-100 text-[#71717A] hover:text-blue-500 transition-all">
+                    <Pencil className="size-4" />
+                  </button>
                   <button onClick={() => deleteIdea(idea.id)} className="opacity-0 group-hover:opacity-100 text-[#71717A] hover:text-rose-500 transition-all">
                     <Trash2 className="size-4" />
                   </button>
@@ -155,6 +167,76 @@ export function PosIdeas() {
           ))}
         </div>
       )}
+
+      <Dialog open={!!editingIdea} onOpenChange={(open) => !open && setEditingIdea(null)}>
+        <DialogContent className="bg-[#111113] border-[rgba(255,255,255,0.06)] text-white sm:max-w-[600px]">
+          <DialogHeader>
+            <DialogTitle className="text-xl font-bold tracking-tight">Editar Ideia</DialogTitle>
+          </DialogHeader>
+          {editingIdea && (
+            <form onSubmit={handleUpdate} className="flex flex-col gap-4 mt-4">
+              <div>
+                <label className="text-[11px] uppercase tracking-widest text-[#71717A] font-bold mb-1 block">Título da Ideia / Brainstorm</label>
+                <input 
+                  type="text" required value={editingIdea.title} onChange={e => setEditingIdea({...editingIdea, title: e.target.value})}
+                  className="w-full bg-[#1A1A1E] border border-[rgba(255,255,255,0.06)] rounded-lg px-4 py-2.5 text-white focus:border-yellow-500 focus:outline-none transition-colors"
+                />
+              </div>
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="text-[11px] uppercase tracking-widest text-[#71717A] font-bold mb-1 block">Categoria</label>
+                  <select 
+                    value={editingIdea.category || 'negocios'} onChange={e => setEditingIdea({...editingIdea, category: e.target.value})}
+                    className="w-full bg-[#1A1A1E] border border-[rgba(255,255,255,0.06)] rounded-lg px-4 py-2.5 text-white focus:border-yellow-500 focus:outline-none transition-colors"
+                  >
+                    <option value="negocios">Negócios</option>
+                    <option value="produtos">Produtos</option>
+                    <option value="conteudo">Conteúdo</option>
+                    <option value="estudos">Estudos</option>
+                  </select>
+                </div>
+                <div>
+                  <label className="text-[11px] uppercase tracking-widest text-[#71717A] font-bold mb-1 block">Potencial</label>
+                  <select 
+                    value={editingIdea.potential || 'medio'} onChange={e => setEditingIdea({...editingIdea, potential: e.target.value})}
+                    className="w-full bg-[#1A1A1E] border border-[rgba(255,255,255,0.06)] rounded-lg px-4 py-2.5 text-white focus:border-yellow-500 focus:outline-none transition-colors"
+                  >
+                    <option value="baixo">Baixo (1x)</option>
+                    <option value="medio">Médio (10x)</option>
+                    <option value="alto">Alto (100x)</option>
+                  </select>
+                </div>
+                <div>
+                  <label className="text-[11px] uppercase tracking-widest text-[#71717A] font-bold mb-1 block">Complexidade</label>
+                  <select 
+                    value={editingIdea.complexity || 'media'} onChange={e => setEditingIdea({...editingIdea, complexity: e.target.value})}
+                    className="w-full bg-[#1A1A1E] border border-[rgba(255,255,255,0.06)] rounded-lg px-4 py-2.5 text-white focus:border-yellow-500 focus:outline-none transition-colors"
+                  >
+                    <option value="baixa">Baixa (Dias)</option>
+                    <option value="media">Média (Semanas)</option>
+                    <option value="alta">Alta (Meses)</option>
+                  </select>
+                </div>
+                <div>
+                  <label className="text-[11px] uppercase tracking-widest text-[#71717A] font-bold mb-1 block">Prioridade</label>
+                  <select 
+                    value={editingIdea.priority || 'media'} onChange={e => setEditingIdea({...editingIdea, priority: e.target.value})}
+                    className="w-full bg-[#1A1A1E] border border-[rgba(255,255,255,0.06)] rounded-lg px-4 py-2.5 text-white focus:border-yellow-500 focus:outline-none transition-colors"
+                  >
+                    <option value="baixa">Baixa</option>
+                    <option value="media">Média</option>
+                    <option value="alta">Alta</option>
+                  </select>
+                </div>
+              </div>
+              <div className="flex justify-end gap-3 mt-6">
+                <button type="button" onClick={() => setEditingIdea(null)} className="px-4 py-2 rounded-lg text-sm font-medium text-[#A1A1AA] hover:bg-[#1A1A1E]">Cancelar</button>
+                <button type="submit" className="px-4 py-2 rounded-lg text-sm font-bold bg-yellow-500 text-yellow-950 hover:bg-yellow-400">Salvar Alterações</button>
+              </div>
+            </form>
+          )}
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

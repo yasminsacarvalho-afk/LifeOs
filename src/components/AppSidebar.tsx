@@ -1,4 +1,5 @@
 import { Link, useRouterState } from "@tanstack/react-router";
+import { useState, useEffect } from "react";
 import {
   LayoutDashboard,
   Radar,
@@ -21,6 +22,13 @@ import {
   GraduationCap,
   Cpu,
   ClipboardList,
+  Activity,
+  Lightbulb,
+  Calendar,
+  DollarSign,
+  Menu,
+  X,
+  Gift,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useAuth } from "@/contexts/AuthContext";
@@ -69,117 +77,172 @@ const navSections = [
   {
     label: "Pessoal",
     items: [
-      { to: "/personal-os", label: "Personal OS", icon: Cpu, permission: "view_dashboard", badge: "NOVO" },
-      { to: "/academy", label: "Voyage Academy", icon: GraduationCap, permission: "view_dashboard", badge: "NOVO" },
-      { to: "/tasks", label: "Tarefas & Hábitos", icon: CheckSquare, permission: "view_dashboard" },
+      { to: "/personal-os", search: { tab: "geral" }, label: "Visão Geral", icon: Cpu, permission: "view_dashboard" },
+      { to: "/personal-os", search: { tab: "habitos" }, label: "Hábitos", icon: Activity, permission: "view_dashboard" },
+      { to: "/personal-os", search: { tab: "tarefas" }, label: "Tarefas", icon: CheckSquare, permission: "view_dashboard" },
+      { to: "/personal-os", search: { tab: "ideias" }, label: "Ideias", icon: Lightbulb, permission: "view_dashboard" },
+      { to: "/personal-os", search: { tab: "agenda" }, label: "Agenda", icon: Calendar, permission: "view_dashboard" },
+      { to: "/personal-os", search: { tab: "metas" }, label: "Metas", icon: Target, permission: "view_dashboard" },
+      { to: "/personal-os", search: { tab: "leitura" }, label: "Leitura", icon: BookOpen, permission: "view_dashboard" },
+      { to: "/personal-os", search: { tab: "evolucao" }, label: "Evolução", icon: TrendingUp, permission: "view_dashboard" },
+      { to: "/personal-os", search: { tab: "recompensas" }, label: "Recompensas", icon: Gift, permission: "view_dashboard" },
+      { to: "/personal-os", search: { tab: "financeiro" }, label: "Financeiro", icon: DollarSign, permission: "view_dashboard" },
+      { to: "/personal-os", search: { tab: "estudos" }, label: "Estudos", icon: GraduationCap, permission: "view_dashboard" },
+      { to: "/academy", label: "Academy", icon: GraduationCap, permission: "view_dashboard" },
     ],
   }
 ];
 
-export function SidebarContent() {
+export function AppSidebar() {
   const pathname = useRouterState({ select: (s) => s.location.pathname });
-  const { role, permissions, signOut, user } = useAuth();
+  const searchParams = useRouterState({ select: (s) => s.location.search }) as any;
+  const { role, permissions, signOut } = useAuth();
+  const [activeTab, setActiveTab] = useState<'profissional' | 'pessoal'>('profissional');
+  const [isHovered, setIsHovered] = useState(false);
+  const [isPinned, setIsPinned] = useState(false);
+
+  useEffect(() => {
+    if (pathname.startsWith('/personal-os') || pathname.startsWith('/academy')) {
+      setActiveTab('pessoal');
+    } else {
+      setActiveTab('profissional');
+    }
+  }, [pathname]);
+
+  const profissionalSections = navSections.filter(s => s.label !== "Pessoal");
+  const pessoalSections = navSections.filter(s => s.label === "Pessoal");
+  
+  const currentSections = activeTab === 'profissional' ? profissionalSections : pessoalSections;
+  const allItems = currentSections.flatMap(section => section.items);
+
+  const visibleItems = allItems.filter((item) => {
+    if (role === "admin") return true;
+    if (role === "seller" && item.to === "/billing") return true;
+    return permissions.includes(item.permission);
+  });
+
+  const isVisible = isHovered || isPinned;
 
   return (
     <>
-      <Link to="/" className="mb-10 flex items-center gap-3">
-        <div className="relative grid size-9 place-items-center rounded-lg bg-gradient-to-br from-primary to-accent font-bold text-primary-foreground shadow-glow-accent">
-          <span className="italic">VF</span>
-        </div>
-        <div className="flex flex-col leading-tight">
-          <span className="text-base font-semibold tracking-tight">Agência de Itambé</span>
-          <span className="text-[10px] font-medium uppercase tracking-widest text-muted-foreground">
-            ERP · Transporte
-          </span>
-        </div>
-      </Link>
+      {/* Trigger area para o dock no desktop */}
+      <div 
+        className="fixed bottom-0 left-0 right-0 h-6 z-30 hidden md:block"
+        onMouseEnter={() => setIsHovered(true)}
+      />
 
-      <nav className="flex flex-1 flex-col gap-6 overflow-y-auto">
-        {navSections.map((section) => {
-          const visibleItems = section.items.filter((item) => {
-            if (role === "admin") return true;
-            if (role === "seller" && item.to === "/billing") return true;
-            return permissions.includes(item.permission);
-          });
-          
-          if (visibleItems.length === 0) return null;
-
-          return (
-            <div key={section.label}>
-              <div className="mb-2 px-3 text-[10px] font-bold uppercase tracking-widest text-muted-foreground">
-                {section.label}
-              </div>
-              <div className="flex flex-col gap-1">
-                {visibleItems.map((item) => {
-                  const Icon = item.icon;
-                  const active = pathname === item.to;
-                  return (
-                    <Link
-                      key={item.to}
-                      to={item.to}
-                      className={cn(
-                        "group flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium transition-colors",
-                        active
-                          ? "bg-primary/10 text-primary shadow-[inset_0_0_0_1px_oklch(0.65_0.19_255/0.25)]"
-                          : "text-muted-foreground hover:bg-white/5 hover:text-foreground",
-                      )}
-                    >
-                      <Icon className="size-4" />
-                      <span className="flex-1">{item.label}</span>
-                      {item.badge && (
-                        <span className="flex items-center gap-1 rounded bg-success/15 px-1.5 py-0.5 text-[9px] font-bold text-success">
-                          <span className="size-1 rounded-full bg-success animate-pulse" />
-                          {item.badge}
-                        </span>
-                      )}
-                    </Link>
-                  );
-                })}
-              </div>
-            </div>
-          );
-        })}
-      </nav>
-
-      <div className="mt-6 rounded-xl border border-primary/20 bg-primary/5 p-4 shrink-0">
-        <div className="mb-2 flex items-center justify-between">
-          <span className="text-[10px] font-bold uppercase tracking-widest text-primary">
-            Meta Mensal
-          </span>
-          <span className="text-[10px] font-mono text-muted-foreground">JUN</span>
-        </div>
-        <div className="mb-2 h-1.5 w-full overflow-hidden rounded-full bg-primary/15">
-          <div
-            className="h-full rounded-full bg-gradient-to-r from-primary to-accent"
-            style={{ width: "72%" }}
-          />
-        </div>
-        <div className="flex justify-between text-[11px]">
-          <span className="font-mono text-muted-foreground">R$ 1.2M</span>
-          <span className="font-mono font-semibold text-primary">72%</span>
-        </div>
+      {/* Botão de menu flutuante (Mobile e fallback) */}
+      <div 
+        className={cn(
+          "fixed bottom-6 right-6 z-40 transition-all duration-300",
+          isVisible ? "translate-y-[150%] opacity-0 pointer-events-none" : "translate-y-0 opacity-100 pointer-events-auto"
+        )}
+      >
+        <button
+          onClick={() => setIsPinned(true)}
+          className="flex h-14 w-14 items-center justify-center rounded-full bg-primary text-primary-foreground shadow-[0_0_20px_rgba(0,0,0,0.5)] border border-white/10 hover:scale-105 transition-transform"
+        >
+          <Menu className="size-6" />
+        </button>
       </div>
 
-      <div className="mt-4 pt-4 border-t border-border/50 flex flex-col gap-1 shrink-0">
-        <div className="px-3 py-2 text-xs font-medium text-muted-foreground truncate mb-1" title={user?.email || ""}>
-          {user?.email}
-        </div>
-        <button 
-          onClick={signOut}
-          className="flex w-full items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium text-destructive/80 transition-colors hover:bg-destructive/10 hover:text-destructive"
-        >
-          <LogOut className="size-4" />
-          Sair da Conta
-        </button>
+      {/* Dock */}
+      <div 
+        className={cn(
+          "fixed bottom-4 md:bottom-6 left-1/2 -translate-x-1/2 z-40 w-full max-w-[96%] md:max-w-4xl transition-all duration-300 ease-out pb-safe",
+          isVisible ? "translate-y-0 opacity-100 pointer-events-auto" : "translate-y-[150%] opacity-0 pointer-events-none"
+        )}
+        onMouseEnter={() => setIsHovered(true)}
+        onMouseLeave={() => setIsHovered(false)}
+      >
+        <nav className="w-full rounded-2xl border border-white/10 bg-background/95 backdrop-blur-3xl shadow-[0_20px_40px_-10px_rgba(0,0,0,0.8)] overflow-hidden flex flex-col">
+          <div className="flex justify-between items-center border-b border-white/5 bg-black/40 p-1.5 px-3">
+            <div className="w-8" />
+            <div className="flex items-center rounded-lg bg-black/60 p-1 shadow-inner border border-white/5">
+              <button
+                onClick={() => setActiveTab('profissional')}
+                className={cn(
+                  "px-6 py-1.5 text-[10px] font-bold uppercase tracking-widest rounded-md transition-all",
+                  activeTab === 'profissional' ? "bg-primary text-primary-foreground shadow-sm" : "text-muted-foreground hover:text-white"
+                )}
+              >
+                Profissional
+              </button>
+              <button
+                onClick={() => setActiveTab('pessoal')}
+                className={cn(
+                  "px-6 py-1.5 text-[10px] font-bold uppercase tracking-widest rounded-md transition-all",
+                  activeTab === 'pessoal' ? "bg-primary text-primary-foreground shadow-sm" : "text-muted-foreground hover:text-white"
+                )}
+              >
+                Pessoal
+              </button>
+            </div>
+            <button 
+              onClick={() => setIsPinned(false)}
+              className="w-8 h-8 flex items-center justify-center rounded-full hover:bg-white/10 text-muted-foreground hover:text-white transition-colors"
+            >
+              <X className="size-5" />
+            </button>
+          </div>
+          <div className="flex w-full items-center gap-1 overflow-x-auto px-3 py-2.5 custom-scrollbar">
+            {visibleItems.map((item) => {
+              const Icon = item.icon;
+              const isActivePath = pathname === item.to;
+              let active = isActivePath;
+              
+              if (isActivePath && item.search?.tab) {
+                const currentTab = searchParams.tab || 'geral';
+                active = currentTab === item.search.tab;
+              } else if (isActivePath && pathname === '/personal-os' && !item.search) {
+                active = false;
+              }
+
+              return (
+                <Link
+                  key={item.label}
+                  to={item.to}
+                  {...(item.search ? { search: item.search } : {})}
+                  onClick={() => setIsPinned(false)}
+                  className={cn(
+                    "flex min-w-[76px] flex-col items-center justify-center gap-1.5 rounded-xl p-2 text-center transition-colors shrink-0",
+                    active
+                      ? "bg-primary/15 text-primary shadow-[inset_0_0_0_1px_oklch(0.65_0.19_255/0.25)]"
+                      : "text-muted-foreground hover:bg-white/5 hover:text-foreground"
+                  )}
+                >
+                  <div className="relative">
+                    <Icon className="size-[22px]" />
+                    {item.badge && (
+                      <span className="absolute -right-2 -top-2 flex size-2.5 items-center justify-center rounded-full bg-success">
+                        <span className="absolute size-2.5 rounded-full bg-success animate-ping opacity-75"></span>
+                      </span>
+                    )}
+                  </div>
+                  <span className="text-[10px] font-medium tracking-tight whitespace-nowrap px-1 max-w-[80px] truncate">
+                    {item.label}
+                  </span>
+                </Link>
+              );
+            })}
+            <div className="w-[1px] h-10 bg-border/50 mx-1 shrink-0"></div>
+            <button
+              onClick={() => {
+                setIsPinned(false);
+                signOut();
+              }}
+              className="flex min-w-[76px] flex-col items-center justify-center gap-1.5 rounded-xl p-2 text-center text-destructive/80 transition-colors hover:bg-destructive/10 hover:text-destructive shrink-0"
+            >
+              <LogOut className="size-[22px]" />
+              <span className="text-[10px] font-medium tracking-tight whitespace-nowrap">Sair</span>
+            </button>
+          </div>
+        </nav>
       </div>
     </>
   );
 }
 
-export function AppSidebar() {
-  return (
-    <aside className="fixed left-0 top-0 z-40 hidden h-screen w-64 flex-col border-r border-border bg-card/40 p-5 backdrop-blur-xl lg:flex">
-      <SidebarContent />
-    </aside>
-  );
+export function SidebarContent() {
+  return null;
 }

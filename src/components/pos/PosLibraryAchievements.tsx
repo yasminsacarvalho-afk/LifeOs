@@ -2,7 +2,8 @@ import { useState, useMemo } from 'react';
 import { PosBook, PosReadingSession } from '@/hooks/use-pos-library';
 import { 
   Award, Trophy, Medal, Star, Flame, Crown, Book, FileText, 
-  Clock, CalendarDays, Library, Globe, GraduationCap, Target 
+  Clock, CalendarDays, Library, Globe, GraduationCap, Target,
+  ChevronDown, ChevronUp, X, ChevronRight
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { format } from 'date-fns';
@@ -14,6 +15,7 @@ interface PosLibraryAchievementsProps {
 
 export function PosLibraryAchievements({ books, sessions }: PosLibraryAchievementsProps) {
   const [activeTab, setActiveTab] = useState<string>('livros');
+  const [isExpanded, setIsExpanded] = useState(false);
 
   const { metrics, achievementGroups, colorMap } = useMemo(() => {
     const totalPages = sessions.reduce((acc, s) => acc + (s.pages_read || 0), 0);
@@ -178,97 +180,135 @@ export function PosLibraryAchievements({ books, sessions }: PosLibraryAchievemen
   const activeColor = colorMap[activeGroup.color];
 
   return (
-    <div className="bg-[#111113] border border-[rgba(255,255,255,0.06)] rounded-3xl p-6 md:p-8 mt-8 md:mt-12 flex flex-col gap-6">
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
-        <div className="flex items-center gap-3">
-          <Trophy className="size-6 text-yellow-500" />
-          <h3 className="text-xl font-bold text-white tracking-tight">Painel de Metas & Conquistas</h3>
-        </div>
-        <div className="flex gap-4 text-xs font-bold uppercase tracking-widest text-[#71717A]">
-           <span>{metrics.totalCompleted} Livros</span>
-           <span>{metrics.totalPages} Pág</span>
-           <span>{Math.round(metrics.totalMinutes/60)}h</span>
-           <span className="text-orange-500 flex items-center gap-1"><Flame className="size-3"/> {metrics.currentStreak} dias</span>
+    <>
+      <div 
+        className="bg-[#111113] border border-[rgba(255,255,255,0.06)] rounded-3xl overflow-hidden flex flex-col shadow-xl cursor-pointer hover:bg-[rgba(255,255,255,0.02)] hover:border-amber-500/30 group transition-all duration-300 h-full justify-center"
+        onClick={() => setIsExpanded(true)}
+      >
+        {/* HEADER */}
+        <div className="p-5 md:p-6 flex flex-col justify-between gap-4">
+          <div className="flex items-center justify-between w-full">
+            <div className="flex items-center gap-3">
+              <Trophy className="size-5 text-yellow-500 group-hover:scale-110 transition-transform" />
+              <h3 className="text-sm font-bold text-white tracking-widest uppercase group-hover:text-amber-400 transition-colors">Sala de Troféus</h3>
+            </div>
+            <div className="p-2 bg-white/5 rounded-full text-white shrink-0 group-hover:bg-amber-500/20 group-hover:text-amber-400 transition-colors">
+               <ChevronRight className="size-4" />
+            </div>
+          </div>
+          <div className="flex flex-wrap items-center gap-2 text-[10px] font-bold uppercase tracking-widest text-[#71717A]">
+             <span className="bg-white/5 px-2 py-1 rounded border border-white/5">{metrics.totalCompleted} Livros</span>
+             <span className="bg-white/5 px-2 py-1 rounded border border-white/5">{metrics.totalPages} Pág</span>
+             <span className="bg-orange-500/10 text-orange-500 px-2 py-1 rounded border border-orange-500/20 flex items-center gap-1"><Flame className="size-3"/> {metrics.currentStreak} dias</span>
+          </div>
         </div>
       </div>
       
-      {/* Tabs */}
-      <div className="flex overflow-x-auto custom-scrollbar gap-2 pb-2">
-        {achievementGroups.map(group => {
-          const groupColor = colorMap[group.color];
-          return (
-            <button
-              key={group.id}
-              onClick={() => setActiveTab(group.id)}
-              className={cn(
-                "flex items-center gap-2 px-4 py-2.5 rounded-xl text-xs font-bold tracking-widest uppercase whitespace-nowrap transition-all border",
-                activeTab === group.id 
-                  ? `${groupColor.bg} ${groupColor.text} ${groupColor.border}` 
-                  : "bg-white/5 text-[#A1A1AA] border-transparent hover:bg-white/10"
-              )}
-            >
-              {group.icon} {group.label}
-            </button>
-          );
-        })}
-      </div>
-
-      {/* Grid of Achievements for Active Tab */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4 mt-2 animate-in fade-in slide-in-from-bottom-2">
-        {activeGroup.items.map((ach, idx) => {
-          const isUnlocked = ach.current >= ach.target;
-          const progressPercent = Math.min(100, (ach.current / ach.target) * 100);
-          
-          return (
-            <div 
-              key={idx} 
-              className={cn(
-                "p-5 rounded-2xl border transition-all duration-300 relative overflow-hidden group flex flex-col justify-between min-h-[140px]",
-                isUnlocked 
-                  ? `bg-black/40 ${activeColor.border} shadow-[0_0_15px_rgba(255,255,255,0.02)]` 
-                  : "bg-black/20 border-[rgba(255,255,255,0.02)] grayscale opacity-60"
-              )}
-            >
-              {/* Progress Background */}
-              {!isUnlocked && !ach.hideProgress && (
-                <div className="absolute bottom-0 left-0 h-1 bg-white/10 w-full">
-                  <div className="h-full bg-white/30" style={{ width: `${progressPercent}%` }}></div>
-                </div>
-              )}
-              
-              {/* Unlocked Glow */}
-              {isUnlocked && (
-                <div className={cn("absolute -top-10 -right-10 size-24 blur-2xl rounded-full opacity-20 pointer-events-none", activeColor.glow)}></div>
-              )}
-
-              <div className="flex justify-between items-start mb-3 relative z-10">
-                <div className={cn("size-10 rounded-xl flex items-center justify-center", isUnlocked ? `${activeColor.bg} ${activeColor.text}` : "bg-white/5 text-[#71717A]")}>
-                  {ach.icon}
-                </div>
-                {!ach.hideProgress && (
-                  <span className="text-[10px] font-bold text-[#71717A] tracking-widest">
-                    {ach.current} / {ach.target} {ach.suffix}
-                  </span>
-                )}
-                {ach.hideProgress && isUnlocked && (
-                  <span className={cn("text-[10px] font-bold tracking-widest uppercase", activeColor.text)}>
-                     {ach.current} {ach.suffix}
-                  </span>
-                )}
+      {/* MODAL */}
+      {isExpanded && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+          <div className="absolute inset-0 bg-black/80 backdrop-blur-sm" onClick={() => setIsExpanded(false)} />
+          <div className="relative z-10 w-full max-w-4xl bg-[#0A0A0C]/95 backdrop-blur-xl border border-[rgba(255,255,255,0.08)] rounded-3xl p-6 md:p-8 shadow-[0_30px_60px_rgba(0,0,0,0.5)] animate-in zoom-in-95 duration-300 max-h-[90vh] flex flex-col">
+            
+            <div className="flex items-start justify-between mb-8 pb-6 border-b border-[rgba(255,255,255,0.05)] shrink-0">
+               <div>
+                  <h2 className="text-2xl md:text-3xl font-black text-white flex items-center gap-4">
+                     <div className="p-3 bg-amber-500/10 rounded-2xl border border-amber-500/20">
+                        <Trophy className="size-8 text-amber-500" /> 
+                     </div>
+                     <span className="text-transparent bg-clip-text bg-gradient-to-r from-amber-400 to-yellow-400">Sala de Troféus</span>
+                  </h2>
+                  <p className="text-[#A1A1AA] mt-3 font-medium tracking-wide">
+                     Acompanhe suas conquistas literárias e marcos de evolução.
+                  </p>
+               </div>
+               <button onClick={() => setIsExpanded(false)} className="p-3 bg-[#1A1A1E] hover:bg-rose-500/20 text-[#A1A1AA] hover:text-rose-400 rounded-xl transition-colors border border-[rgba(255,255,255,0.05)]">
+                 <X className="size-6" />
+               </button>
+            </div>
+            
+            <div className="flex-1 overflow-y-auto pr-2 custom-scrollbar flex flex-col gap-6">
+              {/* Tabs */}
+              <div className="flex overflow-x-auto custom-scrollbar gap-2 pb-2 shrink-0">
+                {achievementGroups.map(group => {
+                  const groupColor = colorMap[group.color];
+                  return (
+                    <button
+                      key={group.id}
+                      onClick={() => setActiveTab(group.id)}
+                      className={cn(
+                        "flex items-center gap-1.5 px-3 py-2 rounded-lg text-[10px] font-bold tracking-widest uppercase whitespace-nowrap transition-all border",
+                        activeTab === group.id 
+                          ? `${groupColor.bg} ${groupColor.text} ${groupColor.border}` 
+                          : "bg-white/5 text-[#A1A1AA] border-transparent hover:bg-white/10"
+                      )}
+                    >
+                      {group.icon} {group.label}
+                    </button>
+                  );
+                })}
               </div>
-              
-              <div className="relative z-10">
-                <h4 className={cn("text-sm font-black tracking-tight mb-1", isUnlocked ? "text-white" : "text-[#A1A1AA]")}>
-                  {ach.title}
-                </h4>
-                <p className="text-[10px] font-medium text-[#71717A] leading-tight">
-                  {ach.description}
-                </p>
+
+              {/* Grid of Achievements for Active Tab */}
+              <div className="grid grid-cols-2 lg:grid-cols-2 gap-4 mt-2 animate-in fade-in slide-in-from-bottom-2 pb-4">
+                {activeGroup.items.map((ach, idx) => {
+                  const isUnlocked = ach.current >= ach.target;
+                  const progressPercent = Math.min(100, (ach.current / ach.target) * 100);
+                  
+                  return (
+                    <div 
+                      key={idx} 
+                      className={cn(
+                        "p-5 rounded-2xl border transition-all duration-300 relative overflow-hidden group flex flex-col justify-between min-h-[140px]",
+                        isUnlocked 
+                          ? `bg-black/40 ${activeColor.border} shadow-[0_0_15px_rgba(255,255,255,0.02)]` 
+                          : "bg-black/20 border-[rgba(255,255,255,0.02)] grayscale opacity-60"
+                      )}
+                    >
+                      {/* Progress Background */}
+                      {!isUnlocked && !ach.hideProgress && (
+                        <div className="absolute bottom-0 left-0 h-1 bg-white/10 w-full">
+                          <div className="h-full bg-white/30" style={{ width: `${progressPercent}%` }}></div>
+                        </div>
+                      )}
+                      
+                      {/* Unlocked Glow */}
+                      {isUnlocked && (
+                        <div className={cn("absolute -top-10 -right-10 size-24 blur-2xl rounded-full opacity-20 pointer-events-none", activeColor.glow)}></div>
+                      )}
+
+                      <div className="flex justify-between items-start mb-3 relative z-10">
+                        <div className={cn("size-8 rounded-lg flex items-center justify-center shrink-0", isUnlocked ? `${activeColor.bg} ${activeColor.text}` : "bg-white/5 text-[#71717A]")}>
+                          {ach.icon}
+                        </div>
+                        {!ach.hideProgress && (
+                          <span className="text-[9px] font-bold text-[#71717A] tracking-widest text-right leading-tight ml-2">
+                            {ach.current} / {ach.target} {ach.suffix}
+                          </span>
+                        )}
+                        {ach.hideProgress && isUnlocked && (
+                          <span className={cn("text-[9px] font-bold tracking-widest uppercase text-right leading-tight ml-2", activeColor.text)}>
+                             {ach.current} {ach.suffix}
+                          </span>
+                        )}
+                      </div>
+                      
+                      <div className="relative z-10">
+                        <h4 className={cn("text-xs font-black tracking-tight mb-1 leading-tight", isUnlocked ? "text-white" : "text-[#A1A1AA]")}>
+                          {ach.title}
+                        </h4>
+                        <p className="text-[9px] font-medium text-[#71717A] leading-tight line-clamp-2">
+                          {ach.description}
+                        </p>
+                      </div>
+                    </div>
+                  );
+                })}
               </div>
             </div>
-          );
-        })}
-      </div>
-    </div>
+          </div>
+        </div>
+      )}
+    </>
   );
 }

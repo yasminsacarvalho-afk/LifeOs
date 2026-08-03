@@ -18,6 +18,18 @@ export interface OperationalReport {
   updated_at: string;
 }
 
+const parseCurrency = (val: any): number => {
+  if (val === undefined || val === null) return 0;
+  if (typeof val === 'number') return val;
+  if (typeof val === 'string') {
+    let s = val.replace(/[^\d,\.-]/g, '');
+    if (s.includes(',') && s.includes('.')) s = s.replace(/\./g, '');
+    s = s.replace(',', '.');
+    return parseFloat(s) || 0;
+  }
+  return 0;
+};
+
 export function aggregateReportData(reports: OperationalReportData[]): OperationalReportData | null {
   if (!reports || reports.length === 0) return null;
 
@@ -39,13 +51,13 @@ export function aggregateReportData(reports: OperationalReportData[]): Operation
       r.faturamento_por_empresa.empresas.forEach((e: any) => {
         if (!empresasMap.has(e.nome)) empresasMap.set(e.nome, { nome: e.nome, faturamento: 0, passagens: 0 });
         const current = empresasMap.get(e.nome);
-        current.faturamento += e.faturamento;
-        current.passagens += e.passagens;
+        current.faturamento += parseCurrency(e.faturamento);
+        current.passagens += parseInt(e.passagens || e.bilhetes || e.qtd || 0) || 0;
       });
     }
     if (r.faturamento_por_empresa?.total_passagens) {
-      result.faturamento_por_empresa.total_passagens.faturamento += (r.faturamento_por_empresa.total_passagens.faturamento || 0);
-      result.faturamento_por_empresa.total_passagens.bilhetes += (r.faturamento_por_empresa.total_passagens.bilhetes || 0);
+      result.faturamento_por_empresa.total_passagens.faturamento += parseCurrency(r.faturamento_por_empresa.total_passagens.faturamento);
+      result.faturamento_por_empresa.total_passagens.bilhetes += parseInt(r.faturamento_por_empresa.total_passagens.bilhetes || 0) || 0;
     }
 
     const fpKeys = ['dinheiro', 'cartoes_credito_debito', 'pix', 'carteira_digital'] as const;
@@ -53,24 +65,24 @@ export function aggregateReportData(reports: OperationalReportData[]): Operation
       fpKeys.forEach(k => {
         if (r.formas_pagamento[k]) {
           if (!result.formas_pagamento[k]) result.formas_pagamento[k] = { faturamento: 0, bilhetes: 0 };
-          result.formas_pagamento[k]!.faturamento += (r.formas_pagamento[k]?.faturamento || 0);
+          result.formas_pagamento[k]!.faturamento += parseCurrency(r.formas_pagamento[k]?.faturamento);
           if (r.formas_pagamento[k]?.bilhetes !== undefined) {
-             result.formas_pagamento[k]!.bilhetes = (result.formas_pagamento[k]!.bilhetes || 0) + (r.formas_pagamento[k]!.bilhetes || 0);
+             result.formas_pagamento[k]!.bilhetes = (result.formas_pagamento[k]!.bilhetes || 0) + parseInt(r.formas_pagamento[k]!.bilhetes || 0) || 0;
           }
         }
       });
     }
 
     if (r.ocorrencias_e_movimentacoes_extras) {
-      result.ocorrencias_e_movimentacoes_extras.movimentacoes_extras_saldo_liquido += (r.ocorrencias_e_movimentacoes_extras.movimentacoes_extras_saldo_liquido || 0);
-      result.ocorrencias_e_movimentacoes_extras.total_geral_caixa += (r.ocorrencias_e_movimentacoes_extras.total_geral_caixa || 0);
+      result.ocorrencias_e_movimentacoes_extras.movimentacoes_extras_saldo_liquido += parseCurrency(r.ocorrencias_e_movimentacoes_extras.movimentacoes_extras_saldo_liquido);
+      result.ocorrencias_e_movimentacoes_extras.total_geral_caixa += parseCurrency(r.ocorrencias_e_movimentacoes_extras.total_geral_caixa);
       if (r.ocorrencias_e_movimentacoes_extras.detalhes) {
         r.ocorrencias_e_movimentacoes_extras.detalhes.forEach((d: any) => {
           const key = `${d.tipo}-${d.forma_pagamento}`;
           if (!detalhesExtrasMap.has(key)) detalhesExtrasMap.set(key, { ...d, registros: 0, valor: 0 });
           const current = detalhesExtrasMap.get(key);
-          current.registros += (d.registros || 0);
-          current.valor += (d.valor || 0);
+          current.registros += parseInt(d.registros || 0) || 0;
+          current.valor += parseCurrency(d.valor);
         });
       }
     }
@@ -79,8 +91,8 @@ export function aggregateReportData(reports: OperationalReportData[]): Operation
       r.detalhe_servicos_linhas.forEach((s: any) => {
         if (!linhasMap.has(s.servico)) linhasMap.set(s.servico, { ...s, faturamento: 0, passagens: 0 });
         const current = linhasMap.get(s.servico);
-        current.faturamento += (s.faturamento || 0);
-        current.passagens += (s.passagens || 0);
+        current.faturamento += parseCurrency(s.faturamento || s.valor || s.receita);
+        current.passagens += parseInt(s.passagens || s.bilhetes || s.qtd || 0) || 0;
       });
     }
 
@@ -88,8 +100,8 @@ export function aggregateReportData(reports: OperationalReportData[]): Operation
       r.mapeamento_destinos.forEach((d: any) => {
         if (!destinosMap.has(d.codigo_destino)) destinosMap.set(d.codigo_destino, { ...d, faturamento: 0, passagens: 0 });
         const current = destinosMap.get(d.codigo_destino);
-        current.faturamento += (d.faturamento || 0);
-        current.passagens += (d.passagens || 0);
+        current.faturamento += parseCurrency(d.faturamento || d.valor || d.receita);
+        current.passagens += parseInt(d.passagens || d.bilhetes || d.qtd || 0) || 0;
       });
     }
   }

@@ -15,7 +15,8 @@ export interface PosBook {
   language: string | null;
   type: string | null;
   format: string | null;
-  status: string; // 'quero_ler', 'lendo', 'pausado', 'concluido', 'abandonado'
+  status: string; // 'quero_ler', 'lendo', 'concluido', 'na_estante'
+  badges?: string[] | null; // 'quero_comprar', 'emprestado', 'meta_ano'
   pages_read: number;
   total_pages: number | null;
   estimated_time_minutes: number | null;
@@ -23,10 +24,16 @@ export interface PosBook {
   summary: string | null;
   cover_url: string | null;
   buy_link: string | null;
+  resource_link?: string | null;
+  youtube_link?: string | null;
+  progress_unit?: string; // 'pages', 'percentage', 'chapters', 'minutes'
   acquisition_date: string | null;
   start_date: string | null;
   end_date: string | null;
   goal_id?: string | null;
+  tags?: string[] | null;
+  collections?: string[] | null;
+  storage_location?: string | null;
   created_at?: string;
 }
 
@@ -44,6 +51,7 @@ export interface PosReadingSession {
   concentration_level: number | null;
   device?: string | null;
   location?: string | null;
+  pdf_url?: string | null;
   created_at?: string;
 }
 
@@ -73,7 +81,22 @@ export function usePosLibrary() {
 
       if (sessionsError && sessionsError.code !== '42P01') console.error("Error fetching reading sessions:", sessionsError);
 
-      if (booksData) setBooks(booksData);
+      if (booksData) {
+        const storedMeta = localStorage.getItem('voyage_pos_metadata');
+        const metadata = storedMeta ? JSON.parse(storedMeta) : {};
+        
+        const processedBooks = booksData.map(b => {
+          const meta = metadata[b.id] || { tags: [], collections: [], badges: [], storage_location: null };
+          return { 
+            ...b, 
+            tags: meta.tags || [], 
+            collections: meta.collections || [],
+            badges: meta.badges || [],
+            storage_location: meta.storage_location || null
+          };
+        });
+        setBooks(processedBooks);
+      }
       if (sessionsData) setSessions(sessionsData);
     } catch (err) {
       console.error(err);
@@ -84,14 +107,33 @@ export function usePosLibrary() {
 
   const addBook = async (book: Partial<PosBook>) => {
     try {
+      const payload = { ...book, pages_read: 0, status: book.status || 'quero_ler' };
+      
+      const tagsToSave = payload.tags || [];
+      const collectionsToSave = payload.collections || [];
+      const badgesToSave = payload.badges || [];
+      const storageLocationToSave = payload.storage_location || null;
+      
+      delete payload.tags;
+      delete payload.collections;
+      delete payload.badges;
+      delete payload.storage_location;
+
       const { data, error } = await supabase
         .from('pos_library')
-        .insert([{ ...book, pages_read: 0, status: book.status || 'quero_ler' }])
+        .insert([payload])
         .select()
         .single();
 
       if (error) throw error;
-      if (data) setBooks([data, ...books]);
+      if (data) {
+        const storedMeta = localStorage.getItem('voyage_pos_metadata');
+        const metadata = storedMeta ? JSON.parse(storedMeta) : {};
+        metadata[data.id] = { tags: tagsToSave, collections: collectionsToSave, badges: badgesToSave, storage_location: storageLocationToSave };
+        localStorage.setItem('voyage_pos_metadata', JSON.stringify(metadata));
+
+        setBooks(prev => [{ ...data, tags: tagsToSave, collections: collectionsToSave, badges: badgesToSave, storage_location: storageLocationToSave }, ...prev]);
+      }
       toast.success("Livro adicionado ao acervo!");
       return data;
     } catch (error: any) {
@@ -102,15 +144,36 @@ export function usePosLibrary() {
 
   const updateBook = async (id: string, updates: Partial<PosBook>) => {
     try {
+      const payload = { ...updates };
+      
+      const storedMeta = localStorage.getItem('voyage_pos_metadata');
+      const metadata = storedMeta ? JSON.parse(storedMeta) : {};
+      const currentMeta = metadata[id] || { tags: [], collections: [], badges: [], storage_location: null };
+      
+      const tagsToSave = payload.tags !== undefined ? payload.tags : currentMeta.tags;
+      const collectionsToSave = payload.collections !== undefined ? payload.collections : currentMeta.collections;
+      const badgesToSave = payload.badges !== undefined ? payload.badges : currentMeta.badges;
+      const storageLocationToSave = payload.storage_location !== undefined ? payload.storage_location : currentMeta.storage_location;
+      
+      delete payload.tags;
+      delete payload.collections;
+      delete payload.badges;
+      delete payload.storage_location;
+
       const { data, error } = await supabase
         .from('pos_library')
-        .update(updates)
+        .update(payload)
         .eq('id', id)
         .select()
         .single();
 
       if (error) throw error;
-      if (data) setBooks(books.map(b => b.id === id ? data : b));
+      if (data) {
+        metadata[id] = { tags: tagsToSave, collections: collectionsToSave, badges: badgesToSave, storage_location: storageLocationToSave };
+        localStorage.setItem('voyage_pos_metadata', JSON.stringify(metadata));
+
+        setBooks(prev => prev.map(b => b.id === id ? { ...data, tags: tagsToSave, collections: collectionsToSave, badges: badgesToSave, storage_location: storageLocationToSave } : b));
+      }
       toast.success("Acervo atualizado!");
     } catch (error: any) {
       toast.error("Erro ao atualizar livro: " + error.message);
@@ -126,7 +189,7 @@ export function usePosLibrary() {
       
       const { error } = await supabase.from('pos_library').delete().eq('id', id);
       if (error) throw error;
-      setBooks(books.filter(b => b.id !== id));
+      setBooks(prev => prev.filter(b => b.id !== id));
       toast.success("Obra removida da biblioteca!");
     } catch (error: any) {
       toast.error("Erro ao remover: " + error.message);
@@ -143,7 +206,7 @@ export function usePosLibrary() {
 
       if (error) throw error;
       if (data) {
-        setSessions([data, ...sessions]);
+        setSessions(prev => [data, ...prev]);
         
         // Auto-update book progress
         const book = books.find(b => b.id === session.book_id);
@@ -199,6 +262,26 @@ export function usePosLibrary() {
     }
   };
 
+  const updateReadingSession = async (sessionId: string, updates: Partial<PosReadingSession>) => {
+    try {
+      const { data, error } = await supabase
+        .from('pos_reading_sessions')
+        .update(updates)
+        .eq('id', sessionId)
+        .select()
+        .single();
+
+      if (error) throw error;
+      if (data) {
+         setSessions(prev => prev.map(s => s.id === sessionId ? data : s));
+      }
+      return data;
+    } catch (error: any) {
+      toast.error("Erro ao atualizar sessão: " + error.message);
+      return null;
+    }
+  };
+
   const resetBookProgress = async (bookId: string) => {
     try {
       // 1. Deletar sessões de leitura associadas ao livro
@@ -237,8 +320,8 @@ export function usePosLibrary() {
       if (bookError) throw bookError;
 
       if (bookData) {
-        setBooks(books.map(b => b.id === bookId ? bookData : b));
-        setSessions(sessions.filter(s => s.book_id !== bookId));
+        setBooks(prev => prev.map(b => b.id === bookId ? bookData : b));
+        setSessions(prev => prev.filter(s => s.book_id !== bookId));
         toast.success("Registro de leitura zerado com sucesso.");
       }
     } catch (error: any) {
@@ -254,7 +337,7 @@ export function usePosLibrary() {
       const { error } = await supabase.from('pos_reading_sessions').delete().eq('id', sessionId);
       if (error) throw error;
       
-      setSessions(sessions.filter(s => s.id !== sessionId));
+      setSessions(prev => prev.filter(s => s.id !== sessionId));
       
       const book = books.find(b => b.id === session.book_id);
       if (book) {
@@ -300,5 +383,5 @@ export function usePosLibrary() {
     }
   };
 
-  return { books, sessions, loading, addBook, updateBook, deleteBook, addReadingSession, resetBookProgress, deleteReadingSession };
+  return { books, sessions, loading, addBook, updateBook, deleteBook, addReadingSession, updateReadingSession, resetBookProgress, deleteReadingSession };
 }

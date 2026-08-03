@@ -2514,7 +2514,21 @@ export function FinanceDashboard({
         <div className="bg-[#111] border border-[#222] rounded-2xl shadow-xl overflow-hidden">
           <div className="p-5 border-b border-[#222] bg-[#141414] flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
             <div className="flex items-center gap-4">
-              <h3 className="font-bold text-white tracking-tight">Lançamentos Recentes</h3>
+              <h3 className="font-bold text-white tracking-tight flex items-center gap-2">
+                Lançamentos Recentes
+                <button 
+                  onClick={() => {
+                    if (activeContext === 'personal' && onNewPersonalExpense) {
+                      onNewPersonalExpense();
+                    } else {
+                      setEditingId(null); setModalType('expense'); setForm({...form, description: '', amount: '', reservePercentage: 0, category: ''}); setIsModalOpen(true);
+                    }
+                  }}
+                  className="flex items-center gap-1.5 px-2 py-1 bg-rose-500/10 text-rose-500 border border-rose-500/20 rounded-lg text-[10px] font-bold transition-colors hover:bg-rose-500/20 ml-2"
+                >
+                  <Plus className="size-3" /> <span className="hidden sm:inline">Despesa Rápida</span>
+                </button>
+              </h3>
               <div className="hidden sm:flex bg-[#0a0a0a] border border-[#222] rounded-lg p-1 gap-1">
                 <button onClick={() => setTransactionViewMode('table')} className={cn("p-1.5 rounded-md transition-colors", transactionViewMode === 'table' ? "bg-[#333] text-white" : "text-[#555] hover:text-[#aaa]")} title="Tabela"><List className="size-4" /></button>
                 <button onClick={() => setTransactionViewMode('grid')} className={cn("p-1.5 rounded-md transition-colors", transactionViewMode === 'grid' ? "bg-[#333] text-white" : "text-[#555] hover:text-[#aaa]")} title="Grid"><LayoutGrid className="size-4" /></button>
@@ -2646,7 +2660,7 @@ export function FinanceDashboard({
                       </div>
                       <div className="flex justify-between items-start mb-3 pr-6">
                         <div className="space-y-1">
-                          <div className="text-[#888] text-[10px] uppercase font-bold tracking-widest">{t.category}</div>
+                          <div className="inline-block bg-[#1A1A1E] border border-[#333] px-2 py-0.5 rounded-md text-[9px] uppercase font-bold tracking-widest text-[#aaa]">{t.category}</div>
                           <div className="font-medium text-white line-clamp-2" title={t.description}>{t.description}</div>
                         </div>
                         <div className={cn("text-right font-mono font-medium", t.type === 'income' ? 'text-[#10B981]' : 'text-rose-500')}>
@@ -2730,7 +2744,9 @@ export function FinanceDashboard({
                                   </td>
                                   <td className="px-6 py-4 font-mono text-[#aaa] text-xs">{t.date.split('-').reverse().join('/')}</td>
                                   <td className="px-6 py-4 font-medium text-white">{t.description}</td>
-                                  <td className="px-6 py-4 text-[#888] text-xs">{t.category}</td>
+                                  <td className="px-6 py-4">
+                                    <span className="bg-[#1A1A1E] border border-[#333] px-2 py-1 rounded-md text-[9px] uppercase font-bold tracking-widest text-[#aaa]">{t.category}</span>
+                                  </td>
                                   <td className="px-6 py-4 text-center">
                                     <button 
                                       onClick={() => togglePaidStatus(t)}

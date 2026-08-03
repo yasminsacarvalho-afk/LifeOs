@@ -146,7 +146,7 @@ export function PosFinance() {
 
   // Form states
   const [newBudget, setNewBudget] = useState({ name: "", amount_limit: "" });
-  const [newExpense, setNewExpense] = useState({ title: "", amount: "", budget_id: "", card_id: "", payment_method: "dinheiro", expense_date: format(new Date(), 'yyyy-MM-dd') });
+  const [newExpense, setNewExpense] = useState({ title: "", amount: "", budget_id: "", card_id: "", payment_method: "debito", expense_date: format(new Date(), 'yyyy-MM-dd') });
   const [newCard, setNewCard] = useState({ name: "", limit_amount: "", closing_day: "", due_day: "" });
 
   const formatCurrency = (val: number) => {
@@ -168,25 +168,29 @@ export function PosFinance() {
 
   const handleAddExpense = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!newExpense.title || !newExpense.amount || !newExpense.budget_id) return;
+    if (!newExpense.title || !newExpense.amount) return;
 
     let finalTitle = newExpense.title;
-    if (newExpense.payment_method === 'cartao') {
-      finalTitle += ' (💳 Cartão)';
+    if (newExpense.payment_method === 'credito') {
+      finalTitle += ' (💳 Crédito)';
+    } else if (newExpense.payment_method === 'debito') {
+      finalTitle += ' (💳 Débito)';
+    } else if (newExpense.payment_method === 'pix') {
+      finalTitle += ' (💸 Pix)';
     } else {
-      finalTitle += ' (💵 Dinheiro/Pix)';
+      finalTitle += ' (💵 Dinheiro)';
     }
 
     await addExpense({
       title: finalTitle,
       amount: Number(newExpense.amount),
       budget_id: newExpense.budget_id,
-      card_id: newExpense.payment_method === 'cartao' && newExpense.card_id ? newExpense.card_id : null,
+      card_id: newExpense.payment_method === 'credito' && newExpense.card_id ? newExpense.card_id : null,
       expense_date: newExpense.expense_date
     });
 
     setIsExpenseModalOpen(false);
-    setNewExpense({ title: "", amount: "", budget_id: "", card_id: "", payment_method: "dinheiro", expense_date: format(new Date(), 'yyyy-MM-dd') });
+    setNewExpense({ title: "", amount: "", budget_id: "", card_id: "", payment_method: "debito", expense_date: format(new Date(), 'yyyy-MM-dd') });
   };
 
   const handleSaveCard = async (e: React.FormEvent) => {
@@ -258,6 +262,7 @@ export function PosFinance() {
   };
 
   return (
+    <>
     <div className="w-full pb-24 relative overflow-x-hidden">
       
       {/* Finance Dashboard Integration */}
@@ -267,11 +272,7 @@ export function PosFinance() {
           onNewBudget={() => setIsBudgetModalOpen(true)}
           onNewCard={() => setIsCardModalOpen(true)}
           onNewPersonalExpense={() => {
-            if (budgets.length === 0) {
-              alert("Crie um orçamento primeiro!");
-              return;
-            }
-            setNewExpense(prev => ({ ...prev, budget_id: budgets[0].id }));
+            setNewExpense(prev => ({ ...prev, budget_id: budgets.length > 0 ? budgets[0].id : "" }));
             setIsExpenseModalOpen(true);
           }}
         />
@@ -501,56 +502,6 @@ export function PosFinance() {
             </div>
           </div>
 
-          <div>
-            <h3 className="text-lg font-medium text-white tracking-tight mb-4 flex items-center gap-2">
-              Despesas Recentes
-            </h3>
-          
-          <div className="bg-[#111113] border border-[rgba(255,255,255,0.04)] rounded-3xl overflow-hidden h-fit">
-            {expenses.length === 0 ? (
-              <div className="p-6 text-center text-sm text-[#A1A1AA]">Nenhuma despesa registrada.</div>
-            ) : (
-              <div className="flex flex-col">
-                {expenses.slice(0, 15).map((expense, i) => {
-                  const budget = budgets.find(b => b.id === expense.budget_id);
-                  const card = creditCards.find(c => c.id === expense.card_id);
-                  
-                  return (
-                    <div key={expense.id} className={cn("flex items-center justify-between p-4 group", i !== expenses.length - 1 && "border-b border-[rgba(255,255,255,0.02)]")}>
-                      <div className="flex items-center gap-3 w-full overflow-hidden pr-2">
-                        <div className="size-9 rounded-xl bg-rose-500/10 text-rose-500 flex items-center justify-center shrink-0">
-                          <TrendingDown className="size-4" />
-                        </div>
-                        <div className="min-w-0 flex-1">
-                          <div className="text-sm font-medium text-white truncate">{expense.title}</div>
-                          <div className="text-[10px] text-[#A1A1AA] mt-1 flex items-center gap-1.5 flex-wrap">
-                            <span className="bg-[#1A1A1E] px-1.5 py-0.5 rounded text-[9px] truncate max-w-[80px]">{budget?.name || 'Geral'}</span>
-                            {card && (
-                              <span className="bg-indigo-500/10 text-indigo-300 px-1.5 py-0.5 rounded text-[9px] flex items-center gap-1 truncate max-w-[80px]">
-                                <CreditCard className="size-2.5 shrink-0" /> {card.name}
-                              </span>
-                            )}
-                            <span className="shrink-0">{format(parseISO(expense.expense_date), "dd/MM")}</span>
-                          </div>
-                        </div>
-                      </div>
-                      <div className="flex items-center gap-3 shrink-0">
-                        <div className="text-sm font-semibold text-white whitespace-nowrap">
-                          {formatCurrency(expense.amount)}
-                        </div>
-                        <button 
-                          onClick={() => deleteExpense(expense.id)}
-                          className="p-1.5 text-[#71717A] hover:text-rose-500 opacity-0 group-hover:opacity-100 transition-opacity rounded-md hover:bg-rose-500/10"
-                        >
-                          <Trash2 className="size-3.5" />
-                        </button>
-                      </div>
-                    </div>
-                  );
-                })}
-              </div>
-            )}
-          </div>
           </div>
         </div>
       </div>
@@ -672,9 +623,8 @@ export function PosFinance() {
                     value={newExpense.budget_id}
                     onChange={(e) => setNewExpense({ ...newExpense, budget_id: e.target.value })}
                     className="w-full bg-[#1C1C1F] border border-transparent focus:border-[#EF4444] rounded-[14px] h-[52px] px-4 text-base text-white outline-none transition-colors appearance-none"
-                    required
                   >
-                    <option value="" disabled>Selecione...</option>
+                    <option value="">Sem Orçamento</option>
                     {budgets.map(b => (
                       <option key={b.id} value={b.id}>{b.name}</option>
                     ))}
@@ -688,13 +638,15 @@ export function PosFinance() {
                     className="w-full bg-[#1C1C1F] border border-transparent focus:border-[#EF4444] rounded-[14px] h-[52px] px-4 text-base text-white outline-none transition-colors appearance-none"
                     required
                   >
-                    <option value="dinheiro">💵 Dinheiro / Pix</option>
-                    <option value="cartao">💳 Cartão de Crédito</option>
+                    <option value="dinheiro">💵 Dinheiro</option>
+                    <option value="pix">💸 Pix</option>
+                    <option value="debito">💳 Cartão de Débito</option>
+                    <option value="credito">💳 Cartão de Crédito</option>
                   </select>
                 </div>
               </div>
 
-              {newExpense.payment_method === 'cartao' && (
+              {newExpense.payment_method === 'credito' && (
                 <div>
                   <label className="text-[13px] font-semibold text-[#A1A1AA] mb-2 uppercase block">Selecione o Cartão / Banco</label>
                   <select 
@@ -822,6 +774,6 @@ export function PosFinance() {
           </div>
         </div>
       )}
-    </div>
+    </>
   );
 }

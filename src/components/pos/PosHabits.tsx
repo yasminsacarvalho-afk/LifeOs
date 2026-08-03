@@ -12,6 +12,7 @@ import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { cn } from "@/lib/utils";
 import { AreaChart, Area, XAxis, YAxis, Tooltip, ResponsiveContainer } from 'recharts';
+import { VoiceRecordButton } from "@/components/ui/VoiceRecordButton";
 
 const evolutionData = [
   { day: 'Seg', score: 65 }, { day: 'Ter', score: 70 }, { day: 'Qua', score: 68 },
@@ -296,15 +297,20 @@ export function PosHabits() {
             <div className="p-6 md:p-8 overflow-y-auto custom-scrollbar flex-1 pb-safe">
               <form onSubmit={handleCreate}>
           
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-6">
-            <div className="md:col-span-2">
-              <label className="text-[11px] uppercase tracking-widest text-[#71717A] font-bold mb-1 block">Nome do Hábito</label>
-              <input 
-                type="text" required value={newHabit.title} onChange={e => setNewHabit({...newHabit, title: e.target.value})}
-                className="w-full bg-[#1A1A1E] border border-[rgba(255,255,255,0.06)] rounded-xl px-4 py-3 text-white focus:border-rose-500 focus:outline-none transition-colors"
-                placeholder="Ex: Treinar, Ler, Beber Água"
-              />
-            </div>
+            <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-6">
+              <div className="md:col-span-2">
+                <label className="text-[11px] uppercase tracking-widest text-[#71717A] font-bold mb-1 block">Nome do Hábito</label>
+                <div className="flex gap-2 items-center bg-[#1A1A1E] border border-[rgba(255,255,255,0.06)] rounded-xl focus-within:border-rose-500 transition-colors">
+                  <input 
+                    type="text" required value={newHabit.title} onChange={e => setNewHabit({...newHabit, title: e.target.value})}
+                    className="w-full bg-transparent px-4 py-3 text-white focus:outline-none"
+                    placeholder="Ex: Treinar, Ler, Beber Água"
+                  />
+                  <div className="pr-1">
+                    <VoiceRecordButton onTranscript={(t) => setNewHabit(prev => ({...prev, title: prev.title ? `${prev.title} ${t}` : t}))} />
+                  </div>
+                </div>
+              </div>
             <div>
               <label className="text-[11px] uppercase tracking-widest text-[#71717A] font-bold mb-1 block">Categoria</label>
               <input 
@@ -332,11 +338,16 @@ export function PosHabits() {
           <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-6">
              <div className="md:col-span-2">
               <label className="text-[11px] uppercase tracking-widest text-[#71717A] font-bold mb-1 block">Objetivo (Por que fazer isso?)</label>
-              <input 
-                type="text" value={newHabit.objective} onChange={e => setNewHabit({...newHabit, objective: e.target.value})}
-                className="w-full bg-[#1A1A1E] border border-[rgba(255,255,255,0.06)] rounded-xl px-4 py-3 text-white focus:border-rose-500 focus:outline-none transition-colors"
-                placeholder="Ex: Ter mais energia ao longo do dia"
-              />
+              <div className="flex gap-2 items-center bg-[#1A1A1E] border border-[rgba(255,255,255,0.06)] rounded-xl focus-within:border-rose-500 transition-colors">
+                <input 
+                  type="text" value={newHabit.objective} onChange={e => setNewHabit({...newHabit, objective: e.target.value})}
+                  className="w-full bg-transparent px-4 py-3 text-white focus:outline-none"
+                  placeholder="Ex: Ter mais energia ao longo do dia"
+                />
+                <div className="pr-1">
+                  <VoiceRecordButton onTranscript={(t) => setNewHabit(prev => ({...prev, objective: prev.objective ? `${prev.objective} ${t}` : t}))} />
+                </div>
+              </div>
             </div>
             <div>
               <label className="text-[11px] uppercase tracking-widest text-[#71717A] font-bold mb-1 block">Horário Preferencial</label>

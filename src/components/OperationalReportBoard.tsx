@@ -23,6 +23,7 @@ import {
 } from 'lucide-react';
 import { useCityCodesRealtime } from '@/hooks/use-city-codes-realtime';
 import { cn } from '@/lib/utils';
+import { CityCodesModal } from '@/components/CityCodesModal';
 import { useOperationalReports } from '@/hooks/use-operational-reports';
 import { useTripsRealtime } from '@/hooks/use-trips-realtime';
 import {
@@ -59,6 +60,27 @@ interface ReportData {
 }
 
 const formatCurrency = (val: number) => val.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
+
+const parseCurrency = (val: any): number => {
+  if (val === undefined || val === null || val === '') return 0;
+  if (typeof val === 'number') return val;
+  if (typeof val === 'string') {
+    let s = val.replace(/[^\d,\.-]/g, '');
+    if (s.includes(',') && s.includes('.')) s = s.replace(/\./g, '');
+    s = s.replace(',', '.');
+    return parseFloat(s) || 0;
+  }
+  return 0;
+};
+
+const findValueByKeys = (obj: any, keys: string[]): any => {
+  if (!obj || typeof obj !== 'object') return undefined;
+  for (const k of keys) {
+    const match = Object.keys(obj).find(origK => origK.toLowerCase().includes(k));
+    if (match && obj[match] !== null && obj[match] !== '') return obj[match];
+  }
+  return undefined;
+};
 
 function aggregateReportData(reports: ReportData[]): ReportData | null {
   if (!reports || reports.length === 0) return null;
@@ -162,13 +184,15 @@ export function OperationalReportBoard() {
   const [isSaving, setIsSaving] = useState(false);
   const [isManageOpen, setIsManageOpen] = useState(false);
   const [servicosSort, setServicosSort] = useState<'default' | 'fat_desc' | 'qtd_desc'>('default');
+  const [cityCodesModalOpen, setCityCodesModalOpen] = useState(false);
 
   // Sync state with database reports
   useEffect(() => {
     if (reports.length > 0) {
       if (!viewStartDate || !viewEndDate) {
-        setViewStartDate(reports[0].report_date);
-        setViewEndDate(reports[0].report_date);
+        const dates = reports.map(r => r.report_date).sort();
+        setViewStartDate(dates[0]);
+        setViewEndDate(dates[dates.length - 1]);
         return;
       }
       
@@ -266,7 +290,11 @@ export function OperationalReportBoard() {
         mapeamento.forEach((d: any) => {
           if (!d.nome_destino && !d.codigo_destino) return;
           const rawName = (d.nome_destino || `Cod. ${d.codigo_destino}`).trim().replace(/\s*-\s*[A-Za-z]{2}\s*$/, "");
-          processItem(rawName, d.codigo_destino || "--", parseInt(d.passagens) || 0, parseFloat(d.faturamento) || 0, "Geral");
+          const rawQty = findValueByKeys(d, ['passagens', 'bilhetes', 'qtd', 'quantidade', 'volume', 'num']);
+          const rawFat = findValueByKeys(d, ['faturamento', 'valor', 'receita', 'total', 'fat', 'montante', 'preco', 'dinheiro']);
+          const qty = parseInt(rawQty) || 0;
+          const fat = parseCurrency(rawFat);
+          processItem(rawName, d.codigo_destino || "--", qty, fat, "Geral");
         });
       } else if (Array.isArray(linhas) && linhas.length > 0) {
         linhas.forEach((l: any) => {
@@ -278,7 +306,11 @@ export function OperationalReportBoard() {
           } else {
              rawName = rawName.replace(/\d{2}:\d{2}/, '').trim();
           }
-          processItem(rawName, "--", parseInt(l.passagens) || 0, parseFloat(l.faturamento) || 0, l.empresa || "Geral");
+          const rawQty = findValueByKeys(l, ['passagens', 'bilhetes', 'qtd', 'quantidade', 'volume', 'num']);
+          const rawFat = findValueByKeys(l, ['faturamento', 'valor', 'receita', 'total', 'fat', 'montante', 'preco', 'dinheiro']);
+          const qty = parseInt(rawQty) || 0;
+          const fat = parseCurrency(rawFat);
+          processItem(rawName, "--", qty, fat, l.empresa || "Geral");
         });
       }
     });
@@ -894,6 +926,12 @@ export function OperationalReportBoard() {
                  <p className="text-base text-muted-foreground mt-1 font-medium">Análise de performance das cidades mais procuradas e vendidas neste período.</p>
                </div>
             </div>
+            <button 
+              onClick={() => setCityCodesModalOpen(true)}
+              className="text-xs font-bold uppercase tracking-widest text-[#8A05BE] bg-[#8A05BE]/10 px-4 py-2.5 rounded-xl border border-[#8A05BE]/20 hover:bg-[#8A05BE]/20 hover:border-[#8A05BE]/40 transition-all flex items-center gap-2 shrink-0 shadow-lg"
+            >
+              <MapPin className="size-4" /> Dicionário de Códigos
+            </button>
           </div>
 
           <div className="flex flex-col gap-8 relative z-10">
@@ -987,6 +1025,8 @@ export function OperationalReportBoard() {
            </div>
          </div>
       </div>
+      
+      <CityCodesModal open={cityCodesModalOpen} onClose={() => setCityCodesModalOpen(false)} />
     </div>
   );
 }

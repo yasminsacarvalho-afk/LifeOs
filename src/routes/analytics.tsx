@@ -96,7 +96,7 @@ function AnalyticsPage() {
     setExpandedLakeItems(prev => ({ ...prev, [id]: !prev[id] }));
   };
 
-  const [expandedSaudeComercial, setExpandedSaudeComercial] = useState(true);
+  const [expandedSaudeComercial, setExpandedSaudeComercial] = useState(false);
   const [expandedDestinos, setExpandedDestinos] = useState(false);
   const [expandedConsistency, setExpandedConsistency] = useState<Record<string, boolean>>({});
   const toggleConsistency = (id: string) => {
