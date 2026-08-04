@@ -147,7 +147,7 @@ function InfoPage() {
                   </div>
                   <div>
                     <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Instagram Oficial</p>
-                    <p className="text-sm font-medium text-foreground">@voyageflow.app</p>
+                    <p className="text-sm font-medium text-foreground">@lifeos.app</p>
                   </div>
                 </a>
 
@@ -157,7 +157,7 @@ function InfoPage() {
                   </div>
                   <div>
                     <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">E-mail Corporativo</p>
-                    <p className="text-sm font-medium text-foreground">contato@voyageflow.com</p>
+                    <p className="text-sm font-medium text-foreground">contato@lifeos.com</p>
                   </div>
                 </div>
               </div>

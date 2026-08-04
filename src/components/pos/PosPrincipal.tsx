@@ -647,7 +647,7 @@ export function PosPrincipal() {
             <div className="rounded-2xl border border-primary/30 bg-gradient-to-br from-primary/15 via-card to-card p-6 backdrop-blur-sm">
               <div className="mb-2 flex items-center justify-between">
                 <span className="text-[10px] font-bold uppercase tracking-widest text-primary">
-                  Meta Mensal Voyage
+                  Meta Mensal LifeOs
                 </span>
                 <TrendingUp className="size-4 text-primary" />
               </div>

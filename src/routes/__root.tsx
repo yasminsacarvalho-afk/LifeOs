@@ -26,7 +26,7 @@ function NotFoundComponent() {
         <h1 className="text-7xl font-bold text-foreground">404</h1>
         <h2 className="mt-4 text-xl font-semibold text-foreground">Rota não encontrada</h2>
         <p className="mt-2 text-sm text-muted-foreground">
-          Esta tela ainda não está disponível no Voyage Flow.
+          Esta tela ainda não está disponível no LifeOs.
         </p>
         <div className="mt-6">
           <Link
@@ -76,14 +76,14 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
     meta: [
       { charSet: "utf-8" },
       { name: "viewport", content: "width=device-width, initial-scale=1" },
-      { title: "Voyage Flow — ERP para transporte rodoviário" },
+      { title: "LifeOs — ERP para transporte rodoviário" },
       {
         name: "description",
         content:
           "ERP premium para empresas de transporte rodoviário: dashboard financeiro multi-empresa e torre de controle operacional em tempo real.",
       },
       { name: "theme-color", content: "#09090b" },
-      { property: "og:title", content: "Voyage Flow — ERP para transporte rodoviário" },
+      { property: "og:title", content: "LifeOs — ERP para transporte rodoviário" },
       {
         property: "og:description",
         content:

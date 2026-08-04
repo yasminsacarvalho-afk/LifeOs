@@ -9,7 +9,7 @@ import { cn } from "@/lib/utils";
 export const Route = createFileRoute("/drivers")({
   head: () => ({
     meta: [
-      { title: "Gestão de Motoristas · Voyage Flow" },
+      { title: "Gestão de Motoristas · LifeOs" },
       { name: "description", content: "Cadastro, histórico e avaliação de motoristas." },
     ],
   }),

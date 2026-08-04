@@ -22,7 +22,7 @@ import { isWithinFinancialPeriod, getFinancialPeriod } from "@/lib/date-helpers"
 
 export const Route = createFileRoute("/admin")({
   head: () => ({
-    meta: [{ title: "Gestão RH · Voyage Flow" }],
+    meta: [{ title: "Gestão RH · LifeOs" }],
   }),
   component: AdminPage,
 });
@@ -325,7 +325,7 @@ function AdminPage() {
 
   const handleExportFolhaCSV = () => {
     const monthFormatted = `${String(currentMonth.getMonth()+1).padStart(2, '0')}/${currentMonth.getFullYear()}`;
-    let csv = "FECHAMENTO DE FOLHA DE PAGAMENTO - VOYAGE FLOW\n";
+    let csv = "FECHAMENTO DE FOLHA DE PAGAMENTO - LIFEOS FLOW\n";
     csv += `Mês de Referência:;${monthFormatted}\n\n`;
     csv += "Colaborador;Diárias (Escala);Comissões;Bônus Meta;Trocas (Acerto);Total a Receber\n";
 
@@ -351,7 +351,7 @@ function AdminPage() {
 
   const handleExportEscalaCSV = () => {
     const monthFormatted = `${String(currentMonth.getMonth()+1).padStart(2, '0')}/${currentMonth.getFullYear()}`;
-    let csv = "PREVISÃO DE REMUNERAÇÃO DA ESCALA - VOYAGE FLOW\n";
+    let csv = "PREVISÃO DE REMUNERAÇÃO DA ESCALA - LIFEOS FLOW\n";
     csv += `Mês de Referência:;${monthFormatted}\n\n`;
     csv += "Colaborador;Dias Inteiros;Meios Dias;Soma (Diárias);Valor Diária;Valor Meia;Total a Receber\n";
 
@@ -396,7 +396,7 @@ function AdminPage() {
 
   const handleExportGridCSV = () => {
     const monthFormatted = `${String(currentMonth.getMonth()+1).padStart(2, '0')}/${currentMonth.getFullYear()}`;
-    let csv = "CRONOGRAMA DE ESCALAS COMPLETO - VOYAGE FLOW\n";
+    let csv = "CRONOGRAMA DE ESCALAS COMPLETO - LIFEOS FLOW\n";
     csv += `Mês de Referência:;${monthFormatted}\n\n`;
     
     csv += "Colaborador;";
@@ -1022,7 +1022,7 @@ function AdminPage() {
                   <h2 className="text-xl md:text-2xl font-black uppercase tracking-widest text-blue-600">
                     Escala de Trabalho - {currentMonth.toLocaleString('pt-BR', { month: 'long', year: 'numeric' })}
                   </h2>
-                  <p className="text-sm font-medium text-gray-500 mt-1">Voyage Flow</p>
+                  <p className="text-sm font-medium text-gray-500 mt-1">LifeOs</p>
                 </div>
                 
                 <table className="w-full text-xs sm:text-sm text-center border-collapse border border-gray-300">

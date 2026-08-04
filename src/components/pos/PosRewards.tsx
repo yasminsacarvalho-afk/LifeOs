@@ -24,7 +24,7 @@ export function PosRewards() {
   ]);
 
   useEffect(() => {
-    const savedRewards = localStorage.getItem('voyage_pos_rewards');
+    const savedRewards = localStorage.getItem('lifeos_pos_rewards');
     if (savedRewards) setRewards(JSON.parse(savedRewards));
     
     // Update temp config when hook loads saved config
@@ -46,7 +46,7 @@ export function PosRewards() {
 
       const newRewards = rewards.map(r => r.id === rewardId ? { ...r, redeemed: true } : r);
       setRewards(newRewards);
-      localStorage.setItem('voyage_pos_rewards', JSON.stringify(newRewards));
+      localStorage.setItem('lifeos_pos_rewards', JSON.stringify(newRewards));
 
       toast.success('Recompensa resgatada com sucesso! Aproveite!');
     }
@@ -61,15 +61,15 @@ export function PosRewards() {
 
       const newRewards = rewards.map(r => r.id === rewardId ? { ...r, redeemed: false } : r);
       setRewards(newRewards);
-      localStorage.setItem('voyage_pos_rewards', JSON.stringify(newRewards));
+      localStorage.setItem('lifeos_pos_rewards', JSON.stringify(newRewards));
 
       toast.success('Recompensa devolvida. XP recuperado.');
     }
   };
 
   const handleSaveConfig = () => {
-    localStorage.setItem('voyage_pos_xp_config', JSON.stringify(tempConfig));
-    localStorage.setItem('voyage_pos_xp_goal', tempGoal.toString());
+    localStorage.setItem('lifeos_pos_xp_config', JSON.stringify(tempConfig));
+    localStorage.setItem('lifeos_pos_xp_goal', tempGoal.toString());
     window.location.reload(); // Force reload to update hook state since we're using localStorage manually here
   };
 

@@ -26,13 +26,13 @@ export function PosEntertainment() {
   const [newCost, setNewCost] = useState(1000);
 
   useEffect(() => {
-    const saved = localStorage.getItem('voyage_pos_entertainment');
+    const saved = localStorage.getItem('lifeos_pos_entertainment');
     if (saved) setItems(JSON.parse(saved));
   }, []);
 
   const saveItems = (newItems: EntertainmentItem[]) => {
     setItems(newItems);
-    localStorage.setItem('voyage_pos_entertainment', JSON.stringify(newItems));
+    localStorage.setItem('lifeos_pos_entertainment', JSON.stringify(newItems));
   };
 
   const handleAdd = (e: React.FormEvent) => {

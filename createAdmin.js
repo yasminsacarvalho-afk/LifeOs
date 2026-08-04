@@ -21,7 +21,7 @@ const supabase = createClient(supabaseUrl, supabaseAnonKey, {
 async function createAdminUser() {
   console.log("Tentando criar um usuário admin...");
   
-  const email = "admin@voyageflow.com";
+  const email = "admin@lifeos.com";
   const password = "password123";
 
   const { data, error } = await supabase.auth.signUp({

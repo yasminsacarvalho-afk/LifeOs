@@ -106,7 +106,7 @@ export interface PartnerRanking {
 
 export const ranking: PartnerRanking[] = [
   { rank: 1, name: "Agência Central SP", revenue: "R$ 142.300", commission: "R$ 12.400", goal: 94 },
-  { rank: 2, name: "Voyage Parceria Sul", revenue: "R$ 98.700", commission: "R$ 8.900", goal: 81 },
+  { rank: 2, name: "LifeOs Parceria Sul", revenue: "R$ 98.700", commission: "R$ 8.900", goal: 81 },
   { rank: 3, name: "Trans-Rio Master", revenue: "R$ 75.120", commission: "R$ 7.100", goal: 68 },
   { rank: 4, name: "Litoral Express BA", revenue: "R$ 61.400", commission: "R$ 5.880", goal: 54 },
   { rank: 5, name: "Pampa Viagens RS", revenue: "R$ 48.250", commission: "R$ 4.310", goal: 42 },
@@ -134,8 +134,8 @@ export interface CompanyShare {
 }
 
 export const companyShare: CompanyShare[] = [
-  { name: "Voyage SP", value: 38 },
-  { name: "Voyage Sul", value: 27 },
+  { name: "LifeOs SP", value: 38 },
+  { name: "LifeOs Sul", value: 27 },
   { name: "Trans-Rio", value: 18 },
   { name: "Litoral BA", value: 11 },
   { name: "Outros", value: 6 },

@@ -9,7 +9,7 @@ import { cn } from "@/lib/utils";
 
 export const Route = createFileRoute("/simulator")({
   head: () => ({
-    meta: [{ title: "Simulador de Metas · Voyage Flow" }],
+    meta: [{ title: "Simulador de Metas · LifeOs" }],
   }),
   component: SimulatorPage,
 });

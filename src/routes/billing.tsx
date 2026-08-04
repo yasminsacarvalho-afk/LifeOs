@@ -16,7 +16,7 @@ import { cn } from "@/lib/utils";
 
 export const Route = createFileRoute("/billing")({
   head: () => ({
-    meta: [{ title: "Faturamento e Caixa · Voyage Flow" }],
+    meta: [{ title: "Faturamento e Caixa · LifeOs" }],
   }),
   component: BillingPage,
 });

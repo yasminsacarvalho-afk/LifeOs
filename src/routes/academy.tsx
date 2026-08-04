@@ -62,7 +62,7 @@ function AcademyPage() {
   return (
     <>
       <TopBar
-        title="Voyage Academy"
+        title="LifeOs Academy"
         subtitle="Centro de excelência intelectual para desenvolvimento pessoal em finanças e operação de ônibus."
         actions={
           <button

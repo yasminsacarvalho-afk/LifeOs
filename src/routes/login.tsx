@@ -58,7 +58,7 @@ function LoginPage() {
           <div className="p-3 bg-primary/10 rounded-2xl text-primary mb-4 ring-1 ring-primary/20">
             <ShieldCheck className="size-8" />
           </div>
-          <h1 className="text-2xl font-bold tracking-tight text-foreground">Voyage Flow</h1>
+          <h1 className="text-2xl font-bold tracking-tight text-foreground">LifeOs</h1>
           <p className="text-sm text-muted-foreground text-center mt-2">
             Acesso restrito. Insira suas credenciais para entrar no sistema.
           </p>

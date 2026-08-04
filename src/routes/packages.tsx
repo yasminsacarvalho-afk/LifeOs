@@ -10,7 +10,7 @@ import { cn } from "@/lib/utils";
 
 export const Route = createFileRoute("/packages")({
   head: () => ({
-    meta: [{ title: "Encomendas · Voyage Flow" }],
+    meta: [{ title: "Encomendas · LifeOs" }],
   }),
   component: PackagesPage,
 });

@@ -14,7 +14,7 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
 
   useEffect(() => {
     // Load saved theme on mount
-    const savedTheme = localStorage.getItem("voyage_theme") as ThemeType;
+    const savedTheme = localStorage.getItem("lifeos_theme") as ThemeType;
     if (savedTheme) {
       setThemeState(savedTheme);
     }
@@ -30,7 +30,7 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
       "theme-monochrome"
     );
     document.body.classList.add(theme);
-    localStorage.setItem("voyage_theme", theme);
+    localStorage.setItem("lifeos_theme", theme);
   }, [theme]);
 
   const setTheme = (newTheme: ThemeType) => {

@@ -129,7 +129,7 @@ function DashboardGeral() {
   const { leads } = useCrmRealtime();
 
   const [reservaMeta, setReservaMeta] = useState(() => {
-    try { return Number(localStorage.getItem('voyage_reserva_meta')) || 100000; } catch { return 100000; }
+    try { return Number(localStorage.getItem('lifeos_reserva_meta')) || 100000; } catch { return 100000; }
   });
 
   const [isAdvisorOpen, setIsAdvisorOpen] = useState(false);
@@ -889,20 +889,20 @@ function PersonalOSPage() {
   useEffect(() => {
     const loadNotifs = () => {
       try {
-        const notifs = JSON.parse(localStorage.getItem('voyage_drive_notifications') || '[]');
+        const notifs = JSON.parse(localStorage.getItem('lifeos_drive_notifications') || '[]');
         setNotifications(notifs);
       } catch(e) {}
     };
     loadNotifs();
-    window.addEventListener('voyage_drive_notifications_update', loadNotifs);
-    return () => window.removeEventListener('voyage_drive_notifications_update', loadNotifs);
+    window.addEventListener('lifeos_drive_notifications_update', loadNotifs);
+    return () => window.removeEventListener('lifeos_drive_notifications_update', loadNotifs);
   }, []);
 
   const unreadCount = notifications.filter(n => !n.read).length;
 
   const markAllAsRead = () => {
     const updated = notifications.map(n => ({ ...n, read: true }));
-    localStorage.setItem('voyage_drive_notifications', JSON.stringify(updated));
+    localStorage.setItem('lifeos_drive_notifications', JSON.stringify(updated));
     setNotifications(updated);
   };
 
@@ -943,7 +943,7 @@ function PersonalOSPage() {
                   <div className="p-4 border-b border-[#1C1C21] flex items-center justify-between">
                     <h3 className="text-sm font-bold text-white">Centro de Notificações</h3>
                     {notifications.length > 0 && (
-                      <button onClick={() => { localStorage.removeItem('voyage_drive_notifications'); setNotifications([]); }} className="text-[10px] text-[#71717A] hover:text-white uppercase tracking-widest font-bold">Limpar</button>
+                      <button onClick={() => { localStorage.removeItem('lifeos_drive_notifications'); setNotifications([]); }} className="text-[10px] text-[#71717A] hover:text-white uppercase tracking-widest font-bold">Limpar</button>
                     )}
                   </div>
                   <div className="max-h-80 overflow-y-auto custom-scrollbar">

@@ -20,9 +20,9 @@ export default defineConfig({
         injectRegister: 'auto',
         includeAssets: ['favicon.ico', 'apple-touch-icon.png', 'masked-icon.svg'],
         manifest: {
-          name: 'Voyage Flow PWA',
-          short_name: 'VoyageFlow',
-          description: 'ERP e Personal OS - Voyage Flow',
+          name: 'LifeOs PWA',
+          short_name: 'LifeOs',
+          description: 'ERP e Personal OS - LifeOs',
           theme_color: '#E11D48',
           background_color: '#09090B',
           display: 'standalone',

@@ -23,16 +23,16 @@ export function usePosXP() {
   const [spentXP, setSpentXP] = useState(0);
 
   useEffect(() => {
-    const savedSpent = localStorage.getItem('voyage_pos_spent_xp');
+    const savedSpent = localStorage.getItem('lifeos_pos_spent_xp');
     if (savedSpent) setSpentXP(Number(savedSpent));
 
-    const savedConfig = localStorage.getItem('voyage_pos_xp_config');
+    const savedConfig = localStorage.getItem('lifeos_pos_xp_config');
     if (savedConfig) {
       const parsed = JSON.parse(savedConfig);
       setXpConfig({ ...xpConfig, ...parsed });
     }
     
-    const savedGoal = localStorage.getItem('voyage_pos_xp_goal');
+    const savedGoal = localStorage.getItem('lifeos_pos_xp_goal');
     if (savedGoal) {
       setXpGoal(Number(savedGoal));
     }
@@ -54,13 +54,13 @@ export function usePosXP() {
   const spendXP = (amount: number) => {
     const newSpent = spentXP + amount;
     setSpentXP(newSpent);
-    localStorage.setItem('voyage_pos_spent_xp', newSpent.toString());
+    localStorage.setItem('lifeos_pos_spent_xp', newSpent.toString());
   };
 
   const refundXP = (amount: number) => {
     const newSpent = Math.max(0, spentXP - amount);
     setSpentXP(newSpent);
-    localStorage.setItem('voyage_pos_spent_xp', newSpent.toString());
+    localStorage.setItem('lifeos_pos_spent_xp', newSpent.toString());
   };
 
   return {

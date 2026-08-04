@@ -20,7 +20,7 @@ import { isWithinFinancialPeriod, getFinancialPeriod, getCurrentDayOfFinancialPe
 
 export const Route = createFileRoute("/analytics")({
   head: () => ({
-    meta: [{ title: "Análises & Insights · Voyage Flow" }],
+    meta: [{ title: "Análises & Insights · LifeOs" }],
   }),
   component: AnalyticsPage,
 });
@@ -1278,7 +1278,7 @@ function AnalyticsPage() {
           ))}
         </div>
 
-        {/* Voyage AI & Risk Management */}
+        {/* LifeOs AI & Risk Management */}
 
         <section id="ai-insights" className="relative overflow-hidden rounded-3xl border border-[#8A05BE]/20 bg-black/60 p-8 backdrop-blur-2xl shadow-2xl mt-4">
             <div className="flex justify-between items-center cursor-pointer group" onClick={() => setExpandedSaudeComercial(!expandedSaudeComercial)}>

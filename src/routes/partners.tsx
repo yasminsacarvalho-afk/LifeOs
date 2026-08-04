@@ -1206,7 +1206,7 @@ export function GerenciamentoParceiros({ title }: { title: string }) {
             to="/"
             className="inline-flex items-center gap-2 text-xs font-semibold uppercase tracking-wider text-muted-foreground hover:text-foreground transition-colors"
           >
-            <ArrowLeft className="size-3.5" /> Retornar ao Voyage Dashboard
+            <ArrowLeft className="size-3.5" /> Retornar ao LifeOs Dashboard
           </Link>
         </div>
       </main>

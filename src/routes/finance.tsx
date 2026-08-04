@@ -591,7 +591,7 @@ export function FinanceDashboard({
   const [isProLaboreModalOpen, setIsProLaboreModalOpen] = useState(false);
   const [proLaboreConfig, setProLaboreConfig] = useState(() => {
     try {
-      const saved = localStorage.getItem('voyage_prolabore_config');
+      const saved = localStorage.getItem('lifeos_prolabore_config');
       if (saved) return JSON.parse(saved);
     } catch(e) {}
     return {
@@ -603,12 +603,12 @@ export function FinanceDashboard({
   });
 
   useEffect(() => {
-    localStorage.setItem('voyage_prolabore_config', JSON.stringify(proLaboreConfig));
+    localStorage.setItem('lifeos_prolabore_config', JSON.stringify(proLaboreConfig));
   }, [proLaboreConfig]);
 
   const [bankConfig, setBankConfig] = useState(() => {
     try {
-      const saved = localStorage.getItem('voyage_bank_config');
+      const saved = localStorage.getItem('lifeos_bank_config');
       if (saved) return JSON.parse(saved);
     } catch(e) {}
     return {
@@ -618,7 +618,7 @@ export function FinanceDashboard({
   });
 
   useEffect(() => {
-    localStorage.setItem('voyage_bank_config', JSON.stringify(bankConfig));
+    localStorage.setItem('lifeos_bank_config', JSON.stringify(bankConfig));
   }, [bankConfig]);
 
 
@@ -630,7 +630,7 @@ export function FinanceDashboard({
   const [isTasksOpen, setIsTasksOpen] = useState(false);
   const [tasks, setTasks] = useState<{id: string, text: string, done: boolean, urgency: 'low'|'medium'|'high', createdAt: string}[]>(() => {
     try {
-      const saved = localStorage.getItem('voyage_finance_tasks');
+      const saved = localStorage.getItem('lifeos_finance_tasks');
       if (saved) return JSON.parse(saved);
     } catch(e) {}
     return [];
@@ -639,7 +639,7 @@ export function FinanceDashboard({
   const [newTaskUrgency, setNewTaskUrgency] = useState<'low'|'medium'|'high'>('medium');
 
   useEffect(() => {
-    localStorage.setItem('voyage_finance_tasks', JSON.stringify(tasks));
+    localStorage.setItem('lifeos_finance_tasks', JSON.stringify(tasks));
   }, [tasks]);
 
   const addTask = () => {
@@ -676,7 +676,7 @@ export function FinanceDashboard({
 
   const [visibleKPIs, setVisibleKPIs] = useState<Record<string, boolean>>(() => {
     try {
-      const saved = localStorage.getItem('voyage_visible_kpis');
+      const saved = localStorage.getItem('lifeos_visible_kpis');
       if (saved) return JSON.parse(saved);
     } catch(e) {}
     return {
@@ -686,7 +686,7 @@ export function FinanceDashboard({
   });
 
   useEffect(() => {
-    localStorage.setItem('voyage_visible_kpis', JSON.stringify(visibleKPIs));
+    localStorage.setItem('lifeos_visible_kpis', JSON.stringify(visibleKPIs));
   }, [visibleKPIs]);
 
   const toggleKPI = (key: string) => {
@@ -695,7 +695,7 @@ export function FinanceDashboard({
 
   const [labIdeas, setLabIdeas] = useState<any[]>(() => {
     try {
-      const saved = localStorage.getItem('voyage_lab_ideas');
+      const saved = localStorage.getItem('lifeos_lab_ideas');
       if (saved) return JSON.parse(saved);
     } catch(e) {}
     return [
@@ -705,7 +705,7 @@ export function FinanceDashboard({
   });
 
   useEffect(() => {
-    localStorage.setItem('voyage_lab_ideas', JSON.stringify(labIdeas));
+    localStorage.setItem('lifeos_lab_ideas', JSON.stringify(labIdeas));
   }, [labIdeas]);
 
   const addLabIdea = (type: 'ads' | 'capex') => {
@@ -741,14 +741,14 @@ export function FinanceDashboard({
 
   const [categories, setCategories] = useState<{expense: string[], income: string[]}>(() => {
     try {
-      const saved = localStorage.getItem('voyage_financial_categories');
+      const saved = localStorage.getItem('lifeos_financial_categories');
       if (saved) return JSON.parse(saved);
     } catch(e) {}
     return defaultCategories;
   });
 
   useEffect(() => {
-    localStorage.setItem('voyage_financial_categories', JSON.stringify(categories));
+    localStorage.setItem('lifeos_financial_categories', JSON.stringify(categories));
   }, [categories]);
 
   useEffect(() => {

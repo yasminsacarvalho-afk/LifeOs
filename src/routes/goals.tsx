@@ -23,7 +23,7 @@ import { getFinancialPeriod, getCurrentDayOfFinancialPeriod, isWithinFinancialPe
 
 export const Route = createFileRoute("/goals")({
   head: () => ({
-    meta: [{ title: "Metas & Ranking · Voyage Flow" }],
+    meta: [{ title: "Metas & Ranking · LifeOs" }],
   }),
   component: GoalsPage,
 });

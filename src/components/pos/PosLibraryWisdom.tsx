@@ -16,7 +16,7 @@ export function PosLibraryWisdom() {
   const [newAuthor, setNewAuthor] = useState('');
 
   useEffect(() => {
-    const saved = localStorage.getItem('voyage_wisdom_quotes');
+    const saved = localStorage.getItem('lifeos_wisdom_quotes');
     if (saved) {
       setQuotes(JSON.parse(saved));
     } else {
@@ -24,7 +24,7 @@ export function PosLibraryWisdom() {
         { id: '1', text: 'A leitura de todos os bons livros é uma conversação com as mais honestas pessoas dos séculos passados.', author: 'René Descartes' }
       ];
       setQuotes(defaultQuotes);
-      localStorage.setItem('voyage_wisdom_quotes', JSON.stringify(defaultQuotes));
+      localStorage.setItem('lifeos_wisdom_quotes', JSON.stringify(defaultQuotes));
     }
   }, []);
 
@@ -38,7 +38,7 @@ export function PosLibraryWisdom() {
 
   const saveQuotes = (newQuotes: WisdomQuote[]) => {
     setQuotes(newQuotes);
-    localStorage.setItem('voyage_wisdom_quotes', JSON.stringify(newQuotes));
+    localStorage.setItem('lifeos_wisdom_quotes', JSON.stringify(newQuotes));
   };
 
   const handleAdd = () => {

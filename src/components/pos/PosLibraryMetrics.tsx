@@ -78,7 +78,7 @@ export function PosLibraryMetrics({ books, sessions, onOpenBook, onRegisterBook 
   const [visibleCount, setVisibleCount] = useState(12);
   const [driveData, setDriveData] = useState<{ pdfs: any[], epubs: any[] }>(() => {
     try {
-      const cached = localStorage.getItem('voyage_drive_files_data');
+      const cached = localStorage.getItem('lifeos_drive_files_data');
       return cached ? JSON.parse(cached) : { pdfs: [], epubs: [] };
     } catch { return { pdfs: [], epubs: [] }; }
   });
@@ -95,7 +95,7 @@ export function PosLibraryMetrics({ books, sessions, onOpenBook, onRegisterBook 
           const epubs = data.files.filter((f: any) => f.origin === 'epub' || f.name.toLowerCase().includes('.epub') || f.name.toLowerCase().includes('.mobi'));
 
           setDriveData({ pdfs, epubs });
-          localStorage.setItem('voyage_drive_files_data', JSON.stringify({ pdfs, epubs }));
+          localStorage.setItem('lifeos_drive_files_data', JSON.stringify({ pdfs, epubs }));
         }
       } catch (error) {
         console.error("Erro ao puxar métrica do Drive:", error);

@@ -61,7 +61,7 @@ export function PosLibraryArticleStudio({ isOpen, onClose, books, sessions }: Po
   const [editorTab, setEditorTab] = useState<'write' | 'board'>('write');
   
   useEffect(() => {
-    const stored = localStorage.getItem('voyage_articles');
+    const stored = localStorage.getItem('lifeos_articles');
     if (stored) {
       try {
         const parsed = JSON.parse(stored);
@@ -83,7 +83,7 @@ export function PosLibraryArticleStudio({ isOpen, onClose, books, sessions }: Po
 
   const saveArticles = (newArticles: Article[]) => {
     setArticles(newArticles);
-    localStorage.setItem('voyage_articles', JSON.stringify(newArticles));
+    localStorage.setItem('lifeos_articles', JSON.stringify(newArticles));
   };
 
   const handleCreateNew = () => {

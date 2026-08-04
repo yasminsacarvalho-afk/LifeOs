@@ -82,7 +82,7 @@ export function usePosLibrary() {
       if (sessionsError && sessionsError.code !== '42P01') console.error("Error fetching reading sessions:", sessionsError);
 
       if (booksData) {
-        const storedMeta = localStorage.getItem('voyage_pos_metadata');
+        const storedMeta = localStorage.getItem('lifeos_pos_metadata');
         const metadata = storedMeta ? JSON.parse(storedMeta) : {};
         
         const processedBooks = booksData.map(b => {
@@ -127,10 +127,10 @@ export function usePosLibrary() {
 
       if (error) throw error;
       if (data) {
-        const storedMeta = localStorage.getItem('voyage_pos_metadata');
+        const storedMeta = localStorage.getItem('lifeos_pos_metadata');
         const metadata = storedMeta ? JSON.parse(storedMeta) : {};
         metadata[data.id] = { tags: tagsToSave, collections: collectionsToSave, badges: badgesToSave, storage_location: storageLocationToSave };
-        localStorage.setItem('voyage_pos_metadata', JSON.stringify(metadata));
+        localStorage.setItem('lifeos_pos_metadata', JSON.stringify(metadata));
 
         setBooks(prev => [{ ...data, tags: tagsToSave, collections: collectionsToSave, badges: badgesToSave, storage_location: storageLocationToSave }, ...prev]);
       }
@@ -146,7 +146,7 @@ export function usePosLibrary() {
     try {
       const payload = { ...updates };
       
-      const storedMeta = localStorage.getItem('voyage_pos_metadata');
+      const storedMeta = localStorage.getItem('lifeos_pos_metadata');
       const metadata = storedMeta ? JSON.parse(storedMeta) : {};
       const currentMeta = metadata[id] || { tags: [], collections: [], badges: [], storage_location: null };
       
@@ -170,7 +170,7 @@ export function usePosLibrary() {
       if (error) throw error;
       if (data) {
         metadata[id] = { tags: tagsToSave, collections: collectionsToSave, badges: badgesToSave, storage_location: storageLocationToSave };
-        localStorage.setItem('voyage_pos_metadata', JSON.stringify(metadata));
+        localStorage.setItem('lifeos_pos_metadata', JSON.stringify(metadata));
 
         setBooks(prev => prev.map(b => b.id === id ? { ...data, tags: tagsToSave, collections: collectionsToSave, badges: badgesToSave, storage_location: storageLocationToSave } : b));
       }

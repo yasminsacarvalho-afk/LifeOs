@@ -16,7 +16,7 @@ import {
 export const Route = createFileRoute("/growth")({
   component: GrowthLaboratory,
   head: () => ({
-    meta: [{ title: "Laboratório de Growth · Voyage Flow" }],
+    meta: [{ title: "Laboratório de Growth · LifeOs" }],
   }),
 });
 

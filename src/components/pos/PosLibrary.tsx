@@ -42,7 +42,7 @@ const LiveTimer = ({ startTime }: { startTime: number }) => {
 
 const addDriveNotification = (status: 'success' | 'error', message: string) => {
   try {
-    const existing = JSON.parse(localStorage.getItem('voyage_drive_notifications') || '[]');
+    const existing = JSON.parse(localStorage.getItem('lifeos_drive_notifications') || '[]');
     const newNotif = {
       id: Math.random().toString(36).substring(7),
       status,
@@ -51,8 +51,8 @@ const addDriveNotification = (status: 'success' | 'error', message: string) => {
       read: false
     };
     const updated = [newNotif, ...existing].slice(0, 10);
-    localStorage.setItem('voyage_drive_notifications', JSON.stringify(updated));
-    window.dispatchEvent(new Event('voyage_drive_notifications_update'));
+    localStorage.setItem('lifeos_drive_notifications', JSON.stringify(updated));
+    window.dispatchEvent(new Event('lifeos_drive_notifications_update'));
   } catch(e) {}
 };
 
@@ -255,7 +255,7 @@ export function PosLibrary() {
   // Persistent Active Sessions
   const [activeSessions, setActiveSessions] = useState<any[]>(() => {
     try {
-      const stored = localStorage.getItem('voyage_active_reading_sessions');
+      const stored = localStorage.getItem('lifeos_active_reading_sessions');
       return stored ? JSON.parse(stored) : [];
     } catch {
       return [];
@@ -266,7 +266,7 @@ export function PosLibrary() {
 
   const saveActiveSessions = (sessions: any[]) => {
     setActiveSessions(sessions);
-    localStorage.setItem('voyage_active_reading_sessions', JSON.stringify(sessions));
+    localStorage.setItem('lifeos_active_reading_sessions', JSON.stringify(sessions));
   };
 
   const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>, isEditing = false) => {
@@ -510,7 +510,7 @@ export function PosLibrary() {
           const data = await res.json();
           const city = data.address?.city || data.address?.town || data.address?.village || data.address?.suburb || "Casa";
           
-          const currentStr = localStorage.getItem('voyage_active_sessions');
+          const currentStr = localStorage.getItem('lifeos_active_sessions');
           if (currentStr) {
             const current = JSON.parse(currentStr);
             saveActiveSessions(current.map((s: any) => s.id === sessionId ? { ...s, location: city } : s));
