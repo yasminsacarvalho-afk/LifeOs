@@ -310,7 +310,7 @@ export function PosLibraryMetrics({ books, sessions, onOpenBook, onRegisterBook 
                               </div>
                               
                               <div className="relative z-10 flex flex-col h-full p-4 justify-between">
-                                <div className="flex justify-between items-start">
+                                <div className="flex justify-between items-start relative">
                                   <DriveCover 
                                     file={f} 
                                     isEpub={selectedMetric.id === 'drive_epub'}
@@ -321,8 +321,8 @@ export function PosLibraryMetrics({ books, sessions, onOpenBook, onRegisterBook 
                                   />
                                   
                                   {linkedBook && (
-                                     <div className="bg-emerald-500/10 text-emerald-400 text-[9px] font-bold uppercase tracking-widest px-2 py-1 rounded-full border border-emerald-500/20 flex items-center gap-1 backdrop-blur-sm shadow-xl">
-                                       <Check className="size-3" /> No Sistema
+                                     <div className="absolute top-2 right-2 bg-emerald-500/90 text-white text-[9px] font-bold uppercase tracking-widest px-2 py-1 rounded-lg border border-emerald-400/50 flex items-center gap-1 backdrop-blur-sm shadow-xl">
+                                       <Check className="size-3 shrink-0" />
                                      </div>
                                   )}
                                 </div>

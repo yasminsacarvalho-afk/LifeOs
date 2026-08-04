@@ -445,13 +445,13 @@ export function PosLibraryBookDetails({ book, sessions, onClose, onUpdate, onDel
               <div>
                 <h3 className="text-xs font-bold text-[#A1A1AA] uppercase tracking-widest mb-3">Detalhes Técnicos</h3>
                 <div className="bg-[#111113] border border-[rgba(255,255,255,0.04)] rounded-2xl p-4 divide-y divide-[rgba(255,255,255,0.04)]">
-                  {book.publisher && <div className="py-2 flex justify-between"><span className="text-[#71717A] text-sm">Editora</span><span className="text-white text-sm font-medium">{book.publisher}</span></div>}
-                  {book.publish_year && <div className="py-2 flex justify-between"><span className="text-[#71717A] text-sm">Ano</span><span className="text-white text-sm font-medium">{book.publish_year}</span></div>}
-                  {book.isbn && <div className="py-2 flex justify-between"><span className="text-[#71717A] text-sm">ISBN</span><span className="text-white text-sm font-medium">{book.isbn}</span></div>}
-                  {book.language && <div className="py-2 flex justify-between"><span className="text-[#71717A] text-sm">Idioma</span><span className="text-white text-sm font-medium">{book.language}</span></div>}
-                  <div className="py-2 flex justify-between"><span className="text-[#71717A] text-sm">Adicionado ao Acervo</span><span className="text-white text-sm font-medium">{book.created_at ? format(new Date(book.created_at), 'dd MMM yyyy', {locale: ptBR}) : '--'}</span></div>
-                  {book.start_date && <div className="py-2 flex justify-between"><span className="text-[#71717A] text-sm">Leitura Iniciada em</span><span className="text-white text-sm font-medium">{format(parseISO(book.start_date.split('T')[0]), 'dd MMM yyyy', {locale: ptBR})}</span></div>}
-                  {book.end_date && <div className="py-2 flex justify-between"><span className="text-[#71717A] text-sm">Meta de Conclusão</span><span className="text-white text-sm font-medium">{format(parseISO(book.end_date.split('T')[0]), 'dd MMM yyyy', {locale: ptBR})}</span></div>}
+                  {book.publisher && <div className="py-2 flex justify-between gap-4"><span className="text-[#71717A] text-sm shrink-0">Editora</span><span className="text-white text-sm font-medium text-right line-clamp-2">{book.publisher}</span></div>}
+                  {book.publish_year && <div className="py-2 flex justify-between gap-4"><span className="text-[#71717A] text-sm shrink-0">Ano</span><span className="text-white text-sm font-medium text-right line-clamp-1">{book.publish_year}</span></div>}
+                  {book.isbn && <div className="py-2 flex justify-between gap-4"><span className="text-[#71717A] text-sm shrink-0">ISBN</span><span className="text-white text-sm font-medium text-right line-clamp-1">{book.isbn}</span></div>}
+                  {book.language && <div className="py-2 flex justify-between gap-4"><span className="text-[#71717A] text-sm shrink-0">Idioma</span><span className="text-white text-sm font-medium text-right line-clamp-1">{book.language}</span></div>}
+                  <div className="py-2 flex justify-between gap-4"><span className="text-[#71717A] text-sm shrink-0">Adicionado</span><span className="text-white text-sm font-medium text-right line-clamp-1">{book.created_at ? format(new Date(book.created_at), 'dd MMM yyyy', {locale: ptBR}) : '--'}</span></div>
+                  {book.start_date && <div className="py-2 flex justify-between gap-4"><span className="text-[#71717A] text-sm shrink-0">Início</span><span className="text-white text-sm font-medium text-right line-clamp-1">{format(parseISO(book.start_date.split('T')[0]), 'dd MMM yyyy', {locale: ptBR})}</span></div>}
+                  {book.end_date && <div className="py-2 flex justify-between gap-4"><span className="text-[#71717A] text-sm shrink-0">Meta / Conclusão</span><span className="text-white text-sm font-medium text-right line-clamp-1">{format(parseISO(book.end_date.split('T')[0]), 'dd MMM yyyy', {locale: ptBR})}</span></div>}
                   
                   {book.resource_link && (
                     <>

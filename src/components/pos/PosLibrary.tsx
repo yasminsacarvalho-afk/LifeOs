@@ -1573,7 +1573,7 @@ Continue Lendo
             </div>
             
             <div className="relative z-10">
-               <div className="flex justify-between items-center text-[11px] font-bold text-[#71717A] mb-2 uppercase tracking-widest">
+                 <div className="flex flex-wrap justify-between items-center text-[11px] font-bold text-[#71717A] mb-2 uppercase tracking-widest gap-2">
                  <div className="flex items-center gap-2">
                     <span>Progresso</span>
                     {isDelayed && (
@@ -1582,7 +1582,7 @@ Continue Lendo
                       </span>
                     )}
                  </div>
-                 <span>{currentBook.pages_read} / {currentBook.total_pages || '?'} páginas ({cbPercent}%)</span>
+                 <span>{currentBook.pages_read} / {currentBook.total_pages || '?'} {currentBook.progress_unit === 'percentage' ? '%' : currentBook.progress_unit === 'chapters' ? 'caps' : currentBook.progress_unit === 'minutes' ? 'min' : 'páginas'} ({cbPercent}%)</span>
                </div>
                <div className="h-2.5 w-full bg-black/60 rounded-full overflow-hidden border border-[rgba(255,255,255,0.05)]">
                  <div className="h-full bg-rose-500 rounded-full transition-all shadow-[0_0_10px_rgba(225,29,72,0.5)]" style={{ width: `${cbPercent}%` }}></div>
@@ -1683,8 +1683,8 @@ Continue Lendo
 
       {/* Tabela de Sessões Ativas Seguras -> MODAL FIXO TELA CHEIA */}
       {activeSessions.length > 0 && (
-         <div className="fixed inset-0 z-[999] flex flex-col items-center justify-center bg-black/95 backdrop-blur-md p-4 sm:p-8 overflow-y-auto animate-in fade-in zoom-in-95 duration-500">
-            <h3 className="text-3xl md:text-4xl font-black text-white mb-8 flex items-center gap-3">
+         <div className="fixed inset-0 z-[999] flex flex-col items-center justify-start bg-black/95 backdrop-blur-md p-4 sm:p-8 overflow-y-auto pt-16 pb-24 animate-in fade-in zoom-in-95 duration-500">
+            <h3 className="text-2xl md:text-4xl font-black text-white mb-8 flex items-center gap-3">
               <span className="flex size-4 rounded-full bg-rose-500 animate-pulse"></span>
               Gravando Sessão
             </h3>
@@ -1702,12 +1702,12 @@ Continue Lendo
                        <div className="flex flex-col md:flex-row md:items-center justify-between gap-6 relative z-10">
                          <div className="flex-1">
                             <h4 className="text-white font-black text-2xl md:text-3xl mb-2 line-clamp-2">{session.bookTitle}</h4>
-                            <p className="text-base text-[#A1A1AA] flex items-center gap-2">
-                               <Clock className="size-5 text-rose-500" /> 
-                               <span className="font-bold text-white text-2xl tracking-widest font-mono">
+                            <p className="text-sm md:text-base text-[#A1A1AA] flex flex-wrap items-center gap-2">
+                               <Clock className="size-5 text-rose-500 shrink-0" /> 
+                               <span className="font-bold text-white text-xl md:text-2xl tracking-widest font-mono">
                                  <LiveTimer startTime={session.startTime} />
-                               </span> decorridos
-                               <span className="text-[#71717A] ml-2 text-sm">(Iniciado às {format(new Date(session.startTime), 'HH:mm')})</span>
+                               </span> <span className="shrink-0">decorridos</span>
+                               <span className="text-[#71717A] md:ml-2 text-xs md:text-sm shrink-0">(Iniciado às {format(new Date(session.startTime), 'HH:mm')})</span>
                             </p>
                             <p className="text-xs text-indigo-400 font-bold uppercase tracking-widest mt-3 flex items-center gap-2 bg-indigo-500/10 w-fit px-3 py-1.5 rounded-lg border border-indigo-500/20">
                                <BookOpen className="size-4" /> Medida de Leitura: {progressUnit}
@@ -2056,18 +2056,18 @@ Continue Lendo
               <Bookmark className="size-5 text-rose-500" /> Histórico & Acervo
             </h3>
             
-            <div className="flex flex-col md:flex-row gap-3 flex-wrap justify-end flex-1">
+            <div className="flex flex-col md:flex-row gap-3 flex-wrap justify-end flex-1 w-full md:w-auto">
               <input 
                  type="text"
                  placeholder="Buscar livro, autor..."
                  value={searchQuery}
                  onChange={e => setSearchQuery(e.target.value)}
-                 className="bg-[#111113] border border-[rgba(255,255,255,0.06)] rounded-xl px-4 py-2 text-sm text-white focus:border-rose-500 focus:outline-none flex-1 min-w-[150px]"
+                 className="bg-[#111113] border border-[rgba(255,255,255,0.06)] rounded-xl px-4 py-2 text-sm text-white focus:border-rose-500 focus:outline-none flex-1 min-w-[150px] w-full md:w-auto"
               />
               <select 
                  value={filterStatus}
                  onChange={e => setFilterStatus(e.target.value)}
-                 className="bg-[#111113] border border-[rgba(255,255,255,0.06)] rounded-xl px-4 py-2 text-sm text-white focus:border-rose-500 focus:outline-none shrink-0"
+                 className="bg-[#111113] border border-[rgba(255,255,255,0.06)] rounded-xl px-4 py-2 text-sm text-white focus:border-rose-500 focus:outline-none shrink-0 w-full md:w-auto"
               >
                  <option value="todos">Todos os Status</option>
                  <option value="quero_ler">Quero Ler</option>
@@ -2082,7 +2082,7 @@ Continue Lendo
               <select 
                  value={filterCategory}
                  onChange={e => setFilterCategory(e.target.value)}
-                 className="bg-[#111113] border border-[rgba(255,255,255,0.06)] rounded-xl px-4 py-2 text-sm text-white focus:border-rose-500 focus:outline-none shrink-0 max-w-[200px] truncate"
+                 className="bg-[#111113] border border-[rgba(255,255,255,0.06)] rounded-xl px-4 py-2 text-sm text-white focus:border-rose-500 focus:outline-none shrink-0 w-full md:w-auto md:max-w-[200px] truncate"
               >
                  <option value="todas">Todas as Áreas</option>
                  {allKnowledgeAreas.map(area => (
@@ -2092,7 +2092,7 @@ Continue Lendo
               <select 
                  value={filterFormat}
                  onChange={e => setFilterFormat(e.target.value)}
-                 className="bg-[#111113] border border-[rgba(255,255,255,0.06)] rounded-xl px-4 py-2 text-sm text-white focus:border-rose-500 focus:outline-none shrink-0 max-w-[200px] truncate"
+                 className="bg-[#111113] border border-[rgba(255,255,255,0.06)] rounded-xl px-4 py-2 text-sm text-white focus:border-rose-500 focus:outline-none shrink-0 w-full md:w-auto md:max-w-[200px] truncate"
               >
                  <option value="todos">Todos os Formatos</option>
                  {allFormats.map(fmt => (
@@ -2102,7 +2102,7 @@ Continue Lendo
               <select 
                  value={sortOrder}
                  onChange={e => setSortOrder(e.target.value)}
-                 className="bg-[#111113] border border-[rgba(255,255,255,0.06)] rounded-xl px-4 py-2 text-sm text-white focus:border-rose-500 focus:outline-none shrink-0 max-w-[200px] truncate"
+                 className="bg-[#111113] border border-[rgba(255,255,255,0.06)] rounded-xl px-4 py-2 text-sm text-white focus:border-rose-500 focus:outline-none shrink-0 w-full md:w-auto md:max-w-[200px] truncate"
               >
                  <option value="recentes">Mais Recentes</option>
                  <option value="az">A-Z (Título)</option>

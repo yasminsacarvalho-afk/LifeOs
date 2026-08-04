@@ -29,6 +29,7 @@ import {
   Menu,
   X,
   Gift,
+  Gamepad2,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useAuth } from "@/contexts/AuthContext";
@@ -88,6 +89,7 @@ const navSections = [
       { to: "/personal-os", search: { tab: "recompensas" }, label: "Recompensas", icon: Gift, permission: "view_dashboard" },
       { to: "/personal-os", search: { tab: "financeiro" }, label: "Financeiro", icon: DollarSign, permission: "view_dashboard" },
       { to: "/personal-os", search: { tab: "estudos" }, label: "Estudos", icon: GraduationCap, permission: "view_dashboard" },
+      { to: "/personal-os", search: { tab: "entretenimento" }, label: "Lazer", icon: Gamepad2, permission: "view_dashboard" },
       { to: "/academy", label: "Academy", icon: GraduationCap, permission: "view_dashboard" },
     ],
   }
