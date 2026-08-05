@@ -44,25 +44,38 @@ export function usePosFinance() {
     try {
       setLoading(true);
       
+      const cachedBudgets = localStorage.getItem('pos_budgets_cache');
+      const cachedCards = localStorage.getItem('pos_cards_cache');
+      const cachedExpenses = localStorage.getItem('pos_expenses_cache');
+      
+      if (cachedBudgets) setBudgets(JSON.parse(cachedBudgets));
+      if (cachedCards) setCreditCards(JSON.parse(cachedCards));
+      if (cachedExpenses) setExpenses(JSON.parse(cachedExpenses));
+      
+      if (cachedBudgets || cachedCards || cachedExpenses) setLoading(false);
+
       const [budgetsRes, cardsRes, expensesRes] = await Promise.all([
         supabase.from('pos_budgets').select('*').order('created_at', { ascending: true }),
         supabase.from('pos_credit_cards').select('*').order('created_at', { ascending: true }),
         supabase.from('pos_expenses').select('*').order('expense_date', { ascending: false })
       ]);
 
-      if (budgetsRes.error && budgetsRes.error.code !== '42P01') {
-        console.error("Error fetching budgets:", budgetsRes.error);
-      }
-      if (cardsRes.error && cardsRes.error.code !== '42P01') {
-        console.error("Error fetching cards:", cardsRes.error);
-      }
-      if (expensesRes.error && expensesRes.error.code !== '42P01') {
-        console.error("Error fetching expenses:", expensesRes.error);
-      }
+      if (budgetsRes.error && budgetsRes.error.code !== '42P01') console.error("Error fetching budgets:", budgetsRes.error);
+      if (cardsRes.error && cardsRes.error.code !== '42P01') console.error("Error fetching cards:", cardsRes.error);
+      if (expensesRes.error && expensesRes.error.code !== '42P01') console.error("Error fetching expenses:", expensesRes.error);
 
-      if (budgetsRes.data) setBudgets(budgetsRes.data);
-      if (cardsRes.data) setCreditCards(cardsRes.data);
-      if (expensesRes.data) setExpenses(expensesRes.data);
+      if (budgetsRes.data) {
+        setBudgets(budgetsRes.data);
+        localStorage.setItem('pos_budgets_cache', JSON.stringify(budgetsRes.data));
+      }
+      if (cardsRes.data) {
+        setCreditCards(cardsRes.data);
+        localStorage.setItem('pos_cards_cache', JSON.stringify(cardsRes.data));
+      }
+      if (expensesRes.data) {
+        setExpenses(expensesRes.data);
+        localStorage.setItem('pos_expenses_cache', JSON.stringify(expensesRes.data));
+      }
     } catch (err) {
       console.error(err);
     } finally {
@@ -79,7 +92,11 @@ export function usePosFinance() {
         .single();
 
       if (error) throw error;
-      if (data) setBudgets([...budgets, data]);
+      if (data) {
+        const nb = [...budgets, data];
+        setBudgets(nb);
+        localStorage.setItem('pos_budgets_cache', JSON.stringify(nb));
+      }
       toast.success("Orçamento criado!");
       return data;
     } catch (error: any) {
@@ -92,7 +109,9 @@ export function usePosFinance() {
     try {
       const { error } = await supabase.from('pos_budgets').delete().eq('id', id);
       if (error) throw error;
-      setBudgets(budgets.filter(b => b.id !== id));
+      const nb = budgets.filter(b => b.id !== id);
+      setBudgets(nb);
+      localStorage.setItem('pos_budgets_cache', JSON.stringify(nb));
       toast.success("Orçamento removido!");
     } catch (error: any) {
       toast.error("Erro ao remover: " + error.message);
@@ -108,7 +127,11 @@ export function usePosFinance() {
         .single();
 
       if (error) throw error;
-      if (data) setCreditCards([...creditCards, data]);
+      if (data) {
+        const nc = [...creditCards, data];
+        setCreditCards(nc);
+        localStorage.setItem('pos_cards_cache', JSON.stringify(nc));
+      }
       toast.success("Cartão adicionado!");
       return data;
     } catch (error: any) {
@@ -140,7 +163,9 @@ export function usePosFinance() {
     try {
       const { error } = await supabase.from('pos_credit_cards').delete().eq('id', id);
       if (error) throw error;
-      setCreditCards(creditCards.filter(c => c.id !== id));
+      const nc = creditCards.filter(c => c.id !== id);
+      setCreditCards(nc);
+      localStorage.setItem('pos_cards_cache', JSON.stringify(nc));
       toast.success("Cartão removido!");
     } catch (error: any) {
       toast.error("Erro ao remover cartão: " + error.message);
@@ -185,7 +210,9 @@ export function usePosFinance() {
 
       if (error) throw error;
       if (data) {
-        setExpenses([data, ...expenses]);
+        const ne = [data, ...expenses];
+        setExpenses(ne);
+        localStorage.setItem('pos_expenses_cache', JSON.stringify(ne));
         
         // Sincroniza com Lançamentos Recentes (financial_records)
         try {
@@ -218,7 +245,9 @@ export function usePosFinance() {
     try {
       const { error } = await supabase.from('pos_expenses').delete().eq('id', id);
       if (error) throw error;
-      setExpenses(expenses.filter(e => e.id !== id));
+      const ne = expenses.filter(e => e.id !== id);
+      setExpenses(ne);
+      localStorage.setItem('pos_expenses_cache', JSON.stringify(ne));
       toast.success("Despesa removida!");
     } catch (error: any) {
       toast.error("Erro ao remover: " + error.message);

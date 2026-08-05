@@ -9,7 +9,7 @@ import {
   MapPin, CheckCircle2, Circle, Trash2, ChevronLeft, ChevronRight,
   Coffee, CalendarDays, X, Search, Repeat, Flame, BookOpen, GraduationCap, Gift, Settings, Cloud, RefreshCw, ExternalLink
 } from "lucide-react";
-import { format, addDays, startOfWeek, isSameDay, parseISO, isToday, addWeeks, subWeeks } from "date-fns";
+import { format, addDays, startOfWeek, isSameDay, parseISO, isToday, addWeeks, subWeeks, startOfMonth, endOfMonth, endOfWeek, isSameMonth, subMonths, addMonths } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
@@ -25,6 +25,7 @@ export function PosAgenda() {
   const [currentDate, setCurrentDate] = useState(new Date());
   const [isCreating, setIsCreating] = useState(false);
   const [showConfig, setShowConfig] = useState(false);
+  const [viewMode, setViewMode] = useState<'semana' | 'mes'>('mes');
   
   // Google Integrations
   const [gasUrl, setGasUrl] = useState(localStorage.getItem('gas_integration_url') || '');
@@ -184,6 +185,20 @@ export function PosAgenda() {
   const weekStart = startOfWeek(currentDate, { weekStartsOn: 1 }); // Monday
   const weekDays = Array.from({ length: 7 }).map((_, i) => addDays(weekStart, i));
 
+  const monthStart = startOfMonth(currentDate);
+  const monthEnd = endOfMonth(monthStart);
+  const calendarStart = startOfWeek(monthStart, { weekStartsOn: 1 });
+  const calendarEnd = endOfWeek(monthEnd, { weekStartsOn: 1 });
+  
+  const monthDays = [];
+  let d = calendarStart;
+  while (d <= calendarEnd) {
+    monthDays.push(d);
+    d = addDays(d, 1);
+  }
+
+  const displayDays = viewMode === 'mes' ? monthDays : weekDays;
+
   const getDayItems = (date: Date) => {
     const dayStr = format(date, 'yyyy-MM-dd');
     
@@ -225,16 +240,40 @@ export function PosAgenda() {
       };
     });
 
-    const dayStudies = studySessions.filter(s => s.session_date === dayStr).map(s => {
+    const plannedCourseIds = new Set();
+    const dayStudiesPlanned = courses.filter(c => {
+       try {
+         const sched = JSON.parse(c.description || '{}');
+         return sched.days && sched.days.includes(date.getDay());
+       } catch(e){ return false; }
+    }).map(c => {
+       plannedCourseIds.add(c.id);
+       let time = '19:00';
+       try { time = JSON.parse(c.description || '{}').time || '19:00'; } catch(e){}
+       const sessionDone = studySessions.find(s => s.course_id === c.id && s.session_date === dayStr);
+       return {
+         id: sessionDone ? `study_${sessionDone.id}` : `planned_study_${c.id}_${dayStr}`,
+         title: sessionDone ? `Sessão: ${c.title}` : `Planejado: ${c.title}`,
+         start_time: sessionDone?.start_time || time,
+         itemType: 'curso',
+         type: 'curso',
+         status: sessionDone ? 'concluida' : 'pendente'
+       };
+    });
+
+    const extraStudies = studySessions.filter(s => s.session_date === dayStr && !plannedCourseIds.has(s.course_id)).map(s => {
       const course = courses.find(c => c.id === s.course_id);
       return {
         id: `study_${s.id}`,
-        title: course ? `Estudo: ${course.title}` : 'Sessão de Estudo',
+        title: course ? `Sessão Extra: ${course.title}` : 'Sessão de Estudo',
         start_time: s.start_time || '23:59',
         itemType: 'curso',
-        type: 'curso'
+        type: 'curso',
+        status: 'concluida'
       };
     });
+
+    const dayStudies = [...dayStudiesPlanned, ...extraStudies];
 
     const dayGoogleEvents = googleEvents.filter(e => {
        if (!e.start_time) return false;
@@ -307,12 +346,16 @@ export function PosAgenda() {
         </div>
         
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+          <div className="flex bg-[#111113] border border-[rgba(255,255,255,0.06)] rounded-xl p-1 mr-2">
+            <button onClick={() => setViewMode('semana')} className={cn("px-4 py-1.5 text-[11px] font-bold uppercase tracking-widest rounded-lg transition-colors", viewMode === 'semana' ? "bg-[#1A1A1E] text-white shadow-sm" : "text-[#71717A] hover:text-[#A1A1AA]")}>Semana</button>
+            <button onClick={() => setViewMode('mes')} className={cn("px-4 py-1.5 text-[11px] font-bold uppercase tracking-widest rounded-lg transition-colors", viewMode === 'mes' ? "bg-[#1A1A1E] text-white shadow-sm" : "text-[#71717A] hover:text-[#A1A1AA]")}>Mês</button>
+          </div>
           <div className="flex items-center gap-2 bg-[#111113] border border-[rgba(255,255,255,0.06)] rounded-xl p-1">
-            <button onClick={() => setCurrentDate(subWeeks(currentDate, 1))} className="p-2 text-[#71717A] hover:text-white rounded-lg hover:bg-[#1A1A1E] transition-colors"><ChevronLeft className="size-4" /></button>
-            <span className="text-xs font-bold uppercase tracking-widest text-white px-2">
-              {format(weekStart, "dd MMM", {locale: ptBR})} - {format(addDays(weekStart, 6), "dd MMM", {locale: ptBR})}
+            <button onClick={() => setCurrentDate(viewMode === 'mes' ? subMonths(currentDate, 1) : subWeeks(currentDate, 1))} className="p-2 text-[#71717A] hover:text-white rounded-lg hover:bg-[#1A1A1E] transition-colors"><ChevronLeft className="size-4" /></button>
+            <span className="text-xs font-bold uppercase tracking-widest text-white px-2 w-[160px] text-center inline-block">
+              {viewMode === 'mes' ? format(currentDate, "MMMM yyyy", {locale: ptBR}) : `${format(weekStart, "dd MMM", {locale: ptBR})} - ${format(addDays(weekStart, 6), "dd MMM", {locale: ptBR})}`}
             </span>
-            <button onClick={() => setCurrentDate(addWeeks(currentDate, 1))} className="p-2 text-[#71717A] hover:text-white rounded-lg hover:bg-[#1A1A1E] transition-colors"><ChevronRight className="size-4" /></button>
+            <button onClick={() => setCurrentDate(viewMode === 'mes' ? addMonths(currentDate, 1) : addWeeks(currentDate, 1))} className="p-2 text-[#71717A] hover:text-white rounded-lg hover:bg-[#1A1A1E] transition-colors"><ChevronRight className="size-4" /></button>
           </div>
           <button onClick={() => setCurrentDate(new Date())} className="px-4 py-2 text-xs font-bold uppercase tracking-widest text-[#A1A1AA] hover:text-white bg-[#111113] border border-[rgba(255,255,255,0.06)] rounded-xl hover:bg-[#1A1A1E] transition-colors">
             Hoje
@@ -634,9 +677,40 @@ export function PosAgenda() {
       {/* HEATMAP */}
       <PosHeatmap />
 
+      {/* MONTH CALENDAR */}
+      {viewMode === 'mes' && (
+         <div className="grid grid-cols-7 gap-2 md:gap-4 overflow-x-auto custom-scrollbar pb-4 min-w-[700px]">
+           {['Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb', 'Dom'].map(d => <div key={d} className="text-center text-[10px] md:text-xs font-bold text-[#71717A] uppercase tracking-widest py-2 border-b border-white/5">{d}</div>)}
+           {displayDays.map(day => {
+             const items = getDayItems(day);
+             const isTodayFlag = isToday(day);
+             const isCurrentMonth = isSameMonth(day, currentDate);
+             return (
+               <div key={day.toISOString()} className={cn("min-h-[140px] rounded-2xl border flex flex-col overflow-hidden transition-all hover:border-white/10 group", isTodayFlag ? "border-rose-500/50 bg-rose-500/5 shadow-[0_0_15px_rgba(225,29,72,0.1)]" : isCurrentMonth ? "bg-[#111113]/80 border-[rgba(255,255,255,0.04)]" : "bg-transparent border-[rgba(255,255,255,0.01)] opacity-30")}>
+                  <div className="flex justify-between items-center p-2 border-b border-transparent group-hover:border-white/5 transition-colors">
+                    <span className="text-[9px] font-bold text-[#A1A1AA] uppercase tracking-widest opacity-0 group-hover:opacity-100 transition-opacity">
+                       {items.length} {items.length === 1 ? 'item' : 'itens'}
+                    </span>
+                    <span className={cn("inline-flex items-center justify-center size-7 rounded-full text-xs font-black shadow-inner", isTodayFlag ? "bg-rose-500 text-white border border-rose-400" : "text-[#E4E4E7] bg-[#1A1A1E] border border-[rgba(255,255,255,0.05)]")}>{format(day, 'd')}</span>
+                  </div>
+                  <div className="flex flex-col gap-1.5 px-2 pb-2 flex-1 overflow-y-auto custom-scrollbar">
+                     {items.slice(0, 5).map(item => (
+                       <div key={item.id} className={cn("text-[9px] md:text-[10px] font-bold px-2 py-1.5 rounded-lg truncate border backdrop-blur-sm transition-colors", getTypeColor(item.itemType, item.type), item.itemType === 'curso' ? "shadow-[0_0_10px_rgba(99,102,241,0.1)]" : "")} title={item.title}>
+                         {item.title}
+                       </div>
+                     ))}
+                     {items.length > 5 && <div className="text-[9px] text-center text-[#71717A] font-bold bg-[#1A1A1E] rounded-md py-1 border border-white/5">+{items.length - 5} mais</div>}
+                  </div>
+               </div>
+             );
+           })}
+         </div>
+      )}
+
       {/* WEEK CALENDAR */}
+      {viewMode === 'semana' && (
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 xl:grid-cols-7 gap-4">
-        {weekDays.map(day => {
+        {displayDays.map(day => {
           const items = getDayItems(day);
           const isTodayFlag = isToday(day);
           
@@ -697,8 +771,8 @@ export function PosAgenda() {
                               {groupItems.map(item => (
                                 <div key={item.id} className={cn(
                                   "group/item p-3 rounded-xl border transition-all flex flex-col gap-2 relative backdrop-blur-md",
-                                  item.itemType === 'tarefa' 
-                                    ? (item.status === 'concluida' ? "bg-emerald-500/5 border-emerald-500/10 opacity-60" : "bg-[#111113] border-[#27272A] hover:border-emerald-500/30")
+                                  (item.itemType === 'tarefa' || item.itemType === 'curso')
+                                    ? ((item.status === 'concluida' || item.status === 'concluido') ? "bg-emerald-500/5 border-emerald-500/10 opacity-60" : "bg-[#111113] border-[#27272A] hover:border-emerald-500/30")
                                     : item.itemType !== 'evento'
                                       ? "bg-[#111113]/50 border-[rgba(255,255,255,0.02)] opacity-70 hover:opacity-100 hover:border-[rgba(255,255,255,0.06)]" 
                                       : "bg-[#17171A] border-[rgba(255,255,255,0.06)] shadow-sm hover:border-rose-500/40 hover:bg-[#1A1A1E]"
@@ -716,7 +790,7 @@ export function PosAgenda() {
                                     )}
                                   </div>
 
-                                  <h4 className={cn("text-[13px] font-bold leading-snug mt-1", (item.itemType === 'tarefa' || item.itemType === 'habito') && (item.status === 'concluida' || item.status === 'concluido') ? "text-[#71717A] line-through" : "text-[#F4F4F5]")}>
+                                  <h4 className={cn("text-[13px] font-bold leading-snug mt-1", (item.itemType === 'tarefa' || item.itemType === 'habito' || item.itemType === 'curso') && (item.status === 'concluida' || item.status === 'concluido') ? "text-[#71717A] line-through" : "text-[#F4F4F5]")}>
                                     {item.title}
                                   </h4>
                                   
@@ -757,6 +831,7 @@ export function PosAgenda() {
           );
         })}
       </div>
+      )}
       
     </div>
   );

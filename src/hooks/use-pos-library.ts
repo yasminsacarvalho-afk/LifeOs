@@ -67,6 +67,13 @@ export function usePosLibrary() {
   const fetchLibraryData = async () => {
     try {
       setLoading(true);
+      const cachedBooks = localStorage.getItem('pos_library_cache');
+      const cachedSessions = localStorage.getItem('pos_sessions_cache');
+      
+      if (cachedBooks) setBooks(JSON.parse(cachedBooks));
+      if (cachedSessions) setSessions(JSON.parse(cachedSessions));
+      if (cachedBooks || cachedSessions) setLoading(false);
+
       const { data: booksData, error: booksError } = await supabase
         .from('pos_library')
         .select('*')
@@ -96,8 +103,12 @@ export function usePosLibrary() {
           };
         });
         setBooks(processedBooks);
+        localStorage.setItem('pos_library_cache', JSON.stringify(processedBooks));
       }
-      if (sessionsData) setSessions(sessionsData);
+      if (sessionsData) {
+        setSessions(sessionsData);
+        localStorage.setItem('pos_sessions_cache', JSON.stringify(sessionsData));
+      }
     } catch (err) {
       console.error(err);
     } finally {
@@ -132,7 +143,9 @@ export function usePosLibrary() {
         metadata[data.id] = { tags: tagsToSave, collections: collectionsToSave, badges: badgesToSave, storage_location: storageLocationToSave };
         localStorage.setItem('lifeos_pos_metadata', JSON.stringify(metadata));
 
-        setBooks(prev => [{ ...data, tags: tagsToSave, collections: collectionsToSave, badges: badgesToSave, storage_location: storageLocationToSave }, ...prev]);
+        const newBooks = [{ ...data, tags: tagsToSave, collections: collectionsToSave, badges: badgesToSave, storage_location: storageLocationToSave }, ...books];
+        setBooks(newBooks);
+        localStorage.setItem('pos_library_cache', JSON.stringify(newBooks));
       }
       toast.success("Livro adicionado ao acervo!");
       return data;
@@ -172,7 +185,11 @@ export function usePosLibrary() {
         metadata[id] = { tags: tagsToSave, collections: collectionsToSave, badges: badgesToSave, storage_location: storageLocationToSave };
         localStorage.setItem('lifeos_pos_metadata', JSON.stringify(metadata));
 
-        setBooks(prev => prev.map(b => b.id === id ? { ...data, tags: tagsToSave, collections: collectionsToSave, badges: badgesToSave, storage_location: storageLocationToSave } : b));
+        setBooks(prev => {
+          const updatedBooks = prev.map(b => b.id === id ? { ...data, tags: tagsToSave, collections: collectionsToSave, badges: badgesToSave, storage_location: storageLocationToSave } : b);
+          localStorage.setItem('pos_library_cache', JSON.stringify(updatedBooks));
+          return updatedBooks;
+        });
       }
       toast.success("Acervo atualizado!");
     } catch (error: any) {
@@ -189,7 +206,11 @@ export function usePosLibrary() {
       
       const { error } = await supabase.from('pos_library').delete().eq('id', id);
       if (error) throw error;
-      setBooks(prev => prev.filter(b => b.id !== id));
+      setBooks(prev => {
+        const filtered = prev.filter(b => b.id !== id);
+        localStorage.setItem('pos_library_cache', JSON.stringify(filtered));
+        return filtered;
+      });
       toast.success("Obra removida da biblioteca!");
     } catch (error: any) {
       toast.error("Erro ao remover: " + error.message);

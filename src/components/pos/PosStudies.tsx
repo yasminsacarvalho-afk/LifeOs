@@ -6,7 +6,7 @@ import {
   ChevronDown, Search, Filter, LayoutGrid, List as ListIcon,
   ChevronRight, BookMarked, Sparkles, FileText, Library, CheckSquare,
   TrendingUp, BarChart2, Video, PenTool, LayoutTemplate, Layers, AlertCircle,
-  MoreVertical, Share2, Star, FolderOpen, ArrowLeft, Download, X
+  MoreVertical, Share2, Star, FolderOpen, ArrowLeft, Download, X, UploadCloud, Loader2, ExternalLink, Link as LinkIcon
 } from "lucide-react";
 import { format, isToday, parseISO } from "date-fns";
 import { ptBR } from "date-fns/locale";
@@ -31,6 +31,7 @@ export function PosStudies() {
   const [isCreatingCourse, setIsCreatingCourse] = useState(false);
   const [isEditingCourse, setIsEditingCourse] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
+  const [expandedTopicId, setExpandedTopicId] = useState<number | string | null>(null);
   const [isLoggingSession, setIsLoggingSession] = useState(false);
   const [newSession, setNewSession] = useState({
     duration_minutes: 60,
@@ -80,6 +81,54 @@ export function PosStudies() {
     setNewSession({ duration_minutes: 60, module_name: '', class_name: '', summary: '' });
   };
 
+  const [isUploading, setIsUploading] = useState(false);
+
+  const handleMaterialUpload = async (e: React.ChangeEvent<HTMLInputElement>, modIdx: number, topicIdx: number) => {
+    const file = e.target.files?.[0];
+    if (!file || !selectedCourseId) return;
+
+    setIsUploading(true);
+    try {
+      const driveUrl = import.meta.env.VITE_GOOGLE_DRIVE_UPLOADER_URL;
+      if (!driveUrl) throw new Error("URL do Google Drive não configurada no ambiente.");
+
+      const reader = new FileReader();
+      const base64Promise = new Promise<string>((resolve, reject) => {
+        reader.onload = () => resolve((reader.result as string).split(',')[1]);
+        reader.onerror = error => reject(error);
+      });
+      reader.readAsDataURL(file);
+      const base64Data = await base64Promise;
+
+      const response = await fetch(driveUrl, {
+        method: "POST",
+        body: JSON.stringify({
+           base64: base64Data,
+           filename: file.name,
+           mimeType: file.type || 'application/octet-stream'
+        }),
+        headers: { 'Content-Type': 'text/plain' }
+      });
+      
+      const result = await response.json();
+      if (!result.success) throw new Error(result.error);
+      
+      // Update the topic source with the Drive URL
+      const currentTopics = JSON.parse(selectedCourse?.next_topics || '[]');
+      if (currentTopics[modIdx] && currentTopics[modIdx].topics[topicIdx]) {
+         currentTopics[modIdx].topics[topicIdx].source = result.url;
+         await updateCourse(selectedCourseId, { next_topics: JSON.stringify(currentTopics) });
+         // toast.success is handled implicitly by updateCourse, but we can be explicit
+      }
+
+    } catch (err: any) {
+      toast.error(`Falha ao subir arquivo para o Drive: ${err.message || "Erro desconhecido"}.`);
+    } finally {
+      setIsUploading(false);
+      e.target.value = '';
+    }
+  };
+
   const totalXP = sessions.reduce((acc, s) => acc + (s.xp_earned || 0), 0);
   const userLevel = Math.floor(Math.sqrt(Math.max(0, totalXP) / 100)) + 1;
   const currentLevelXP = Math.pow(userLevel - 1, 2) * 100;
@@ -92,7 +141,7 @@ export function PosStudies() {
 
   const selectedCourse = courses.find(c => c.id === selectedCourseId);
   const activeCourses = courses.filter(c => c.status !== 'concluido');
-  const recentCourses = activeCourses.slice(0, 3);
+  const recentCourses = activeCourses;
 
   const renderDashboard = () => (
     <div className="animate-in fade-in slide-in-from-bottom-4 duration-500">
@@ -217,8 +266,25 @@ export function PosStudies() {
                </div>
                <div className="p-5 flex-1 flex flex-col">
                  <h4 className="font-bold text-white text-lg leading-tight mb-1 line-clamp-2">{c.title}</h4>
-                 <p className="text-xs text-[#A1A1AA] mb-4 flex items-center gap-1.5"><PenTool className="size-3" /> {c.instructor || "Professor"}</p>
+                 <p className="text-xs text-[#A1A1AA] mb-3 flex items-center gap-1.5"><PenTool className="size-3" /> {c.instructor || "Professor"}</p>
                  
+                 {(() => {
+                   try {
+                     const sched = JSON.parse(c.description || '{}');
+                     if (sched.days && sched.days.length > 0) {
+                       const dayNames = ['Dom', 'Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb'];
+                       const daysStr = sched.days.map((d:number) => dayNames[d]).join(', ');
+                       return (
+                         <div className="flex items-center gap-1.5 text-[10px] text-purple-400 font-bold mb-4 bg-purple-500/10 w-fit px-2 py-1 rounded border border-purple-500/20">
+                           <CalendarIcon className="size-3"/> 
+                           {daysStr} às {sched.time || '19:00'}
+                         </div>
+                       );
+                     }
+                   } catch(e) {}
+                   return null;
+                 })()}
+
                  <div className="mt-auto">
                    <div className="flex justify-between items-end mb-2">
                      <div className="text-[10px] font-bold text-[#71717A] uppercase tracking-widest">{c.completed_hours}h / {c.total_hours}h</div>
@@ -356,6 +422,26 @@ export function PosStudies() {
                    <div className="flex items-center gap-2 text-sm text-[#A1A1AA]"><PenTool className="size-4 text-cyan-500"/> {selectedCourse.instructor || "Sem instrutor"}</div>
                    <div className="flex items-center gap-2 text-sm text-[#A1A1AA]"><LayoutTemplate className="size-4 text-emerald-500"/> {selectedCourse.platform || "Desconhecida"}</div>
                    <div className="flex items-center gap-2 text-sm text-[#A1A1AA]"><Clock className="size-4 text-rose-500"/> {selectedCourse.total_hours}h totais</div>
+                   {(() => {
+                     try {
+                       const sched = JSON.parse(selectedCourse.description || '{}');
+                       if (sched.days && sched.days.length > 0) {
+                         const dayNames = ['Dom', 'Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb'];
+                         const daysStr = sched.days.map((d:number) => dayNames[d]).join(', ');
+                         return (
+                           <div className="flex items-center gap-2 text-sm text-purple-400 font-bold bg-purple-500/10 px-3 py-1 rounded-lg border border-purple-500/20 shadow-[0_0_15px_rgba(168,85,247,0.1)]">
+                             <CalendarIcon className="size-4"/> 
+                             {daysStr} às {sched.time || '19:00'}
+                           </div>
+                         );
+                       }
+                     } catch(e) {
+                       if (selectedCourse.description) {
+                         return <div className="flex items-center gap-2 text-sm text-[#A1A1AA]"><CalendarIcon className="size-4 text-purple-500"/> {selectedCourse.description}</div>
+                       }
+                     }
+                     return null;
+                   })()}
                    {selectedCourse.course_url && (
                      <a href={selectedCourse.course_url} target="_blank" rel="noopener noreferrer" className="flex items-center gap-1 text-sm text-cyan-400 hover:underline font-bold z-20 relative">
                        <Play className="size-4"/> Acessar Plataforma
@@ -382,7 +468,7 @@ export function PosStudies() {
 
             {/* Sub-tabs */}
             <div className="flex items-center gap-2 mb-6 border-b border-[rgba(255,255,255,0.06)] pb-2 overflow-x-auto hide-scrollbar">
-               {["Visão Geral", "Módulos", "Anotações", "Flashcards", "Inteligência Artificial"].map(tab => (
+               {["Visão Geral", "Módulos", "Diário de Bordo", "Inteligência Artificial"].map(tab => (
                  <button 
                    key={tab}
                    onClick={() => setCourseTab(tab)}
@@ -394,11 +480,597 @@ export function PosStudies() {
             </div>
 
             {/* Sub-tab content real sessions */}
+             {courseTab === "Visão Geral" && (
+               <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-300">
+                  {/* Top Metrics Grid */}
+                  <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                     {/* Metric 1: Tempo Investido */}
+                     <div className="bg-[#111113] border border-[rgba(255,255,255,0.04)] rounded-2xl p-4 flex flex-col justify-between relative overflow-hidden">
+                        <div className="text-[10px] uppercase font-bold text-[#A1A1AA] flex items-center gap-1.5"><Clock className="size-3 text-cyan-500" /> Tempo Gasto</div>
+                        <div className="text-2xl font-black text-white mt-2">{selectedCourse.completed_hours}h</div>
+                     </div>
+                     
+                     {/* Metric 2: Dias Ativos */}
+                     <div className="bg-[#111113] border border-[rgba(255,255,255,0.04)] rounded-2xl p-4 flex flex-col justify-between">
+                        <div className="text-[10px] uppercase font-bold text-[#A1A1AA] flex items-center gap-1.5"><CalendarIcon className="size-3 text-cyan-500" /> Dias Ativos</div>
+                        <div className="text-2xl font-black text-white mt-2">
+                          {new Set(sessions.filter(s => s.course_id === selectedCourse.id).map(s => s.session_date)).size}
+                        </div>
+                     </div>
+                     
+                     {/* Metric 3: Tópicos Batidos */}
+                     <div className="bg-[#111113] border border-[rgba(255,255,255,0.04)] rounded-2xl p-4 flex flex-col justify-between">
+                        <div className="text-[10px] uppercase font-bold text-[#A1A1AA] flex items-center gap-1.5"><CheckCircle2 className="size-3 text-emerald-500" /> Tópicos Batidos</div>
+                        <div className="text-2xl font-black text-white mt-2">
+                          {(() => {
+                             let count = 0;
+                             try {
+                               const mods = JSON.parse(selectedCourse.next_topics || '[]');
+                               mods.forEach((m:any) => { count += m.topics?.filter((t:any) => t.status === 'concluido').length || 0; });
+                             } catch(e){}
+                             return count;
+                          })()}
+                        </div>
+                     </div>
+                     
+                     {/* Metric 4: XP Acumulado */}
+                     <div className="bg-[#111113] border border-[rgba(255,255,255,0.04)] rounded-2xl p-4 flex flex-col justify-between">
+                        <div className="text-[10px] uppercase font-bold text-[#A1A1AA] flex items-center gap-1.5"><Zap className="size-3 text-yellow-500" /> XP Ganho</div>
+                        <div className="text-2xl font-black text-white mt-2">
+                          {sessions.filter(s => s.course_id === selectedCourse.id).reduce((acc, s) => acc + (s.xp_earned || 0), 0)}
+                        </div>
+                     </div>
+                  </div>
+
+                  <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                    {/* Left Column: O que já aprendi */}
+                    <div className="lg:col-span-2 space-y-6">
+                      <div className="bg-[#111113] border border-[rgba(255,255,255,0.04)] rounded-2xl p-6 shadow-lg">
+                         <h4 className="text-sm font-bold text-white uppercase tracking-widest mb-4 flex items-center gap-2">
+                           <Brain className="size-4 text-cyan-500" /> Conhecimento Adquirido (O que já aprendi)
+                         </h4>
+                         <div className="flex flex-col gap-2">
+                           {(() => {
+                              let tags = new Set<string>();
+                              let topics: string[] = [];
+                              try {
+                                const mods = JSON.parse(selectedCourse.next_topics || '[]');
+                                mods.forEach((m:any) => { 
+                                  m.topics?.filter((t:any) => t.status === 'concluido').forEach((t:any) => {
+                                    topics.push(t.title);
+                                    if (t.tags) {
+                                       t.tags.split(',').forEach((tag: string) => tags.add(tag.trim().toLowerCase()));
+                                    }
+                                  });
+                                });
+                              } catch(e){}
+                              
+                              if (topics.length === 0) return <span className="text-xs text-[#A1A1AA] italic">Nenhum tópico concluído ainda. Volte à aba Módulos e comece a avançar!</span>;
+                              
+                              return (
+                                <>
+                                  <div className="w-full mb-3 flex flex-wrap gap-1.5">
+                                    {Array.from(tags).filter(t => t).map(tag => (
+                                      <span key={tag} className="px-2 py-1 bg-cyan-900/30 text-cyan-400 border border-cyan-500/20 rounded-md text-[10px] font-bold uppercase tracking-wider">#{tag}</span>
+                                    ))}
+                                  </div>
+                                  <ul className="space-y-2 w-full mt-2">
+                                    {topics.map((t, idx) => (
+                                      <li key={idx} className="text-sm text-[#A1A1AA] flex items-center gap-2 before:content-[''] before:w-1.5 before:h-1.5 before:bg-emerald-500 before:rounded-full">
+                                        {t}
+                                      </li>
+                                    ))}
+                                  </ul>
+                                </>
+                              );
+                           })()}
+                         </div>
+                      </div>
+                      
+                      <div className="bg-[#111113] border border-[rgba(255,255,255,0.04)] rounded-2xl p-6 shadow-lg">
+                        <h4 className="text-sm font-bold text-white uppercase tracking-widest mb-4 flex items-center gap-2">
+                          <Target className="size-4 text-cyan-500" /> Projeção de Conclusão
+                        </h4>
+                        {(() => {
+                          const diasAtivos = new Set(sessions.filter(s => s.course_id === selectedCourse.id).map(s => s.session_date)).size;
+                          if (diasAtivos < 2 || !selectedCourse.total_hours) {
+                            return <div className="text-xs text-[#A1A1AA] p-4 bg-[#1A1A1E] rounded-xl border border-[rgba(255,255,255,0.02)]">Estude por pelo menos 2 dias e garanta que o curso tenha uma "Carga Horária Total" cadastrada para a I.A. calcular sua projeção de fim.</div>;
+                          }
+                          const avgHoursPerDay = selectedCourse.completed_hours / diasAtivos;
+                          const remainingHours = selectedCourse.total_hours - selectedCourse.completed_hours;
+                          const projectedDays = Math.ceil(remainingHours / avgHoursPerDay);
+                          
+                          return (
+                            <div className="flex flex-col gap-3 p-4 bg-[#1A1A1E] rounded-xl border border-[rgba(255,255,255,0.02)]">
+                              <div className="flex justify-between items-center text-sm">
+                                <span className="text-[#A1A1AA]">Ritmo Atual de Estudo:</span>
+                                <span className="text-white font-bold">{avgHoursPerDay.toFixed(1)}h / dia ativo</span>
+                              </div>
+                              <div className="flex justify-between items-center text-sm">
+                                <span className="text-[#A1A1AA]">Previsão de Fim:</span>
+                                <span className="text-cyan-400 font-bold">~ {projectedDays} sessões restantes</span>
+                              </div>
+                              <div className="w-full bg-[#111113] h-2 rounded-full mt-2 overflow-hidden border border-[rgba(255,255,255,0.02)]">
+                                <div className="bg-cyan-500 h-full rounded-full transition-all duration-500" style={{ width: `${Math.min(100, (selectedCourse.completed_hours / selectedCourse.total_hours)*100)}%` }}></div>
+                              </div>
+                            </div>
+                          );
+                        })()}
+                      </div>
+                    </div>
+                    
+                    {/* Right Column: Setup & Info */}
+                    <div className="space-y-6">
+                      
+                      <div className="bg-[#111113] border border-[rgba(255,255,255,0.04)] rounded-2xl p-6 shadow-lg">
+                        <h4 className="text-sm font-bold text-white uppercase tracking-widest mb-4 flex items-center gap-2">
+                          <CalendarIcon className="size-4 text-purple-500" /> Planejamento (Agenda)
+                        </h4>
+                        <div className="space-y-4">
+                          <div className="grid grid-cols-7 gap-1 sm:gap-1.5 w-full">
+                            {['Dom', 'Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb'].map((dayStr, idx) => {
+                               let sched = { days: [] as number[], time: "19:00" };
+                               try { const p = JSON.parse(selectedCourse.description || '{}'); if (p.days) sched = p; } catch(e){}
+                               const isSelected = sched.days.includes(idx);
+                               return (
+                                 <button 
+                                   key={idx} type="button" 
+                                   onClick={async () => {
+                                      let s = { days: [] as number[], time: "19:00" };
+                                      try { const p = JSON.parse(selectedCourse.description || '{}'); if (p.days) s = p; } catch(e){}
+                                      if (s.days.includes(idx)) s.days = s.days.filter((d:number) => d !== idx);
+                                      else s.days.push(idx);
+                                      await updateCourse(selectedCourse.id, { description: JSON.stringify(s) });
+                                   }}
+                                   className={cn("w-full aspect-square sm:aspect-auto sm:h-9 rounded-lg text-[9px] sm:text-[10px] flex items-center justify-center font-bold transition-all border", isSelected ? "bg-purple-500 text-white border-purple-400 shadow-[0_0_10px_rgba(168,85,247,0.4)]" : "bg-[#1A1A1E] text-[#71717A] border-[rgba(255,255,255,0.06)] hover:border-[rgba(255,255,255,0.2]")}
+                                 >
+                                   <span className="hidden sm:inline">{dayStr}</span>
+                                   <span className="sm:hidden">{dayStr.charAt(0)}</span>
+                                 </button>
+                               )
+                            })}
+                          </div>
+                          <div className="relative">
+                             <Clock className="absolute left-3 top-1/2 -translate-y-1/2 size-3.5 text-[#71717A]" />
+                             <input type="time" 
+                               value={(() => { try { const p = JSON.parse(selectedCourse.description || '{}'); return p.time || "19:00"; } catch(e){ return "19:00"; } })()}
+                               onChange={async e => {
+                                 let s = { days: [] as number[], time: "19:00" };
+                                 try { const p = JSON.parse(selectedCourse.description || '{}'); if (p.days) s = p; } catch(e){}
+                                 s.time = e.target.value;
+                                 await updateCourse(selectedCourse.id, { description: JSON.stringify(s) });
+                               }}
+                               className="w-full bg-[#1A1A1E] border border-[rgba(255,255,255,0.06)] rounded-xl pl-9 pr-4 py-2 text-xs font-bold text-white focus:border-purple-500 focus:outline-none transition-colors"
+                             />
+                          </div>
+                          <p className="text-[10px] text-[#A1A1AA] leading-relaxed">
+                            As sessões aparecerão automaticamente na <b>Agenda Inteligente</b> nestes dias.
+                          </p>
+                        </div>
+                      </div>
+
+                      <div className="bg-[#111113] border border-[rgba(255,255,255,0.04)] rounded-2xl p-6 shadow-lg h-full">
+                        <h4 className="text-sm font-bold text-white uppercase tracking-widest mb-4 flex items-center gap-2">
+                          <LinkIcon className="size-4 text-cyan-500" /> Links & Acessos
+                        </h4>
+                        <div className="space-y-4">
+                          {selectedCourse.course_url ? (
+                            <a href={selectedCourse.course_url} target="_blank" rel="noopener noreferrer" className="w-full flex items-center justify-between p-3 bg-[#1A1A1E] hover:bg-[#27272A] rounded-xl border border-cyan-500/20 hover:border-cyan-500/50 transition-colors group">
+                              <span className="text-xs font-bold text-cyan-400 group-hover:text-cyan-300">Plataforma do Curso</span>
+                              <ExternalLink className="size-3 text-cyan-500" />
+                            </a>
+                          ) : (
+                            <span className="text-xs text-[#71717A] italic block p-3 bg-[#1A1A1E] rounded-xl border border-[rgba(255,255,255,0.02)]">Nenhum link principal (Plataforma) configurado.</span>
+                          )}
+                          
+                          {/* General Source list from ALL topics (if any) */}
+                          <div className="border-t border-[rgba(255,255,255,0.04)] pt-4">
+                            <h5 className="text-[10px] text-[#A1A1AA] uppercase font-bold mb-3 tracking-widest">Recursos Fixados das Aulas</h5>
+                            <div className="flex flex-col gap-2 max-h-[300px] overflow-y-auto custom-scrollbar pr-2">
+                              {(() => {
+                                let allSources: {title: string, url: string, tag: string}[] = [];
+                                try {
+                                  const mods = JSON.parse(selectedCourse.next_topics || '[]');
+                                  mods.forEach((m:any) => { 
+                                    m.topics?.filter((t:any) => t.source).forEach((t:any) => {
+                                      allSources.push({ title: t.title, url: t.source, tag: m.title });
+                                    });
+                                  });
+                                } catch(e){}
+                                
+                                if (allSources.length === 0) return <span className="text-[10px] text-[#71717A] italic block p-3 bg-[#1A1A1E] rounded-lg border border-[rgba(255,255,255,0.02)]">Nenhum material anexado nas aulas. Vá na aba Módulos e faça o Upload/Link.</span>;
+                                
+                                return allSources.map((src, i) => (
+                                  <a key={i} href={src.url.startsWith('http') ? src.url : `https://${src.url}`} target="_blank" rel="noopener noreferrer" className="group flex flex-col gap-1 p-2 bg-[#1A1A1E] hover:bg-cyan-500/10 border border-[rgba(255,255,255,0.02)] hover:border-cyan-500/30 rounded-lg transition-colors">
+                                    <span className="text-[10px] font-bold text-cyan-500 uppercase tracking-widest">{src.tag}</span>
+                                    <span className="text-xs text-[#A1A1AA] group-hover:text-white truncate flex items-center gap-1.5">
+                                      <LinkIcon className="size-3" /> {src.title}
+                                    </span>
+                                  </a>
+                                ));
+                              })()}
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Nova Linha: Progresso dos Módulos e Histórico Recente */}
+                  <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                    {/* Progresso por Módulo */}
+                    <div className="bg-[#111113] border border-[rgba(255,255,255,0.04)] rounded-2xl p-6 shadow-lg h-full">
+                      <h4 className="text-sm font-bold text-white uppercase tracking-widest mb-6 flex items-center gap-2">
+                        <FolderOpen className="size-4 text-cyan-500" /> Saúde dos Módulos
+                      </h4>
+                      <div className="space-y-5">
+                        {(() => {
+                          let mods: any[] = [];
+                          try { mods = JSON.parse(selectedCourse.next_topics || '[]'); } catch(e){}
+                          if (mods.length === 0) return <span className="text-xs text-[#A1A1AA] italic p-3 bg-[#1A1A1E] block rounded-lg border border-[rgba(255,255,255,0.02)]">Nenhum módulo criado na Grade Curricular.</span>;
+                          
+                          return mods.map((m: any, i: number) => {
+                             const tTotal = m.topics?.length || 0;
+                             const tDone = m.topics?.filter((t:any) => t.status === 'concluido').length || 0;
+                             const pct = tTotal > 0 ? Math.round((tDone / tTotal) * 100) : 0;
+                             return (
+                               <div key={i} className="flex flex-col gap-2">
+                                 <div className="flex justify-between items-center text-xs">
+                                   <span className="text-[#A1A1AA] font-bold truncate max-w-[200px]">{m.title}</span>
+                                   <span className="text-white font-bold bg-[#1A1A1E] px-2 py-0.5 rounded-md border border-[rgba(255,255,255,0.04)]">{pct}%</span>
+                                 </div>
+                                 <div className="w-full bg-[#1A1A1E] h-1.5 rounded-full overflow-hidden border border-[rgba(255,255,255,0.02)]">
+                                   <div className={`h-full rounded-full transition-all duration-500 ${pct === 100 ? 'bg-emerald-500' : 'bg-cyan-500'}`} style={{ width: `${pct}%` }}></div>
+                                 </div>
+                               </div>
+                             );
+                          });
+                        })()}
+                      </div>
+                    </div>
+                    
+                    {/* Últimas Sessões */}
+                    <div className="bg-[#111113] border border-[rgba(255,255,255,0.04)] rounded-2xl p-6 shadow-lg h-full">
+                      <h4 className="text-sm font-bold text-white uppercase tracking-widest mb-6 flex items-center gap-2">
+                        <Clock className="size-4 text-cyan-500" /> Atividade Recente
+                      </h4>
+                      <div className="space-y-3">
+                        {(() => {
+                          const courseSessions = sessions.filter(s => s.course_id === selectedCourse.id).sort((a,b) => new Date(b.session_date).getTime() - new Date(a.session_date).getTime());
+                          if (courseSessions.length === 0) return <span className="text-xs text-[#A1A1AA] italic p-3 bg-[#1A1A1E] block rounded-lg border border-[rgba(255,255,255,0.02)]">Nenhuma sessão registrada neste curso. Vá em Módulos e inicie uma Sessão!</span>;
+                          
+                          return courseSessions.slice(0, 4).map((s, i) => (
+                             <div key={i} className="flex flex-col gap-2 p-3 bg-[#1A1A1E] rounded-xl border border-[rgba(255,255,255,0.04)] hover:bg-[#27272A] transition-colors">
+                               <div className="flex justify-between items-center">
+                                 <span className="text-[10px] text-cyan-500 font-bold tracking-widest uppercase flex items-center gap-1.5"><CalendarIcon className="size-3"/> {format(parseISO(s.session_date), "dd 'de' MMM", {locale: ptBR})}</span>
+                                 <span className="text-[10px] text-yellow-500 font-bold flex items-center gap-1 bg-yellow-500/10 px-2 py-0.5 rounded-md border border-yellow-500/20"><Zap className="size-3"/> +{s.xp_earned} XP</span>
+                               </div>
+                               <div>
+                                 <div className="text-sm text-white font-bold">{s.class_name || s.module_name || "Sessão de Estudo"}</div>
+                                 <div className="text-[10px] text-[#A1A1AA] uppercase font-bold tracking-widest mt-1">{s.duration_minutes} min investidos</div>
+                               </div>
+                             </div>
+                          ));
+                        })()}
+                      </div>
+                    </div>
+                  </div>
+               </div>
+             )}
+
              {courseTab === "Módulos" && (
-               <div className="space-y-4">
+               <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-300">
+                  <div className="bg-[#111113] border border-[rgba(255,255,255,0.04)] rounded-2xl p-6 shadow-lg">
+                    <div className="flex flex-col sm:flex-row justify-between sm:items-center gap-4 mb-6 border-b border-[rgba(255,255,255,0.06)] pb-4">
+                      <div>
+                        <h3 className="text-lg font-bold text-white flex items-center gap-2"><Layers className="size-5 text-cyan-500" /> Módulos</h3>
+                        <p className="text-xs text-[#A1A1AA] mt-1">Estruture o curso em módulos e tópicos. Anexe links, tags e gere materiais com IA.</p>
+                      </div>
+                      <button onClick={() => {
+                        const moduleTitle = prompt("Qual o nome do novo Módulo?");
+                        if (moduleTitle) {
+                          let current = [];
+                          try {
+                            const parsed = JSON.parse(selectedCourse.next_topics || '[]');
+                            current = (parsed.length > 0 && !parsed[0].topics) ? [{ id: Date.now(), title: 'Módulo Geral', topics: parsed }] : parsed;
+                          } catch(e) {}
+                          const updated = [...current, { id: Date.now(), title: moduleTitle, topics: [] }];
+                          updateCourse(selectedCourse.id, { next_topics: JSON.stringify(updated) });
+                        }
+                      }} className="bg-cyan-600 hover:bg-cyan-500 text-white px-4 py-2 rounded-xl text-sm font-bold flex items-center gap-2 transition-colors">
+                        <Plus className="size-4" /> Novo Módulo
+                      </button>
+                    </div>
+
+                    {/* Lógica de Renderização e Progresso */}
+                    {(() => {
+                      let modules = [];
+                      try {
+                        const parsed = JSON.parse(selectedCourse.next_topics || '[]');
+                        modules = (parsed.length > 0 && !parsed[0].topics) ? [{ id: 'default', title: 'Módulo Geral', topics: parsed }] : parsed;
+                      } catch(e) {}
+
+                      let totalTopics = 0;
+                      let completedTopics = 0;
+                      modules.forEach((m: any) => {
+                        totalTopics += m.topics?.length || 0;
+                        completedTopics += m.topics?.filter((t: any) => t.status === 'concluido').length || 0;
+                      });
+                      
+                      const topicPercent = totalTopics > 0 ? Math.round((completedTopics / totalTopics) * 100) : 0;
+                      
+                      const getStatusColor = (status: string) => {
+                        switch(status) {
+                          case 'concluido': return 'bg-emerald-500 border-emerald-500 text-white';
+                          case 'avançando': return 'bg-cyan-500 border-cyan-500 text-white';
+                          case 'revisando': return 'bg-yellow-500 border-yellow-500 text-white';
+                          default: return 'bg-[#1A1A1E] border-[#3F3F46] text-transparent hover:border-cyan-500';
+                        }
+                      };
+
+                      const getStatusLabel = (status: string) => {
+                        switch(status) {
+                          case 'concluido': return 'Concluído';
+                          case 'avançando': return 'Avançando';
+                          case 'revisando': return 'Revisando';
+                          default: return 'Pendente';
+                        }
+                      };
+
+                      const cycleStatus = (current: string) => {
+                        const cycle = ['pendente', 'avançando', 'revisando', 'concluido'];
+                        return cycle[(cycle.indexOf(current || 'pendente') + 1) % cycle.length];
+                      };
+
+                      return (
+                        <>
+                          <div className="mb-6 bg-[#1A1A1E] p-4 rounded-xl border border-white/5">
+                            <div className="flex justify-between items-end mb-2">
+                               <div className="text-[10px] uppercase tracking-widest font-bold text-[#71717A]">Progresso da Grade</div>
+                               <div className="text-sm font-bold text-cyan-400">{completedTopics} de {totalTopics} Tópicos ({topicPercent}%)</div>
+                            </div>
+                            <div className="h-2 w-full bg-[#111113] rounded-full overflow-hidden">
+                               <div className="h-full bg-cyan-500 rounded-full transition-all duration-500" style={{ width: `${topicPercent}%` }}></div>
+                            </div>
+                          </div>
+
+                          <div className="space-y-6">
+                            {modules.length === 0 ? (
+                              <div className="p-8 text-center border border-dashed border-[rgba(255,255,255,0.06)] rounded-2xl text-[#A1A1AA] text-sm">
+                                Nenhum módulo cadastrado. Comece criando um módulo para estruturar seus tópicos.
+                              </div>
+                            ) : modules.map((mod: any, mIdx: number) => (
+                              <div key={mod.id || mIdx} className="bg-[#1A1A1E]/50 border border-[rgba(255,255,255,0.04)] rounded-2xl p-4 overflow-hidden">
+                                <div className="flex items-center justify-between mb-4 border-b border-white/5 pb-3">
+                                  <h4 className="text-sm font-bold text-white flex items-center gap-2">
+                                    <FolderOpen className="size-4 text-cyan-500" /> {mod.title}
+                                  </h4>
+                                  <div className="flex items-center gap-2">
+                                    <button onClick={() => {
+                                      const topicTitle = prompt("Nome do novo tópico/aula:");
+                                      if (topicTitle) {
+                                        const updated = [...modules];
+                                        updated[mIdx].topics = [...(updated[mIdx].topics || []), { id: Date.now(), title: topicTitle, status: 'pendente', source: '' }];
+                                        updateCourse(selectedCourse.id, { next_topics: JSON.stringify(updated) });
+                                      }
+                                    }} className="text-[10px] font-bold text-cyan-400 hover:bg-cyan-500/10 px-2 py-1 rounded transition-colors uppercase tracking-widest flex items-center gap-1">
+                                      <Plus className="size-3" /> Add Tópico
+                                    </button>
+                                    <button onClick={() => {
+                                      if(confirm("Excluir este módulo inteiro e seus tópicos?")) {
+                                        const updated = modules.filter((_: any, i: number) => i !== mIdx);
+                                        updateCourse(selectedCourse.id, { next_topics: JSON.stringify(updated) });
+                                      }
+                                    }} className="text-rose-500 hover:bg-rose-500/10 p-1.5 rounded transition-colors">
+                                      <Trash2 className="size-3.5" />
+                                    </button>
+                                  </div>
+                                </div>
+
+                                <div className="space-y-2 pl-2 md:pl-6 border-l border-white/5">
+                                  {(!mod.topics || mod.topics.length === 0) ? (
+                                    <p className="text-xs text-[#71717A] italic">Módulo vazio. Adicione tópicos.</p>
+                                  ) : mod.topics.map((topic: any, tIdx: number) => (
+                                    <div key={topic.id || tIdx} className="group flex flex-col bg-[#111113] border border-[rgba(255,255,255,0.03)] hover:border-cyan-500/30 rounded-xl transition-all overflow-hidden">
+                                      
+                                      <div className="flex flex-col sm:flex-row sm:items-center gap-3 p-3">
+                                        <div className="flex items-center gap-3 flex-1">
+                                          <button 
+                                            onClick={(e) => {
+                                              e.stopPropagation();
+                                              const updated = [...modules];
+                                              updated[mIdx].topics[tIdx].status = cycleStatus(topic.status);
+                                              updateCourse(selectedCourse.id, { next_topics: JSON.stringify(updated) });
+                                            }}
+                                            className={`shrink-0 size-5 rounded border flex items-center justify-center transition-all ${getStatusColor(topic.status)} z-10`}
+                                            title={`Status atual: ${getStatusLabel(topic.status)}. Clique para mudar.`}
+                                          >
+                                            {topic.status === 'concluido' && <CheckSquare className="size-3" />}
+                                            {topic.status === 'avançando' && <Flame className="size-3" />}
+                                            {topic.status === 'revisando' && <BookOpen className="size-3" />}
+                                          </button>
+                                          <div className="flex flex-col cursor-pointer flex-1" onClick={() => setExpandedTopicId(expandedTopicId === (topic.id || tIdx) ? null : (topic.id || tIdx))}>
+                                            <span className={`text-sm font-medium ${topic.status === 'concluido' ? 'text-[#71717A] line-through' : 'text-white'}`}>{topic.title}</span>
+                                            <span className={`text-[9px] uppercase tracking-widest font-bold mt-0.5 ${
+                                              topic.status === 'concluido' ? 'text-emerald-500' :
+                                              topic.status === 'avançando' ? 'text-cyan-400' :
+                                              topic.status === 'revisando' ? 'text-yellow-400' : 'text-[#71717A]'
+                                            }`}>{getStatusLabel(topic.status)}</span>
+                                          </div>
+                                        </div>
+
+                                        <div className="flex items-center gap-2 mt-2 sm:mt-0 ml-8 sm:ml-0">
+                                          {topic.source ? (
+                                            <a href={topic.source.startsWith('http') ? topic.source : `https://${topic.source}`} target="_blank" rel="noopener noreferrer" className="text-[10px] font-bold text-cyan-400 bg-cyan-400/10 px-2 py-1 rounded border border-cyan-400/20 hover:bg-cyan-400/20 transition-colors flex items-center gap-1">
+                                              <Share2 className="size-3" /> Fonte
+                                            </a>
+                                          ) : (
+                                            <span className="text-[10px] text-[#3F3F46] px-2 py-1 italic">Sem fonte</span>
+                                          )}
+                                          <button onClick={(e) => {
+                                            e.stopPropagation();
+                                            const src = prompt("Cole o link (YouTube, PDF, Drive) da fonte de estudo:", topic.source || '');
+                                            if (src !== null) {
+                                              const updated = [...modules];
+                                              updated[mIdx].topics[tIdx].source = src;
+                                              updateCourse(selectedCourse.id, { next_topics: JSON.stringify(updated) });
+                                            }
+                                          }} className="opacity-0 group-hover:opacity-100 p-1.5 text-[#A1A1AA] hover:text-white bg-white/5 rounded-lg transition-all" title="Adicionar/Editar Link">
+                                            <PenTool className="size-3.5" />
+                                          </button>
+                                          <label className="opacity-0 group-hover:opacity-100 p-1.5 text-cyan-400 hover:text-white bg-cyan-500/10 hover:bg-cyan-500/30 rounded-lg transition-all cursor-pointer" title="Fazer Upload de PDF/Material">
+                                            {isUploading ? <Loader2 className="size-3.5 animate-spin" /> : <UploadCloud className="size-3.5" />}
+                                            <input type="file" className="hidden" disabled={isUploading} onChange={(e) => handleMaterialUpload(e, mIdx, tIdx)} />
+                                          </label>
+                                          <button onClick={(e) => {
+                                            e.stopPropagation();
+                                            if(confirm("Remover este tópico?")) {
+                                              const updated = [...modules];
+                                              updated[mIdx].topics = updated[mIdx].topics.filter((_: any, i: number) => i !== tIdx);
+                                              updateCourse(selectedCourse.id, { next_topics: JSON.stringify(updated) });
+                                            }
+                                          }} className="opacity-0 group-hover:opacity-100 p-1.5 hover:bg-rose-500/10 text-rose-500 rounded-lg transition-all">
+                                            <Trash2 className="size-3.5" />
+                                          </button>
+                                        </div>
+                                      </div>
+                                      
+                                      {/* EXPANDED WORKSPACE MODAL */}
+                                      {expandedTopicId === (topic.id || tIdx) && (
+                                        <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/80 backdrop-blur-md animate-in fade-in duration-200" onClick={(e) => { e.stopPropagation(); setExpandedTopicId(null); }}>
+                                          <div className="bg-[#111113] border border-[rgba(255,255,255,0.06)] rounded-2xl p-6 w-full max-w-4xl shadow-2xl relative flex flex-col gap-6" onClick={(e) => e.stopPropagation()}>
+                                            
+                                            {/* Header do Modal */}
+                                            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-white/5 pb-4">
+                                              <div>
+                                                <h5 className="text-[10px] uppercase font-bold tracking-widest text-cyan-500 flex items-center gap-1.5 mb-1">
+                                                  <Layers className="size-3" /> Topic Workspace
+                                                </h5>
+                                                <h2 className="text-xl font-bold text-white">{topic.title}</h2>
+                                              </div>
+                                              <div className="flex items-center gap-3">
+                                                <button onClick={() => {
+                                                   setNewSession({ duration_minutes: 60, module_name: mod.title, class_name: topic.title, summary: topic.notes || '' });
+                                                   setIsLoggingSession(true);
+                                                   setExpandedTopicId(null);
+                                                }} className="px-5 py-2.5 bg-cyan-600 hover:bg-cyan-500 text-white rounded-xl text-sm font-bold flex items-center justify-center gap-2 shadow-lg shadow-cyan-500/20 transition-all">
+                                                  <Play className="size-4 fill-white" /> Iniciar Sessão
+                                                </button>
+                                                <button onClick={() => setExpandedTopicId(null)} className="p-2.5 bg-[#1A1A1E] hover:bg-[#27272A] rounded-xl transition-colors text-[#A1A1AA] hover:text-white">
+                                                  <X className="size-4" />
+                                                </button>
+                                              </div>
+                                            </div>
+                                            
+                                            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                                              <div className="lg:col-span-2 flex flex-col h-full">
+                                                <label className="text-[10px] text-[#A1A1AA] uppercase tracking-widest font-bold mb-1.5 block">Quadro de Anotações</label>
+                                                <textarea
+                                                  placeholder="Digite aqui o resumo da aula, vocabulário novo, insights..."
+                                                  value={topic.notes || ''}
+                                                  onChange={(e) => {
+                                                    const updated = [...modules];
+                                                    updated[mIdx].topics[tIdx].notes = e.target.value;
+                                                    updateCourse(selectedCourse.id, { next_topics: JSON.stringify(updated) });
+                                                  }}
+                                                  className="w-full bg-[#1A1A1E] border border-[rgba(255,255,255,0.04)] rounded-xl p-4 text-sm text-white min-h-[250px] flex-1 focus:outline-none focus:border-cyan-500/50 transition-colors custom-scrollbar"
+                                                />
+                                              </div>
+                                              
+                                              <div className="space-y-6">
+                                                <div>
+                                                  <label className="text-[10px] text-[#A1A1AA] uppercase tracking-widest font-bold mb-1.5 block">Tags da Aula</label>
+                                                  <input 
+                                                    placeholder="Ex: grammar, business, reading"
+                                                    value={topic.tags || ''}
+                                                    onChange={(e) => {
+                                                      const updated = [...modules];
+                                                      updated[mIdx].topics[tIdx].tags = e.target.value;
+                                                      updateCourse(selectedCourse.id, { next_topics: JSON.stringify(updated) });
+                                                    }}
+                                                    className="w-full bg-[#1A1A1E] border border-[rgba(255,255,255,0.04)] rounded-xl p-3 text-sm text-white focus:outline-none focus:border-cyan-500/50 transition-colors"
+                                                  />
+                                                </div>
+
+                                                <div>
+                                                  <label className="text-[10px] text-[#A1A1AA] uppercase tracking-widest font-bold mb-1.5 flex items-center gap-1">
+                                                    <FolderOpen className="size-3 text-cyan-500"/> Materiais Anexos
+                                                  </label>
+                                                  <div className="flex flex-col gap-2">
+                                                    {topic.source ? (
+                                                      <div className="flex items-center justify-between p-3 bg-[#1A1A1E] border border-[rgba(255,255,255,0.04)] rounded-xl">
+                                                        <a href={topic.source.startsWith('http') ? topic.source : `https://${topic.source}`} target="_blank" rel="noopener noreferrer" className="text-xs font-bold text-cyan-400 hover:underline truncate max-w-[150px] flex items-center gap-1.5">
+                                                          <ExternalLink className="size-3" /> Ver Anexo
+                                                        </a>
+                                                        <button onClick={() => {
+                                                           const updated = [...modules];
+                                                           updated[mIdx].topics[tIdx].source = "";
+                                                           updateCourse(selectedCourse.id, { next_topics: JSON.stringify(updated) });
+                                                        }} className="text-rose-500 hover:bg-rose-500/10 p-1.5 rounded transition-colors" title="Remover anexo">
+                                                          <Trash2 className="size-3.5" />
+                                                        </button>
+                                                      </div>
+                                                    ) : (
+                                                      <div className="flex gap-2">
+                                                        <button onClick={() => {
+                                                          const src = prompt("Cole o link (YouTube, Drive):");
+                                                          if (src) {
+                                                            const updated = [...modules];
+                                                            updated[mIdx].topics[tIdx].source = src;
+                                                            updateCourse(selectedCourse.id, { next_topics: JSON.stringify(updated) });
+                                                          }
+                                                        }} className="flex-1 py-3 bg-[#1A1A1E] hover:bg-[#27272A] border border-[rgba(255,255,255,0.04)] rounded-xl text-xs font-bold text-[#A1A1AA] hover:text-white transition-colors flex items-center justify-center gap-1.5">
+                                                          <LinkIcon className="size-3" /> Link
+                                                        </button>
+                                                        <label className="flex-1 py-3 bg-[#1A1A1E] hover:bg-[#27272A] border border-[rgba(255,255,255,0.04)] rounded-xl text-xs font-bold text-[#A1A1AA] hover:text-white transition-colors flex items-center justify-center gap-1.5 cursor-pointer">
+                                                          {isUploading ? <Loader2 className="size-3 animate-spin" /> : <UploadCloud className="size-3" />} Upload
+                                                          <input type="file" className="hidden" disabled={isUploading} onChange={(e) => handleMaterialUpload(e, mIdx, tIdx)} />
+                                                        </label>
+                                                      </div>
+                                                    )}
+                                                  </div>
+                                                </div>
+
+                                                <div>
+                                                  <label className="text-[10px] text-[#A1A1AA] uppercase tracking-widest font-bold mb-1.5 flex items-center gap-1">
+                                                    <Sparkles className="size-3 text-cyan-500"/> Laboratório I.A.
+                                                  </label>
+                                                  <div className="flex flex-col gap-2">
+                                                    <button onClick={() => window.open('https://notebooklm.google.com/', '_blank')} className="w-full py-3 bg-cyan-900/20 hover:bg-cyan-900/40 border border-cyan-500/20 hover:border-cyan-500/50 rounded-xl text-xs font-bold text-cyan-400 transition-colors flex items-center justify-center gap-1.5" title="Abrir NotebookLM para gerar resumos/slides">
+                                                      <LayoutTemplate className="size-3.5" /> NotebookLM (Slides)
+                                                    </button>
+                                                    <button onClick={() => window.open('https://notebooklm.google.com/', '_blank')} className="w-full py-3 bg-emerald-900/20 hover:bg-emerald-900/40 border border-emerald-500/20 hover:border-emerald-500/50 rounded-xl text-xs font-bold text-emerald-400 transition-colors flex items-center justify-center gap-1.5" title="Abrir NotebookLM para gerar quiz baseado nas notas">
+                                                      <Brain className="size-3.5" /> NotebookLM (Quiz)
+                                                    </button>
+                                                  </div>
+                                                </div>
+                                              </div>
+                                            </div>
+                                          </div>
+                                        </div>
+                                      )}
+                                    </div>
+                                  ))}
+                                </div>
+                              </div>
+                            ))}
+                          </div>
+                        </>
+                      );
+                    })()}
+                  </div>
+               </div>
+             )}
+
+             {courseTab === "Diário de Bordo" && (
+               <div className="space-y-4 animate-in fade-in slide-in-from-bottom-4 duration-300">
+                  <div className="flex justify-between items-center mb-2">
+                    <h4 className="text-sm font-bold text-white uppercase tracking-widest">Sessões Realizadas</h4>
+                    <span className="text-[10px] text-[#A1A1AA] bg-[#111113] px-2 py-1 rounded-md border border-white/5">{sessions.filter(s => s.course_id === selectedCourse.id).length} registros</span>
+                  </div>
                   {sessions.filter(s => s.course_id === selectedCourse.id).length === 0 ? (
                     <div className="p-8 text-center border border-dashed border-[rgba(255,255,255,0.06)] rounded-2xl text-[#A1A1AA] text-sm">
-                       Nenhuma sessão registrada. Clique em "Registrar Sessão" para anotar seu progresso.
+                       Nenhuma sessão registrada. Clique em "Registrar Sessão" para anotar seu progresso e ganhar XP.
                     </div>
                   ) : sessions.filter(s => s.course_id === selectedCourse.id).map(session => (
                     <div key={session.id} className="bg-[#111113] border border-[rgba(255,255,255,0.04)] rounded-2xl p-5 shadow-lg">
@@ -406,18 +1078,20 @@ export function PosStudies() {
                         <h4 className="font-bold text-white text-base md:text-lg">{session.class_name || 'Sessão sem título'}</h4>
                         <div className="flex items-center gap-2 shrink-0">
                            <span className="text-xs font-bold text-cyan-400 bg-cyan-400/10 px-2 py-1 rounded border border-cyan-400/20">+{session.xp_earned} XP</span>
-                           <span className="text-xs font-bold text-[#A1A1AA] bg-[#1A1A1E] px-2 py-1 rounded">{session.duration_minutes}m</span>
+                           <span className="text-xs font-bold text-[#A1A1AA] bg-[#1A1A1E] px-2 py-1 rounded border border-white/5">{session.duration_minutes}m</span>
+                           <span className="text-[10px] font-bold text-[#71717A] uppercase">{format(parseISO(session.session_date), 'dd/MM')}</span>
                         </div>
                       </div>
                       
                       <div className="space-y-3">
                          {session.module_name && (
-                           <div className="flex items-center gap-2 text-xs text-[#71717A] uppercase tracking-widest font-bold">
+                           <div className="flex items-center gap-2 text-[10px] text-cyan-500 uppercase tracking-widest font-bold">
                              <Layers className="size-3" /> Módulo: {session.module_name}
                            </div>
                          )}
                          {session.summary && (
-                           <div className="bg-[#1A1A1E] p-4 rounded-xl border border-[rgba(255,255,255,0.02)] text-sm text-[#A1A1AA] leading-relaxed">
+                           <div className="bg-[#1A1A1E] p-4 rounded-xl border border-[rgba(255,255,255,0.02)] text-sm text-[#A1A1AA] leading-relaxed relative">
+                             <div className="absolute top-0 left-0 w-1 h-full bg-cyan-500/50 rounded-l-xl"></div>
                              {session.summary}
                            </div>
                          )}
@@ -601,6 +1275,48 @@ export function PosStudies() {
                   className="w-full bg-[#1A1A1E] border border-[rgba(255,255,255,0.06)] rounded-xl px-4 py-3 text-sm text-white focus:border-cyan-500 focus:outline-none transition-colors"
                   placeholder="Ex: 40"
                 />
+              </div>
+
+              <div className="md:col-span-2">
+                <label className="text-[10px] uppercase tracking-widest text-[#71717A] font-bold mb-2 block">Dias da Semana & Horário (Agenda Inteligente)</label>
+                <div className="flex flex-col sm:flex-row gap-4 items-start sm:items-center">
+                  <div className="grid grid-cols-7 gap-1 sm:gap-1.5 w-full sm:flex-1">
+                    {['Dom', 'Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb'].map((dayStr, idx) => {
+                       let sched = { days: [] as number[], time: "19:00" };
+                       try { const p = JSON.parse(newCourse.description || '{}'); if (p.days) sched = p; } catch(e){}
+                       const isSelected = sched.days.includes(idx);
+                       return (
+                         <button 
+                           key={idx} type="button" 
+                           onClick={() => {
+                              let s = { days: [] as number[], time: "19:00" };
+                              try { const p = JSON.parse(newCourse.description || '{}'); if (p.days) s = p; } catch(e){}
+                              if (s.days.includes(idx)) s.days = s.days.filter((d:number) => d !== idx);
+                              else s.days.push(idx);
+                              setNewCourse({...newCourse, description: JSON.stringify(s)});
+                           }}
+                           className={cn("w-full aspect-square sm:aspect-auto sm:h-10 rounded-xl text-[9px] sm:text-[11px] flex items-center justify-center font-bold transition-all border", isSelected ? "bg-purple-500 text-white border-purple-400 shadow-[0_0_10px_rgba(168,85,247,0.4)]" : "bg-[#1A1A1E] text-[#71717A] border-[rgba(255,255,255,0.06)] hover:border-[rgba(255,255,255,0.2]")}
+                         >
+                           <span className="hidden sm:inline">{dayStr}</span>
+                           <span className="sm:hidden">{dayStr.charAt(0)}</span>
+                         </button>
+                       )
+                    })}
+                  </div>
+                  <div className="w-full sm:w-auto relative shrink-0">
+                     <Clock className="absolute left-3 top-1/2 -translate-y-1/2 size-4 text-[#71717A]" />
+                     <input type="time" 
+                       value={(() => { try { const p = JSON.parse(newCourse.description || '{}'); return p.time || "19:00"; } catch(e){ return "19:00"; } })()}
+                       onChange={e => {
+                         let s = { days: [] as number[], time: "19:00" };
+                         try { const p = JSON.parse(newCourse.description || '{}'); if (p.days) s = p; } catch(e){}
+                         s.time = e.target.value;
+                         setNewCourse({...newCourse, description: JSON.stringify(s)});
+                       }}
+                       className="w-full sm:max-w-[140px] bg-[#1A1A1E] border border-[rgba(255,255,255,0.06)] rounded-xl pl-9 pr-4 py-2.5 text-sm font-bold text-white focus:border-purple-500 focus:outline-none transition-colors"
+                     />
+                  </div>
+                </div>
               </div>
 
               <div className="md:col-span-2">

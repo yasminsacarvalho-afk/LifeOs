@@ -30,6 +30,7 @@ import {
   X,
   Gift,
   Gamepad2,
+  BellRing,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useAuth } from "@/contexts/AuthContext";
@@ -90,6 +91,7 @@ const navSections = [
       { to: "/personal-os", search: { tab: "financeiro" }, label: "Financeiro", icon: DollarSign, permission: "view_dashboard" },
       { to: "/personal-os", search: { tab: "estudos" }, label: "Estudos", icon: GraduationCap, permission: "view_dashboard" },
       { to: "/personal-os", search: { tab: "entretenimento" }, label: "Lazer", icon: Gamepad2, permission: "view_dashboard" },
+      { to: "/personal-os", search: { tab: "alarmes" }, label: "Alarmes", icon: BellRing, permission: "view_dashboard" },
       { to: "/academy", label: "Academy", icon: GraduationCap, permission: "view_dashboard" },
     ],
   }
@@ -133,31 +135,50 @@ export function AppSidebar() {
         onMouseEnter={() => setIsHovered(true)}
       />
 
-      {/* Botão de menu flutuante (Mobile e fallback) */}
-      <div 
-        className={cn(
-          "fixed bottom-6 right-6 z-40 transition-all duration-300",
-          isVisible ? "translate-y-[150%] opacity-0 pointer-events-none" : "translate-y-0 opacity-100 pointer-events-auto"
-        )}
-      >
-        <button
-          onClick={() => setIsPinned(true)}
-          className="flex h-14 w-14 items-center justify-center rounded-full bg-primary text-primary-foreground shadow-[0_0_20px_rgba(0,0,0,0.5)] border border-white/10 hover:scale-105 transition-transform"
-        >
-          <Menu className="size-6" />
-        </button>
+      {/* Mobile Bottom Navigation Bar */}
+      <div className="md:hidden fixed bottom-0 left-0 right-0 h-16 bg-[#0A0A0C]/95 backdrop-blur-sm border-t border-[rgba(255,255,255,0.08)] z-[90] flex items-center justify-between px-6 pb-safe shadow-[0_-10px_30px_rgba(0,0,0,0.5)]">
+        {/* Left side icons */}
+        <div className="flex gap-7">
+          <Link to="/" className={cn("flex flex-col items-center gap-1 transition-colors", pathname === '/' ? "text-rose-500" : "text-[#71717A] hover:text-white")}>
+            <LayoutDashboard className={cn("size-5", pathname === '/' && "fill-rose-500/20")} />
+            <span className="text-[9px] font-bold uppercase tracking-widest">Início</span>
+          </Link>
+          <Link to="/personal-os" search={{ tab: 'geral' }} className={cn("flex flex-col items-center gap-1 transition-colors", pathname === '/personal-os' && searchParams.tab === 'geral' ? "text-rose-500" : "text-[#71717A] hover:text-white")}>
+            <Cpu className={cn("size-5", pathname === '/personal-os' && searchParams.tab === 'geral' && "fill-rose-500/20")} />
+            <span className="text-[9px] font-bold uppercase tracking-widest">Geral</span>
+          </Link>
+        </div>
+
+        {/* Center space for Voice Assistant Button */}
+        <div className="w-16 flex items-center justify-center pointer-events-none">
+          <div className="absolute -top-5 w-16 h-16 rounded-full bg-[#0A0A0C]/95 backdrop-blur-sm border-t border-[rgba(255,255,255,0.08)] -z-10 shadow-[0_-10px_30px_rgba(0,0,0,0.5)] hidden"></div>
+        </div>
+
+        {/* Right side icons */}
+        <div className="flex gap-7">
+          <Link to="/personal-os" search={{ tab: 'leitura' }} className={cn("flex flex-col items-center gap-1 transition-colors", pathname === '/personal-os' && searchParams.tab === 'leitura' ? "text-rose-500" : "text-[#71717A] hover:text-white")}>
+            <BookOpen className={cn("size-5", pathname === '/personal-os' && searchParams.tab === 'leitura' && "fill-rose-500/20")} />
+            <span className="text-[9px] font-bold uppercase tracking-widest">Leitura</span>
+          </Link>
+          <button onClick={() => { if (isPinned) setIsHovered(false); setIsPinned(!isPinned); }} className={cn("flex flex-col items-center gap-1 transition-colors", isPinned ? "text-rose-500" : "text-[#71717A] hover:text-white")}>
+            <Menu className="size-5" />
+            <span className="text-[9px] font-bold uppercase tracking-widest">Menu</span>
+          </button>
+        </div>
       </div>
 
-      {/* Dock */}
+      {/* Dock (Desktop) / Menu Sheet (Mobile) */}
       <div 
         className={cn(
-          "fixed bottom-4 md:bottom-6 left-1/2 -translate-x-1/2 z-40 w-full max-w-[96%] md:max-w-4xl transition-all duration-300 ease-out pb-safe",
+          "fixed z-40 transition-all duration-300 ease-out flex justify-center",
+          "md:bottom-6 md:left-1/2 md:-translate-x-1/2 w-full md:max-w-4xl",
+          "bottom-20 left-0 px-2 md:px-0",
           isVisible ? "translate-y-0 opacity-100 pointer-events-auto" : "translate-y-[150%] opacity-0 pointer-events-none"
         )}
         onMouseEnter={() => setIsHovered(true)}
         onMouseLeave={() => setIsHovered(false)}
       >
-        <nav className="w-full rounded-2xl border border-white/10 bg-background/95 backdrop-blur-3xl shadow-[0_20px_40px_-10px_rgba(0,0,0,0.8)] overflow-hidden flex flex-col">
+        <nav className="w-full rounded-2xl border border-[rgba(255,255,255,0.1)] bg-[#111113]/95 backdrop-blur-md shadow-[0_20px_40px_-10px_rgba(0,0,0,0.8)] overflow-hidden flex flex-col max-h-[60vh] md:max-h-none">
           <div className="flex justify-between items-center border-b border-white/5 bg-black/40 p-1.5 px-3">
             <div className="w-8" />
             <div className="flex items-center rounded-lg bg-black/60 p-1 shadow-inner border border-white/5">
@@ -181,7 +202,7 @@ export function AppSidebar() {
               </button>
             </div>
             <button 
-              onClick={() => setIsPinned(false)}
+              onClick={() => { setIsPinned(false); setIsHovered(false); }}
               className="w-8 h-8 flex items-center justify-center rounded-full hover:bg-white/10 text-muted-foreground hover:text-white transition-colors"
             >
               <X className="size-5" />
@@ -205,7 +226,7 @@ export function AppSidebar() {
                   key={item.label}
                   to={item.to}
                   {...(item.search ? { search: item.search } : {})}
-                  onClick={() => setIsPinned(false)}
+                  onClick={() => { setIsPinned(false); setIsHovered(false); }}
                   className={cn(
                     "flex min-w-[76px] flex-col items-center justify-center gap-1.5 rounded-xl p-2 text-center transition-colors shrink-0",
                     active
@@ -231,6 +252,7 @@ export function AppSidebar() {
             <button
               onClick={() => {
                 setIsPinned(false);
+                setIsHovered(false);
                 signOut();
               }}
               className="flex min-w-[76px] flex-col items-center justify-center gap-1.5 rounded-xl p-2 text-center text-destructive/80 transition-colors hover:bg-destructive/10 hover:text-destructive shrink-0"

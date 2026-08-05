@@ -38,6 +38,12 @@ export function usePosTasks() {
   const fetchTasks = async () => {
     try {
       setLoading(true);
+      const cached = localStorage.getItem('pos_tasks_cache');
+      if (cached) {
+        setTasks(JSON.parse(cached));
+        setLoading(false); // Liberar a UI rapidamente
+      }
+
       const { data, error } = await supabase
         .from('pos_tasks')
         .select('*')
@@ -69,9 +75,11 @@ export function usePosTasks() {
         }
 
         setTasks(activeTasks);
+        localStorage.setItem('pos_tasks_cache', JSON.stringify(activeTasks));
       }
     } catch (err) {
       console.error(err);
+      // Se der erro (ex: offline), e já temos cache, não fazemos nada, o cache já tá lá.
     } finally {
       setLoading(false);
     }
@@ -86,7 +94,11 @@ export function usePosTasks() {
         .single();
 
       if (error) throw error;
-      if (data) setTasks([data, ...tasks]);
+      if (data) {
+        const newTasks = [data, ...tasks];
+        setTasks(newTasks);
+        localStorage.setItem('pos_tasks_cache', JSON.stringify(newTasks));
+      }
       toast.success("Tarefa criada com sucesso!");
       return data;
     } catch (error: any) {
@@ -106,7 +118,9 @@ export function usePosTasks() {
 
       if (error) throw error;
       if (data) {
-        setTasks(tasks.map(t => t.id === id ? data : t));
+        const updated = tasks.map(t => t.id === id ? data : t);
+        setTasks(updated);
+        localStorage.setItem('pos_tasks_cache', JSON.stringify(updated));
       }
     } catch (error: any) {
       toast.error("Erro ao atualizar: " + error.message);
@@ -117,7 +131,9 @@ export function usePosTasks() {
     try {
       const { error } = await supabase.from('pos_tasks').delete().eq('id', id);
       if (error) throw error;
-      setTasks(tasks.filter(t => t.id !== id));
+      const filtered = tasks.filter(t => t.id !== id);
+      setTasks(filtered);
+      localStorage.setItem('pos_tasks_cache', JSON.stringify(filtered));
       toast.success("Tarefa removida!");
     } catch (error: any) {
       toast.error("Erro ao remover: " + error.message);

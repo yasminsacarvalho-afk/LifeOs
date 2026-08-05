@@ -16,7 +16,7 @@ export function PosHeatmap() {
   const { sessions: studySessions } = usePosStudies();
   const { events } = usePosAgenda();
 
-  const totalDays = 140; // Approx 20 weeks
+  const totalDays = 364; // 52 weeks exactly
   
   const activityMap = useMemo(() => {
     const map = new Map<string, number>();
@@ -58,7 +58,9 @@ export function PosHeatmap() {
     }
 
     const wk: (Date | null)[][] = [];
-    const oldestDayOfWeek = days[0].getDay();
+    const oldestDayOfWeek = days[0].getDay(); // 0 is Sunday
+    // Pad the first week so we always start rendering at the right weekday slot
+    // To match standard heatmaps, row 0 = Dom, row 1 = Seg, ..., row 6 = Sáb
     
     let currentWeek: (Date | null)[] = Array(oldestDayOfWeek).fill(null);
     
@@ -95,13 +97,25 @@ export function PosHeatmap() {
           </div>
           <div>
             <h2 className="text-lg font-black text-white tracking-tight">Life Heatmap</h2>
-            <p className="text-xs text-[#A1A1AA] mt-0.5">Intensidade de execução em todo o Personal OS</p>
+            <p className="text-xs text-[#A1A1AA] mt-0.5">Intensidade de execução ao longo do último ano</p>
           </div>
         </div>
       </div>
       
-      <div className="flex justify-end overflow-x-auto pb-4 scrollbar-hide">
-        <div className="flex gap-1.5">
+      <div className="w-full overflow-x-auto pb-4 custom-scrollbar flex" dir="rtl">
+        {/* Usamos dir="rtl" na div container e dir="ltr" no conteúdo para que o scroll comece no fim (lado direito, dia de hoje) */}
+        <div className="flex gap-2" dir="ltr">
+          {/* Eixo Y (Dias da Semana) */}
+          <div className="flex flex-col gap-[7px] text-[9px] font-bold text-[#71717A] uppercase tracking-widest mt-1 mr-2 justify-between h-[110px]">
+            <span className="invisible">Dom</span>
+            <span>Seg</span>
+            <span className="invisible">Ter</span>
+            <span>Qua</span>
+            <span className="invisible">Qui</span>
+            <span>Sex</span>
+            <span className="invisible">Sáb</span>
+          </div>
+          
           {weeks.map((week, wIdx) => (
             <div key={wIdx} className="flex flex-col gap-1.5">
               {week.map((day, dIdx) => {
@@ -113,12 +127,12 @@ export function PosHeatmap() {
                   <div
                     key={dateStr}
                     className={cn(
-                      "w-[14px] h-[14px] rounded-[3px] border transition-colors cursor-pointer relative group",
+                      "w-[14px] h-[14px] rounded-[4px] border transition-all duration-300 cursor-pointer relative group hover:scale-125 hover:z-10",
                       getIntensityColor(count)
                     )}
                   >
-                    <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 px-2 py-1 bg-[#111113] border border-[rgba(255,255,255,0.1)] rounded-md text-[10px] text-white whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-10 shadow-xl">
-                      <span className="font-bold text-rose-400">{count} execuções</span> em {format(day, "dd 'de' MMM", {locale: ptBR})}
+                    <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 px-2 py-1.5 bg-[#111113] border border-[rgba(255,255,255,0.1)] rounded-md text-[10px] text-white whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-50 shadow-2xl">
+                      <span className="font-bold text-rose-400">{count} {count === 1 ? 'execução' : 'execuções'}</span> em {format(day, "dd 'de' MMM", {locale: ptBR})}
                     </div>
                   </div>
                 );
@@ -128,14 +142,14 @@ export function PosHeatmap() {
         </div>
       </div>
       
-      <div className="mt-2 flex items-center justify-end gap-2 text-[10px] text-[#A1A1AA] font-bold">
+      <div className="mt-4 flex items-center justify-end gap-2 text-[10px] text-[#A1A1AA] font-bold uppercase tracking-widest">
         <span>Menos</span>
-        <div className="flex gap-1">
-          <div className="w-[14px] h-[14px] rounded-[3px] bg-[#1A1A1E] border border-[rgba(255,255,255,0.03)]" />
-          <div className="w-[14px] h-[14px] rounded-[3px] bg-rose-500/20 border border-rose-500/30" />
-          <div className="w-[14px] h-[14px] rounded-[3px] bg-rose-500/40 border border-rose-500/50" />
-          <div className="w-[14px] h-[14px] rounded-[3px] bg-rose-500/70 border border-rose-500/80" />
-          <div className="w-[14px] h-[14px] rounded-[3px] bg-rose-500 border border-rose-400" />
+        <div className="flex gap-1.5">
+          <div className="w-[14px] h-[14px] rounded-[4px] bg-[#1A1A1E] border border-[rgba(255,255,255,0.03)]" />
+          <div className="w-[14px] h-[14px] rounded-[4px] bg-rose-500/20 border border-rose-500/30" />
+          <div className="w-[14px] h-[14px] rounded-[4px] bg-rose-500/40 border border-rose-500/50" />
+          <div className="w-[14px] h-[14px] rounded-[4px] bg-rose-500/70 border border-rose-500/80" />
+          <div className="w-[14px] h-[14px] rounded-[4px] bg-rose-500 border border-rose-400 shadow-[0_0_8px_rgba(225,29,72,0.4)]" />
         </div>
         <span>Mais</span>
       </div>

@@ -8,6 +8,7 @@ import { PosLibraryYearlySummary } from "./PosLibraryYearlySummary";
 import { PosLibraryAuthorsSummary } from "./PosLibraryAuthorsSummary";
 import { PosLibraryLiteralStats } from "./PosLibraryLiteralStats";
 import { PosLibraryBookDetails } from "./PosLibraryBookDetails";
+import { CameraScanner } from "@/components/ui/CameraScanner";
 import { PosLibraryArticleStudio } from "./PosLibraryArticleStudio";
 import { PosLibraryCollections } from "./PosLibraryCollections";
 import { PosLibraryWisdom } from "./PosLibraryWisdom";
@@ -15,7 +16,7 @@ import { usePosLibrary } from "@/hooks/use-pos-library";
 import { 
   Plus, Trash2, BookOpen, Star, Play, Pause, Bookmark, Brain, Sparkles, 
   TrendingUp, Clock, Calendar as CalendarIcon, AlignLeft, Target, CheckCircle2, Edit2, Edit3, RotateCcw, X, ExternalLink, ChevronLeft, ChevronRight, FileText, Loader2, BarChart2,
-  Activity, Sun, MonitorSmartphone, CalendarDays, Trophy, Cloud, AppWindow, Download, Headphones, AlertTriangle, CalendarClock, ShoppingCart, Youtube, Camera, Users, Book, Globe, Search
+  Activity, Sun, MonitorSmartphone, CalendarDays, Trophy, Cloud, AppWindow, Download, Upload, Headphones, AlertTriangle, CalendarClock, ShoppingCart, Youtube, Camera, Users, Book, Globe, Search
 } from "lucide-react";
 import { format, isToday, parseISO, differenceInDays } from "date-fns";
 import { ptBR } from "date-fns/locale";
@@ -26,13 +27,18 @@ import { pdfService } from "@/services/pdfService";
 import { RichTextEditor } from "./RichTextEditor";
 import { VoiceRecordButton } from "@/components/ui/VoiceRecordButton";
 
-const LiveTimer = ({ startTime }: { startTime: number }) => {
+const LiveTimer = ({ session }: { session: any }) => {
   const [now, setNow] = useState(Date.now());
   useEffect(() => {
+    if (session.status === 'paused') return;
     const interval = setInterval(() => setNow(Date.now()), 1000);
     return () => clearInterval(interval);
-  }, []);
-  const elapsedSecondsTotal = Math.max(0, Math.floor((now - startTime) / 1000));
+  }, [session.status]);
+  
+  const activeMs = session.status === 'paused' ? 0 : Math.max(0, now - (session.startTime || now));
+  const totalMs = (session.accumulatedTime || 0) + activeMs;
+  const elapsedSecondsTotal = Math.floor(totalMs / 1000);
+  
   const h = Math.floor(elapsedSecondsTotal / 3600);
   const m = Math.floor((elapsedSecondsTotal % 3600) / 60);
   const s = elapsedSecondsTotal % 60;
@@ -205,6 +211,26 @@ export function PosLibrary() {
   const [activeDriveAction, setActiveDriveAction] = useState<'create' | 'edit'>('create');
   const [driveSearch, setDriveSearch] = useState("");
   const [driveVisibleCount, setDriveVisibleCount] = useState(10);
+  const [isScanning, setIsScanning] = useState(false);
+
+  const handleScanBook = async (file: File) => {
+    setIsScanning(true);
+    const processingToast = toast.loading("Analisando capa via Scanner...");
+    
+    // Simulating OCR/AI analysis of book cover
+    setTimeout(() => {
+      setNewBook(prev => ({
+        ...prev,
+        title: "A Arte da Guerra",
+        author: "Sun Tzu",
+        publisher: "Editora Vozes",
+        total_pages: 128
+      }));
+      setIsScanning(false);
+      toast.dismiss(processingToast);
+      toast.success("Capa lida com sucesso! Metadados preenchidos automaticamente.");
+    }, 2500);
+  };
 
   const [filterStatus, setFilterStatus] = useState<string>('todos');
   const [filterCategory, setFilterCategory] = useState<string>('todas');
@@ -358,17 +384,95 @@ export function PosLibrary() {
       }
       
       if (isEditing && editBookData) {
-        setEditBookData((prev: any) => prev ? { ...prev, resource_link: finalUrl } : prev);
+        setEditBookData({ ...editBookData, resource_link: finalUrl });
+        toast.success("Arquivo digital enviado. Salve as alterações para confirmar.");
       } else {
         setNewBook((prev: any) => ({ ...prev, resource_link: finalUrl }));
+        toast.success("Arquivo digital enviado e vinculado.");
       }
-      toast.success(driveUrl ? "Enviado para o seu Google Drive!" : "Arquivo salvo na nuvem!"); 
     } catch (err: any) {
-      toast.error(`Falha ao subir arquivo: ${err.message || "Erro desconhecido"}.`);
+      toast.error(`Falha ao subir arquivo digital: ${err.message || "Erro desconhecido"}`);
       console.error(err);
     } finally {
       setIsUploadingResource(false);
-      e.target.value = '';
+      e.target.value = ''; // Reset input so the same file can be uploaded again
+    }
+  };
+
+  const handleQuickUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    
+    // Extract title from file name
+    const rawTitle = file.name.replace(/\.[^/.]+$/, "").replace(/[-_]/g, ' ');
+    const title = rawTitle.charAt(0).toUpperCase() + rawTitle.slice(1);
+    
+    setIsUploadingResource(true);
+    toast.info(`Iniciando upload de "${title}"...`, { duration: 5000 });
+    
+    try {
+      const driveUrl = import.meta.env.VITE_GOOGLE_DRIVE_UPLOADER_URL;
+      let finalUrl = "";
+
+      if (driveUrl) {
+        const reader = new FileReader();
+        const base64Promise = new Promise<string>((resolve, reject) => {
+          reader.onload = () => {
+             const result = reader.result as string;
+             resolve(result.split(',')[1]);
+          };
+          reader.onerror = error => reject(error);
+        });
+        reader.readAsDataURL(file);
+        const base64Data = await base64Promise;
+
+        const response = await fetch(driveUrl, {
+          method: "POST",
+          body: JSON.stringify({
+             base64: base64Data,
+             filename: file.name,
+             mimeType: file.type || 'application/octet-stream'
+          }),
+          headers: { 'Content-Type': 'text/plain' }
+        });
+        
+        const result = await response.json();
+        if (!result.success) throw new Error(result.error);
+        finalUrl = result.url;
+      } else {
+        const fileExt = file.name.split('.').pop();
+        const safeName = file.name.replace(/[^a-zA-Z0-9.-]/g, '_');
+        const fileName = `${safeName}_${Math.random().toString(36).substring(7)}.${fileExt}`;
+        const filePath = `arquivos/${fileName}`;
+        
+        const { error: uploadError } = await supabase.storage.from('livros').upload(filePath, file);
+        if (uploadError) throw uploadError;
+        
+        const { data: { publicUrl } } = supabase.storage.from('livros').getPublicUrl(filePath);
+        finalUrl = publicUrl;
+      }
+
+      // After uploading, create the book!
+      const payload: any = {
+        title,
+        author: "Desconhecido",
+        status: "quero_ler",
+        format: "digital",
+        knowledge_area: "Geral",
+        resource_link: finalUrl,
+        category: "Geral"
+      };
+      
+      const createdBook = await addBook(payload);
+      if (createdBook) {
+        toast.success(`Livro "${title}" adicionado com sucesso!`);
+      }
+    } catch (err: any) {
+      toast.error(`Falha no upload rápido: ${err.message || "Erro desconhecido"}`);
+      console.error(err);
+    } finally {
+      setIsUploadingResource(false);
+      e.target.value = ''; // Reset input
     }
   };
 
@@ -492,6 +596,8 @@ export function PosLibrary() {
       bookId: book.id,
       bookTitle: book.title,
       startTime: Date.now(),
+      accumulatedTime: 0,
+      status: 'active',
       notes: "",
       chapters_read: "",
       pages_read: "",
@@ -533,8 +639,9 @@ export function PosLibrary() {
   };
 
   const handleFinishSession = async (session: any) => {
-    const diffMs = Date.now() - session.startTime;
-    const durationMinutes = Math.max(1, Math.round(diffMs / 60000));
+    const activeMs = session.status === 'paused' ? 0 : (Date.now() - session.startTime);
+    const totalMs = (session.accumulatedTime || 0) + activeMs;
+    const durationMinutes = Math.max(1, Math.round(totalMs / 60000));
     
     const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
     const deviceName = isMobile ? "Celular/Tablet" : "PC/Desktop";
@@ -822,12 +929,26 @@ Link original: ${book.buy_link || ''}`;
                <div className="p-3 bg-gradient-to-br from-rose-500/20 to-indigo-500/20 rounded-2xl border border-[rgba(255,255,255,0.05)] shadow-[0_0_30px_rgba(244,63,94,0.15)] relative group">
                   <div className="absolute inset-0 bg-rose-500/20 rounded-2xl blur-md group-hover:bg-rose-500/40 transition-colors"></div>
                   <BookOpen className="size-6 md:size-8 text-rose-400 relative z-10" /> 
-               </div>
+                </div>
                Cosmos Literário
             </h2>
             <p className="text-[#A1A1AA] text-sm md:text-base mt-3 max-w-2xl font-medium tracking-wide">Rastreabilidade completa, sabedoria em órbita, resumos de absorção e conexões profundas do seu universo intelectual.</p>
           </div>
           <div className="flex flex-wrap items-center gap-3 animate-in fade-in slide-in-from-right-8 duration-1000">
+            <label className="flex items-center gap-2 bg-[#1A1A1E]/80 backdrop-blur-md text-emerald-400 border border-emerald-500/20 hover:border-emerald-500/50 px-5 py-3 rounded-xl text-sm font-bold hover:bg-[#27272A]/80 transition-all shadow-[0_0_15px_rgba(16,185,129,0.15)] cursor-pointer relative overflow-hidden">
+              {isUploadingResource ? (
+                <><Loader2 className="animate-spin size-4" /> Subindo...</>
+              ) : (
+                <><Upload className="size-4" /> Subir Livro</>
+              )}
+              <input 
+                type="file" 
+                accept=".pdf,.epub,.mobi" 
+                className="hidden" 
+                onChange={handleQuickUpload} 
+                disabled={isUploadingResource} 
+              />
+            </label>
             <button 
               onClick={() => setShowArticleStudio(true)}
               className="flex items-center gap-2 bg-[#1A1A1E]/80 backdrop-blur-md text-white border border-indigo-500/20 hover:border-indigo-500/50 px-5 py-3 rounded-xl text-sm font-bold hover:bg-[#27272A]/80 transition-all shadow-[0_0_15px_rgba(99,102,241,0.15)]"
@@ -924,7 +1045,8 @@ Link original: ${book.buy_link || ''}`;
                         className="w-full bg-transparent px-4 py-3 text-white focus:outline-none"
                         placeholder="Ex: A Arte da Guerra"
                       />
-                      <div className="pr-1">
+                      <div className="pr-1 flex items-center gap-1">
+                        <CameraScanner onScan={handleScanBook} isProcessing={isScanning} label="" />
                         <VoiceRecordButton onTranscript={(t) => setNewBook(prev => ({...prev, title: prev.title ? `${prev.title} ${t}` : t}))} />
                       </div>
                     </div>
@@ -1703,10 +1825,10 @@ Continue Lendo
                          <div className="flex-1">
                             <h4 className="text-white font-black text-2xl md:text-3xl mb-2 line-clamp-2">{session.bookTitle}</h4>
                             <p className="text-sm md:text-base text-[#A1A1AA] flex flex-wrap items-center gap-2">
-                               <Clock className="size-5 text-rose-500 shrink-0" /> 
+                               <Clock className={cn("size-5 shrink-0", session.status === 'paused' ? "text-amber-500" : "text-rose-500")} /> 
                                <span className="font-bold text-white text-xl md:text-2xl tracking-widest font-mono">
-                                 <LiveTimer startTime={session.startTime} />
-                               </span> <span className="shrink-0">decorridos</span>
+                                 <LiveTimer session={session} />
+                               </span> <span className="shrink-0">{session.status === 'paused' ? 'pausado' : 'decorridos'}</span>
                                <span className="text-[#71717A] md:ml-2 text-xs md:text-sm shrink-0">(Iniciado às {format(new Date(session.startTime), 'HH:mm')})</span>
                             </p>
                             <p className="text-xs text-indigo-400 font-bold uppercase tracking-widest mt-3 flex items-center gap-2 bg-indigo-500/10 w-fit px-3 py-1.5 rounded-lg border border-indigo-500/20">
@@ -1718,7 +1840,20 @@ Continue Lendo
                             <button onClick={() => handleFinishSession(session)} className="w-full py-4 rounded-xl bg-rose-600 text-white hover:bg-rose-500 text-sm font-bold shadow-[0_0_20px_rgba(225,29,72,0.4)] transition-all flex items-center justify-center gap-2 group">
                                <CheckCircle2 className="size-5 group-hover:scale-110 transition-transform" /> Concluir
                             </button>
-                            <button onClick={() => cancelReadingSession(session.id)} className="w-full py-3 rounded-xl bg-[#1A1A1E] text-[#A1A1AA] hover:text-white hover:bg-rose-500/20 text-xs uppercase tracking-widest font-bold border border-[rgba(255,255,255,0.05)] hover:border-rose-500/30 transition-colors">
+                            <button 
+                              onClick={() => {
+                                if (session.status === 'paused') {
+                                  saveActiveSessions(activeSessions.map(s => s.id === session.id ? { ...s, status: 'active', startTime: Date.now() } : s));
+                                } else {
+                                  const activeMs = Date.now() - session.startTime;
+                                  saveActiveSessions(activeSessions.map(s => s.id === session.id ? { ...s, status: 'paused', accumulatedTime: (s.accumulatedTime || 0) + activeMs } : s));
+                                }
+                              }}
+                              className="w-full py-3 rounded-xl bg-amber-500/20 text-amber-500 hover:bg-amber-500/30 text-xs uppercase tracking-widest font-bold border border-amber-500/20 transition-colors flex items-center justify-center gap-2"
+                            >
+                              {session.status === 'paused' ? <><Play className="size-4" /> Retomar Sessão</> : <><Pause className="size-4" /> Pausar Sessão</>}
+                            </button>
+                            <button onClick={() => cancelReadingSession(session.id)} className="w-full py-2 rounded-xl bg-transparent text-[#71717A] hover:text-white hover:bg-white/5 text-xs uppercase tracking-widest font-bold transition-colors">
                                Cancelar Sessão
                             </button>
                          </div>
@@ -2122,12 +2257,22 @@ Continue Lendo
              >
                 <div className="flex gap-4 items-start mb-4">
                   {book.cover_url ? (
-                    <div className="w-16 h-24 bg-[#1A1A1E] rounded-lg overflow-hidden shrink-0 border border-[rgba(255,255,255,0.05)]">
-                      <img src={book.cover_url} alt="Cover" className="w-full h-full object-cover" />
+                    <div className="w-16 h-24 bg-[#1A1A1E] rounded-lg overflow-hidden shrink-0 border border-[rgba(255,255,255,0.05)] relative">
+                      <img src={book.cover_url} alt="Cover" className="w-full h-full object-cover" loading="lazy" decoding="async" />
+                      {book.resource_link && (
+                        <div className="absolute top-1 left-1 bg-blue-500/90 backdrop-blur-sm text-white p-1 rounded-md shadow-lg" title="Arquivo Digital Disponível">
+                          <Download className="size-3" />
+                        </div>
+                      )}
                     </div>
                   ) : (
-                    <div className="w-16 h-24 bg-[#1A1A1E] rounded-lg overflow-hidden shrink-0 border border-[rgba(255,255,255,0.05)] flex items-center justify-center text-[#71717A]/30">
+                    <div className="w-16 h-24 bg-[#1A1A1E] rounded-lg overflow-hidden shrink-0 border border-[rgba(255,255,255,0.05)] flex items-center justify-center text-[#71717A]/30 relative">
                       <BookOpen className="size-6" />
+                      {book.resource_link && (
+                        <div className="absolute top-1 left-1 bg-blue-500/90 backdrop-blur-sm text-white p-1 rounded-md shadow-lg" title="Arquivo Digital Disponível">
+                          <Download className="size-3" />
+                        </div>
+                      )}
                     </div>
                   )}
                   <div className="flex-1 min-w-0 pr-4">

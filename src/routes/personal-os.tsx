@@ -3,10 +3,12 @@ import {
   LayoutDashboard, Calendar, CheckSquare, Briefcase, Activity, 
   GraduationCap, BookOpen, DollarSign, Lightbulb, Target, 
   Brain, Coffee, Timer, Book, LineChart, Plus, AlertCircle, 
-  ChevronRight, ArrowRight, Sparkles, TrendingUp, TrendingDown, Clock, Home, Menu, X, CheckCircle2, XCircle
+  ChevronRight, ArrowRight, Sparkles, TrendingUp, TrendingDown, Clock, Home, Menu, X, CheckCircle2, XCircle,
+  Settings, Monitor, Smartphone, ShieldAlert, User, Download
 } from "lucide-react";
 import { useState, useEffect } from "react";
 import { cn } from "@/lib/utils";
+import { isPermissionGranted, requestPermission, sendNotification } from '@tauri-apps/plugin-notification';
 import { PosAgenda } from "@/components/pos/PosAgenda";
 import { PosTarefas } from "@/components/pos/PosTarefas";
 import { PosHabits } from "@/components/pos/PosHabits";
@@ -16,6 +18,7 @@ import { PosGoals } from "@/components/pos/PosGoals";
 import { PosStudies } from "@/components/pos/PosStudies";
 import { PosFinance } from "@/components/pos/PosFinance";
 import { PosEntertainment } from "@/components/pos/PosEntertainment";
+import { PosAlarms } from "@/components/pos/PosAlarms";
 import { usePosTasks } from "@/hooks/use-pos-tasks";
 import { usePosHabits } from "@/hooks/use-pos-habits";
 import { usePosAgenda } from "@/hooks/use-pos-agenda";
@@ -29,7 +32,7 @@ import { format, isToday, parseISO, isThisMonth, isThisWeek } from "date-fns";
 import { PosPrincipal } from "@/components/pos/PosPrincipal";
 import { PosEvolution } from "@/components/pos/PosEvolution";
 import { PosRewards } from "@/components/pos/PosRewards";
-import { PieChart, PiggyBank, Gift } from "lucide-react";
+import { PieChart, PiggyBank, Gift, BellRing } from "lucide-react";
 
 export const Route = createFileRoute("/personal-os")({
   validateSearch: (search: Record<string, unknown>) => {
@@ -59,6 +62,7 @@ const modules = [
   { id: "foco", name: "Modo Foco", icon: Timer },
   { id: "diario", name: "Diário", icon: Book },
   { id: "ia", name: "IA", icon: Sparkles },
+  { id: "alarmes", name: "Alarmes", icon: BellRing },
 ];
 
 const healthScores = [
@@ -739,6 +743,11 @@ function DashboardGeral() {
         </div>
       )}
 
+      {/* MÓDULO DE ALARMES INTEGRADO NA ABA PESSOAL */}
+      <div className="mt-8 pt-4">
+        <PosAlarms />
+      </div>
+
       {/* CONSELHO IA MODAL */}
       {isAdvisorOpen && (
         <div className="fixed inset-0 z-[500] flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm animate-in fade-in">
@@ -883,8 +892,12 @@ function PersonalOSPage() {
     month: 'long' 
   }).format(new Date());
 
-  const [notifications, setNotifications] = useState<any[]>([]);
+  const { tasks, addTask, updateTask, fetchTasks } = usePosTasks();
+  
   const [showNotifications, setShowNotifications] = useState(false);
+  const [isSettingsOpen, setIsSettingsOpen] = useState(false);
+
+  const [notifications, setNotifications] = useState<any[]>([]);
 
   useEffect(() => {
     const loadNotifs = () => {
@@ -895,7 +908,72 @@ function PersonalOSPage() {
     };
     loadNotifs();
     window.addEventListener('lifeos_drive_notifications_update', loadNotifs);
-    return () => window.removeEventListener('lifeos_drive_notifications_update', loadNotifs);
+    
+    // Background check for agenda notifications
+    const checkAgenda = setInterval(() => {
+      const now = new Date();
+      if (now.getSeconds() !== 0) return; // Only check on the minute mark
+      
+      const eventsStr = localStorage.getItem('lifeos_events');
+      if (eventsStr) {
+        try {
+          const events = JSON.parse(eventsStr);
+          const currentHour = now.getHours().toString().padStart(2, '0');
+          const currentMin = now.getMinutes().toString().padStart(2, '0');
+          const timeStr = `${currentHour}:${currentMin}`;
+          const todayStr = format(now, 'yyyy-MM-dd');
+          
+          events.forEach(async (event: any) => {
+             if (event.event_date === todayStr && event.start_time === timeStr) {
+                try {
+                  let permission = await isPermissionGranted();
+                  if (!permission) permission = (await requestPermission()) === 'granted';
+                  if (permission) {
+                    sendNotification({
+                      title: `Compromisso Agora: ${event.title}`,
+                      body: `Seu compromisso está começando!`
+                    });
+                  }
+                } catch(e) {
+                  if ("Notification" in window && Notification.permission === "granted") {
+                    new Notification(`Compromisso Agora: ${event.title}`, {
+                      body: `Seu compromisso está começando!`,
+                      icon: '/pwa-192x192.png'
+                    });
+                  }
+                }
+             }
+             // Notify 15 mins before
+             const eventDate = new Date(`${event.event_date}T${event.start_time}:00`);
+             const diffMins = Math.round((eventDate.getTime() - now.getTime()) / 60000);
+             if (diffMins === 15) {
+                try {
+                  let permission = await isPermissionGranted();
+                  if (!permission) permission = (await requestPermission()) === 'granted';
+                  if (permission) {
+                    sendNotification({
+                      title: `Em 15 minutos: ${event.title}`,
+                      body: `Prepare-se, seu compromisso começa em breve.`
+                    });
+                  }
+                } catch(e) {
+                  if ("Notification" in window && Notification.permission === "granted") {
+                    new Notification(`Em 15 minutos: ${event.title}`, {
+                      body: `Prepare-se, seu compromisso começa em breve.`,
+                      icon: '/pwa-192x192.png'
+                    });
+                  }
+                }
+             }
+          });
+        } catch(e) {}
+      }
+    }, 1000);
+    
+    return () => {
+      window.removeEventListener('lifeos_drive_notifications_update', loadNotifs);
+      clearInterval(checkAgenda);
+    };
   }, []);
 
   const unreadCount = notifications.filter(n => !n.read).length;
@@ -912,17 +990,17 @@ function PersonalOSPage() {
       <main className="flex-1 overflow-y-auto bg-[#09090B] pb-24 custom-scrollbar">
         
         {/* Header / Topbar */}
-        <header className="h-20 md:h-24 border-b border-[rgba(255,255,255,0.02)] flex items-center justify-between px-4 md:px-10 sticky top-0 bg-[#09090B]/80 backdrop-blur-xl z-10">
+        <header className="h-20 md:h-24 border-b border-[rgba(255,255,255,0.08)] flex items-center justify-between px-4 md:px-10 sticky top-0 bg-[#09090B]/90 backdrop-blur-md z-40 shadow-xl shadow-black/50">
           <div className="flex items-center gap-4 md:gap-6">
             <Link to="/" className="p-2.5 md:p-3 flex rounded-xl bg-[#1A1A1E] text-[#A1A1AA] hover:bg-rose-500 hover:text-white transition-all shadow-sm group" title="Voltar ao RapiHub">
               <Home className="size-5 group-hover:scale-110 transition-transform" />
             </Link>
-            <div className="flex flex-col">
-              <h1 className="text-xl md:text-2xl font-bold tracking-tight text-white flex items-center gap-2">
+            <div className="flex flex-col min-w-0">
+              <h1 className="text-lg md:text-2xl font-bold tracking-tight text-white flex items-center gap-2 truncate">
                 {greeting}, Bruno.
               </h1>
-              <span className="text-xs md:text-sm text-[#A1A1AA] font-medium capitalize mt-0.5">
-                {dateStr} • Seu Personal OS está ativo
+              <span className="text-[10px] md:text-sm text-[#A1A1AA] font-medium capitalize mt-0.5 truncate">
+                {dateStr} <span className="hidden sm:inline">• Seu Personal OS está ativo</span>
               </span>
             </div>
           </div>
@@ -966,13 +1044,125 @@ function PersonalOSPage() {
                 </div>
               )}
             </div>
-            <div className="h-10 w-10 md:h-12 md:w-12 rounded-full bg-gradient-to-tr from-rose-500 to-orange-400 p-[1.5px] cursor-pointer hover:scale-105 transition-transform shadow-[0_0_15px_rgba(244,63,94,0.2)]">
+            <div onClick={() => setIsSettingsOpen(true)} className="h-10 w-10 md:h-12 md:w-12 rounded-full bg-gradient-to-tr from-rose-500 to-orange-400 p-[1.5px] cursor-pointer hover:scale-105 transition-transform shadow-[0_0_15px_rgba(244,63,94,0.2)]">
               <div className="h-full w-full rounded-full bg-[#111113] border border-[rgba(255,255,255,0.1)] flex items-center justify-center overflow-hidden">
                 <span className="text-white font-bold text-sm tracking-widest">BA</span>
               </div>
             </div>
           </div>
         </header>
+
+        {/* MODAL LATERAL DE CONFIGURAÇÕES DO PERSONAL OS */}
+        {isSettingsOpen && (
+          <>
+            <div className="fixed inset-0 z-[100] bg-black/60 backdrop-blur-sm animate-in fade-in" onClick={() => setIsSettingsOpen(false)}></div>
+            <div className="fixed inset-y-0 right-0 z-[101] w-full max-w-sm bg-[#09090B] border-l border-[rgba(255,255,255,0.05)] shadow-2xl animate-in slide-in-from-right duration-300 flex flex-col">
+              <div className="flex items-center justify-between p-6 border-b border-[rgba(255,255,255,0.05)] bg-[#050505]">
+                <h2 className="text-lg font-bold text-white flex items-center gap-2">
+                  <Settings className="size-5 text-emerald-400" /> Sistema
+                </h2>
+                <button onClick={() => setIsSettingsOpen(false)} className="text-[#6F6F6F] hover:text-white transition-colors p-2 bg-[#1A1A1E] rounded-full">
+                  <X className="size-4" />
+                </button>
+              </div>
+              
+              <div className="flex-1 overflow-y-auto p-6 flex flex-col gap-8 custom-scrollbar">
+                
+                {/* Info da Versão */}
+                <div className="flex flex-col gap-2">
+                  <h3 className="text-[11px] font-bold text-[#6F6F6F] uppercase tracking-widest flex items-center gap-2 mb-1">
+                    <Monitor className="size-3.5" /> Arquitetura do Sistema
+                  </h3>
+                  <div className="bg-[#111113] p-4 rounded-xl border border-[rgba(255,255,255,0.06)] flex items-center justify-between">
+                    <div>
+                      <p className="text-sm font-bold text-white">Híbrido (PWA + Nativo)</p>
+                      <p className="text-xs text-emerald-400 font-medium">Build v2.5.0 (Câmera & Offline)</p>
+                    </div>
+                    <div className="px-2 py-1 bg-emerald-500/10 text-emerald-500 text-[10px] uppercase font-bold rounded-md tracking-wider">Universal</div>
+                  </div>
+                  <p className="text-[11px] text-[#A1A1AA] leading-relaxed mt-1">
+                    Funciona de forma unificada. O Scanner de Câmera e o Modo Offline (Cache Local) **já estão rodando agora mesmo**, seja no navegador, no celular (PWA) ou no instalador nativo.
+                  </p>
+                </div>
+
+                {/* Tema e Aparência */}
+                <div className="flex flex-col gap-2">
+                  <h3 className="text-[11px] font-bold text-[#6F6F6F] uppercase tracking-widest mb-1">Aparência</h3>
+                  <div className="bg-[#111113] p-4 rounded-xl border border-[rgba(255,255,255,0.06)]">
+                    <p className="text-sm text-[#A1A1AA] mb-3">O Personal OS opera exclusivamente no sistema <strong>Red Dark Mode</strong> nativo para maximizar o contraste e proteger sua visão durante turnos de execução profunda.</p>
+                  </div>
+                </div>
+
+                {/* Dados de Login */}
+                <div className="flex flex-col gap-2">
+                  <h3 className="text-[11px] font-bold text-[#6F6F6F] uppercase tracking-widest flex items-center gap-2 mb-1">
+                    <User className="size-3.5" /> Dados de Acesso
+                  </h3>
+                  <div className="bg-[#111113] p-4 rounded-xl border border-[rgba(255,255,255,0.06)] flex items-start gap-3">
+                    <div className="size-10 rounded-full bg-blue-500/10 flex items-center justify-center shrink-0 border border-blue-500/20">
+                      <User className="size-5 text-blue-500" />
+                    </div>
+                    <div>
+                      <p className="text-sm font-bold text-white">Bruno Abreu (Admin)</p>
+                      <p className="text-xs text-[#A1A1AA]">Sincronizado via Supabase Auth</p>
+                      <p className="text-[10px] text-emerald-500 uppercase tracking-widest font-bold mt-2">Sessão Segura</p>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Download e Instaladores */}
+                <div className="flex flex-col gap-2">
+                  <h3 className="text-[11px] font-bold text-[#6F6F6F] uppercase tracking-widest flex items-center gap-2 mb-1">
+                    <Download className="size-3.5" /> Como Instalar no Celular/PC?
+                  </h3>
+                  <div className="grid grid-cols-1 gap-3">
+                    <button onClick={() => alert("Recomendado!\n\nNo seu navegador (Chrome/Edge/Safari), vá no menu de opções e clique em 'Adicionar à Tela Inicial' ou 'Instalar Aplicativo'.\n\nPronto! Ele vai virar um app real no seu celular, com suporte à Câmera e Offline, sem ocupar espaço ou precisar de atualizações manuais.")} className="bg-[#111113] border border-emerald-500/30 hover:border-emerald-500 p-4 rounded-xl transition-all flex items-center gap-4 text-left group">
+                      <div className="p-3 bg-emerald-500/10 rounded-lg group-hover:bg-emerald-500/20 transition-colors">
+                        <Smartphone className="size-6 text-emerald-400" />
+                      </div>
+                      <div>
+                        <span className="text-sm font-bold text-white block">Opção A: Instalação Rápida (PWA)</span>
+                        <span className="text-[10px] text-[#A1A1AA] block mt-0.5">Via Chrome/Safari. Inclui Câmera e Offline. (Recomendado)</span>
+                      </div>
+                    </button>
+                    <button onClick={() => alert("Para usuários técnicos:\n\nNo terminal da máquina rodando o projeto, execute:\nnpm run tauri build\n\nIsso compilará o .EXE (Windows) ou .APK (Android) nativo em Rust.")} className="bg-[#111113] border border-[rgba(255,255,255,0.06)] hover:border-blue-500/50 p-4 rounded-xl transition-all flex items-center gap-4 text-left group">
+                      <div className="p-3 bg-blue-500/10 rounded-lg group-hover:bg-blue-500/20 transition-colors">
+                        <Monitor className="size-6 text-blue-400" />
+                      </div>
+                      <div>
+                        <span className="text-sm font-bold text-white block">Opção B: Compilação Nativa (Tauri)</span>
+                        <span className="text-[10px] text-[#A1A1AA] block mt-0.5">Gera arquivo .APK / .EXE via terminal.</span>
+                      </div>
+                    </button>
+                  </div>
+                </div>
+
+                {/* Permissões e Diagnóstico */}
+                <div className="flex flex-col gap-2 pb-8">
+                  <h3 className="text-[11px] font-bold text-[#6F6F6F] uppercase tracking-widest flex items-center gap-2 mb-1">
+                    <ShieldAlert className="size-3.5" /> Status e Permissões
+                  </h3>
+                  <div className="bg-[#111113] p-4 rounded-xl border border-[rgba(255,255,255,0.06)] flex flex-col gap-3">
+                    <div className="flex justify-between items-center">
+                      <span className="text-xs font-medium text-white">Notificações Nativas</span>
+                      <span className="px-2 py-0.5 bg-emerald-500/10 text-emerald-400 text-[10px] uppercase font-bold rounded">Permitido</span>
+                    </div>
+                    <div className="w-full h-px bg-[rgba(255,255,255,0.05)]"></div>
+                    <div className="flex justify-between items-center">
+                      <span className="text-xs font-medium text-white">Armazenamento (Drive/Supabase)</span>
+                      <span className="px-2 py-0.5 bg-emerald-500/10 text-emerald-400 text-[10px] uppercase font-bold rounded">Conectado</span>
+                    </div>
+                    <div className="w-full h-px bg-[rgba(255,255,255,0.05)]"></div>
+                    <div className="flex justify-between items-center">
+                      <span className="text-xs font-medium text-white">Acesso Local FS (Tauri)</span>
+                      <span className="px-2 py-0.5 bg-emerald-500/10 text-emerald-400 text-[10px] uppercase font-bold rounded">Conectado</span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </>
+        )}
 
         {activeModule === "principal" ? (
           <PosPrincipal />
@@ -1000,6 +1190,8 @@ function PersonalOSPage() {
           <PosFinance />
         ) : activeModule === "entretenimento" ? (
           <PosEntertainment />
+        ) : activeModule === "alarmes" ? (
+          <PosAlarms />
         ) : (
           <div className="p-10 max-w-[1400px] mx-auto flex flex-col items-center justify-center min-h-[60vh] text-center">
             {activeModuleData && <activeModuleData.icon className="size-16 text-[#1A1A1E] mb-6" />}

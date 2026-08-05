@@ -2,12 +2,14 @@ import React, { useState, useEffect, useMemo } from 'react';
 import { PosBook, PosReadingSession } from '@/hooks/use-pos-library';
 import { 
   ChevronLeft, MoreHorizontal, BookOpen, Star, Play, Pause, Bookmark, Brain, Sparkles, 
-  TrendingUp, Clock, Calendar as CalendarIcon, AlignLeft, Target, CheckCircle2, Edit2, RotateCcw, X, ExternalLink, ChevronRight, FileText, Loader2, Heart, Share2, Trash2, Check, Download, AlertTriangle, MapPin, Smartphone, ShoppingCart, Youtube, Cloud
+  TrendingUp, Clock, Calendar as CalendarIcon, AlignLeft, Target, CheckCircle2, Edit2, RotateCcw, X, ExternalLink, ChevronRight, FileText, Loader2, Heart, Share2, Trash2, Check, Download, AlertTriangle, MapPin, Smartphone, ShoppingCart, Youtube, Cloud, Upload
 } from "lucide-react";
 import { format, differenceInDays, parseISO, addDays } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { cn } from "@/lib/utils";
 import { RichTextEditor } from "./RichTextEditor";
+import { supabase } from "@/integrations/supabase/client";
+import { toast } from "sonner";
 
 interface Props {
   book: PosBook;
@@ -19,7 +21,7 @@ interface Props {
 }
 
 export function PosLibraryBookDetails({ book, sessions, onClose, onUpdate, onDelete, onAddSession }: Props) {
-  const [activeTab, setActiveTab] = useState<'geral' | 'resenha' | 'historico'>('geral');
+  const [activeTab, setActiveTab] = useState<'geral' | 'leitura' | 'resenha' | 'historico'>('geral');
   const [showMenu, setShowMenu] = useState(false);
   const [synopsis, setSynopsis] = useState<string>('');
   const [isExpandedSynopsis, setIsExpandedSynopsis] = useState(false);
@@ -30,6 +32,61 @@ export function PosLibraryBookDetails({ book, sessions, onClose, onUpdate, onDel
   const [reviewData, setReviewData] = useState({ rating: book.rating || 0 });
   const [driveFileInfo, setDriveFileInfo] = useState<{ size?: number, type?: string, found: boolean } | null>(null);
   const [isDriveLoading, setIsDriveLoading] = useState(false);
+  const [isUploading, setIsUploading] = useState(false);
+
+  const handleUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    
+    setIsUploading(true);
+    try {
+      const driveUrl = import.meta.env.VITE_GOOGLE_DRIVE_UPLOADER_URL;
+      let finalUrl = "";
+
+      if (driveUrl) {
+        const reader = new FileReader();
+        const base64Promise = new Promise<string>((resolve, reject) => {
+          reader.onload = () => resolve((reader.result as string).split(',')[1]);
+          reader.onerror = error => reject(error);
+        });
+        reader.readAsDataURL(file);
+        const base64Data = await base64Promise;
+
+        const response = await fetch(driveUrl, {
+          method: "POST",
+          body: JSON.stringify({
+             base64: base64Data,
+             filename: file.name,
+             mimeType: file.type || 'application/octet-stream'
+          }),
+          headers: { 'Content-Type': 'text/plain' }
+        });
+        
+        const result = await response.json();
+        if (!result.success) throw new Error(result.error);
+        finalUrl = result.url;
+      } else {
+        const fileExt = file.name.split('.').pop();
+        const safeName = file.name.replace(/[^a-zA-Z0-9.-]/g, '_');
+        const fileName = `${safeName}_${Math.random().toString(36).substring(7)}.${fileExt}`;
+        const filePath = `arquivos/${fileName}`;
+        
+        const { error } = await supabase.storage.from('livros').upload(filePath, file);
+        if (error) throw error;
+        
+        const { data } = supabase.storage.from('livros').getPublicUrl(filePath);
+        finalUrl = data.publicUrl;
+      }
+      
+      onUpdate(book.id, { resource_link: finalUrl });
+      toast.success("Arquivo enviado com sucesso!"); 
+    } catch (err: any) {
+      toast.error(`Falha ao subir arquivo: ${err.message || "Erro desconhecido"}.`);
+    } finally {
+      setIsUploading(false);
+      e.target.value = '';
+    }
+  };
 
   useEffect(() => {
     const checkDrive = async () => {
@@ -328,8 +385,8 @@ export function PosLibraryBookDetails({ book, sessions, onClose, onUpdate, onDel
                    </a>
                  )}
                  {book.resource_link && (
-                   <a href={book.resource_link} target="_blank" rel="noopener noreferrer" className="p-2.5 bg-blue-500/10 hover:bg-blue-500/20 text-blue-400 rounded-xl transition-colors" title="Acessar PDF/Ebook">
-                     <ExternalLink size={16} />
+                   <a href={book.resource_link} download target="_blank" rel="noopener noreferrer" className="p-2.5 bg-blue-500/10 hover:bg-blue-500/20 text-blue-400 rounded-xl transition-colors" title="Baixar / Abrir Arquivo (PDF/EPUB)">
+                     <Download size={16} />
                    </a>
                  )}
                  {book.youtube_link && (
@@ -388,7 +445,8 @@ export function PosLibraryBookDetails({ book, sessions, onClose, onUpdate, onDel
 
         {/* Tabs */}
         <div className="flex border-b border-[rgba(255,255,255,0.06)] px-6 overflow-x-auto no-scrollbar">
-          <button onClick={() => setActiveTab('geral')} className={cn("px-4 py-4 text-sm font-bold border-b-2 whitespace-nowrap transition-colors", activeTab === 'geral' ? "border-rose-500 text-white" : "border-transparent text-[#71717A] hover:text-[#A1A1AA]")}>Geral & Stats</button>
+          <button onClick={() => setActiveTab('geral')} className={cn("px-4 py-4 text-sm font-bold border-b-2 whitespace-nowrap transition-colors", activeTab === 'geral' ? "border-rose-500 text-white" : "border-transparent text-[#71717A] hover:text-[#A1A1AA]")}>Visão Geral</button>
+          <button onClick={() => setActiveTab('leitura')} className={cn("px-4 py-4 text-sm font-bold border-b-2 whitespace-nowrap transition-colors", activeTab === 'leitura' ? "border-rose-500 text-white" : "border-transparent text-[#71717A] hover:text-[#A1A1AA]")}>Aba de Leitura</button>
           <button onClick={() => setActiveTab('resenha')} className={cn("px-4 py-4 text-sm font-bold border-b-2 whitespace-nowrap transition-colors", activeTab === 'resenha' ? "border-rose-500 text-white" : "border-transparent text-[#71717A] hover:text-[#A1A1AA]")}>Resenha & Notas</button>
           <button onClick={() => setActiveTab('historico')} className={cn("px-4 py-4 text-sm font-bold border-b-2 whitespace-nowrap transition-colors", activeTab === 'historico' ? "border-rose-500 text-white" : "border-transparent text-[#71717A] hover:text-[#A1A1AA]")}>Histórico de Leitura</button>
         </div>
@@ -441,6 +499,24 @@ export function PosLibraryBookDetails({ book, sessions, onClose, onUpdate, onDel
                 </div>
               </div>
 
+              {/* Disponibilidade de Download */}
+              {book.resource_link && (
+                <div className="bg-gradient-to-r from-blue-500/10 to-indigo-500/10 border border-blue-500/20 p-4 rounded-2xl flex flex-col md:flex-row items-start md:items-center justify-between gap-4 shadow-lg">
+                  <div className="flex items-center gap-3">
+                     <div className="bg-blue-500/20 p-2.5 rounded-xl text-blue-400">
+                        <Download className="size-6" />
+                     </div>
+                     <div>
+                       <h4 className="text-sm font-bold text-white">Pronto para Download</h4>
+                       <p className="text-xs text-blue-400 font-medium">O arquivo {driveFileInfo?.type || 'digital'} está disponível na nuvem.</p>
+                     </div>
+                  </div>
+                  <a href={book.resource_link} download target="_blank" rel="noopener noreferrer" className="w-full md:w-auto text-center bg-blue-500 hover:bg-blue-600 text-white text-xs md:text-sm font-bold px-4 md:px-5 py-2.5 rounded-xl transition-colors shadow-[0_0_15px_rgba(59,130,246,0.3)]">
+                    Baixar Arquivo
+                  </a>
+                </div>
+              )}
+
               {/* Informações Metadados */}
               <div>
                 <h3 className="text-xs font-bold text-[#A1A1AA] uppercase tracking-widest mb-3">Detalhes Técnicos</h3>
@@ -472,6 +548,57 @@ export function PosLibraryBookDetails({ book, sessions, onClose, onUpdate, onDel
                       )}
                     </>
                   )}
+                </div>
+              </div>
+            </div>
+          )}
+
+          {activeTab === 'leitura' && (
+            <div className="space-y-6 animate-in fade-in">
+              <h3 className="text-xs font-bold text-[#A1A1AA] uppercase tracking-widest mb-3">Leitura Digital e Arquivos</h3>
+              
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                {/* Card Download */}
+                <div className="bg-[#111113] border border-[rgba(255,255,255,0.06)] rounded-2xl p-6 flex flex-col items-center text-center hover:border-blue-500/30 transition-colors">
+                   <div className="bg-blue-500/10 p-4 rounded-full text-blue-400 mb-4">
+                     <Download size={32} />
+                   </div>
+                   <h4 className="text-lg font-bold text-white mb-2">Baixar no Dispositivo</h4>
+                   <p className="text-[#A1A1AA] text-sm mb-6">Baixe o arquivo para ler no seu celular, tablet ou PC de forma offline e rápida.</p>
+                   {book.resource_link ? (
+                     <a href={book.resource_link} download target="_blank" rel="noopener noreferrer" className="w-full bg-blue-500 hover:bg-blue-600 text-white text-sm font-bold py-3 rounded-xl transition-colors flex items-center justify-center gap-2">
+                       <Smartphone size={18} /> Baixar Livro
+                     </a>
+                   ) : (
+                     <button disabled className="w-full bg-[#1A1A1E] text-[#71717A] border border-[rgba(255,255,255,0.06)] text-sm font-bold py-3 rounded-xl flex items-center justify-center gap-2 cursor-not-allowed">
+                       Nenhum arquivo anexado
+                     </button>
+                   )}
+                </div>
+
+                {/* Card Upload */}
+                <div className="bg-[#111113] border border-[rgba(255,255,255,0.06)] rounded-2xl p-6 flex flex-col items-center text-center hover:border-emerald-500/30 transition-colors relative">
+                   <div className="bg-emerald-500/10 p-4 rounded-full text-emerald-500 mb-4">
+                     <Upload size={32} />
+                   </div>
+                   <h4 className="text-lg font-bold text-white mb-2">Subir Arquivo (Upload)</h4>
+                   <p className="text-[#A1A1AA] text-sm mb-6">Anexe o PDF ou EPUB para sincronizar com a sua nuvem e manter sempre seguro.</p>
+                   
+                   <button className="w-full bg-emerald-500/10 hover:bg-emerald-500/20 border border-emerald-500/30 text-emerald-400 text-sm font-bold py-3 rounded-xl transition-colors flex items-center justify-center gap-2 relative overflow-hidden">
+                     {isUploading ? (
+                       <><Loader2 className="animate-spin" size={18} /> Enviando...</>
+                     ) : (
+                       <><Cloud size={18} /> Fazer Upload (PDF/EPUB)</>
+                     )}
+                     <input 
+                       type="file" 
+                       accept=".pdf,.epub,.mobi" 
+                       onChange={handleUpload} 
+                       disabled={isUploading}
+                       className="absolute inset-0 opacity-0 cursor-pointer"
+                       title="Clique para subir um arquivo"
+                     />
+                   </button>
                 </div>
               </div>
             </div>

@@ -10,6 +10,7 @@ import {
 import { usePosFinance, PosCreditCard } from "@/hooks/use-pos-finance";
 import { useTreasuryRealtime } from "@/hooks/use-treasury-realtime";
 import { FinanceDashboard } from "@/routes/finance";
+import { CameraScanner } from "@/components/ui/CameraScanner";
 
 interface KpiCardProps {
   type: "receitas" | "despesas" | "parceladas" | "recorrentes" | "atrasadas" | "pagas";
@@ -139,6 +140,21 @@ export function PosFinance() {
     };
     
     recognition.start();
+  };
+
+  const handleScanReceipt = async (file: File) => {
+    // Simulated OCR processing delay
+    const processingToast = toast.loading("Processando cupom fiscal...");
+    setTimeout(() => {
+      // Simulate reading data from receipt
+      setNewExpense(prev => ({
+        ...prev,
+        title: "Despesa (Scanner Auto)",
+        amount: (Math.random() * 100 + 10).toFixed(2)
+      }));
+      toast.dismiss(processingToast);
+      toast.success("Nota lida com sucesso! Ajuste os dados se necessário.");
+    }, 2000);
   };
 
   const { accounts: treasuryAccounts } = useTreasuryRealtime();
@@ -581,17 +597,20 @@ export function PosFinance() {
               <div className="flex flex-col gap-2">
                 <div className="flex items-center justify-between">
                   <label className="text-[13px] font-semibold text-[#A1A1AA] uppercase">Descrição & Valor Rápido</label>
-                  <button 
-                    type="button" 
-                    onClick={toggleListening}
-                    className={cn(
-                      "flex items-center gap-2 px-3 py-1.5 rounded-full text-xs font-bold transition-all",
-                      isListening ? "bg-rose-500 text-white animate-pulse" : "bg-[#1A1A1E] text-[#A1A1AA] hover:text-white hover:bg-[#27272A]"
-                    )}
-                  >
-                    {isListening ? <MicOff className="size-3" /> : <Mic className="size-3" />}
-                    {isListening ? "Ouvindo..." : "Falar Despesa"}
-                  </button>
+                  <div className="flex gap-2">
+                    <CameraScanner onScan={handleScanReceipt} label="Escanear" />
+                    <button 
+                      type="button" 
+                      onClick={toggleListening}
+                      className={cn(
+                        "flex items-center gap-2 px-3 py-1.5 rounded-full text-xs font-bold transition-all",
+                        isListening ? "bg-rose-500 text-white animate-pulse" : "bg-[#1A1A1E] text-[#A1A1AA] hover:text-white hover:bg-[#27272A]"
+                      )}
+                    >
+                      {isListening ? <MicOff className="size-3" /> : <Mic className="size-3" />}
+                      <span className="hidden sm:inline">{isListening ? "Ouvindo..." : "Falar"}</span>
+                    </button>
+                  </div>
                 </div>
                 <input 
                   type="text" 

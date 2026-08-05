@@ -18,6 +18,7 @@ import { ThemeProvider } from "@/contexts/ThemeContext";
 import { useRouterState, Navigate } from "@tanstack/react-router";
 // @ts-ignore
 import { registerSW } from "virtual:pwa-register";
+import { VoiceAssistantWidget } from "@/components/VoiceAssistantWidget";
 
 function NotFoundComponent() {
   return (
@@ -142,7 +143,12 @@ function AuthGuard({ children }: { children: ReactNode }) {
       <div className="w-full">
         {children}
       </div>
-      {!isLoginPage && <AppSidebar />}
+      {!isLoginPage && (
+        <>
+          <AppSidebar />
+          <VoiceAssistantWidget />
+        </>
+      )}
     </div>
   );
 }
