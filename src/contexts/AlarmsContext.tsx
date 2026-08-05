@@ -1,6 +1,6 @@
 import React, { createContext, useContext, useState, useEffect, useRef } from 'react';
 import { sendNotification, isPermissionGranted, requestPermission } from '@tauri-apps/plugin-notification';
-import { BellRing, X, Zzz, Clock, Volume2, Power } from 'lucide-react';
+import { BellRing, X, Moon, Clock, Volume2, Power } from 'lucide-react';
 import { format, addMinutes } from 'date-fns';
 
 export interface PosAlarm {
@@ -16,10 +16,84 @@ export interface PosAlarm {
 }
 
 export const ALARM_SOUNDS = [
-  { id: 'radar', name: 'Digital (Radar)', url: 'https://actions.google.com/sounds/v1/alarms/digital_watch_alarm_long.ogg' },
-  { id: 'classic', name: 'Relógio Clássico', url: 'https://actions.google.com/sounds/v1/alarms/alarm_clock.ogg' },
-  { id: 'buzzer', name: 'Buzzer Alto', url: 'https://actions.google.com/sounds/v1/alarms/buzzer_alarm.ogg' },
+  { id: 'radar', name: 'Digital (Radar)' },
+  { id: 'classic', name: 'Relógio Clássico' },
+  { id: 'buzzer', name: 'Buzzer Alto' },
 ];
+
+export const playSynthAlarm = (type: string, volume: number) => {
+  const AudioContextClass = window.AudioContext || (window as any).webkitAudioContext;
+  if (!AudioContextClass) return { stop: () => {} };
+  
+  const ctx = new AudioContextClass();
+  const masterGain = ctx.createGain();
+  masterGain.gain.value = volume / 100;
+  masterGain.connect(ctx.destination);
+
+  let isPlaying = true;
+
+  const playBeep = () => {
+    if (!isPlaying) return;
+    const osc = ctx.createOscillator();
+    const gain = ctx.createGain();
+    
+    if (type === 'buzzer') {
+      osc.type = 'sawtooth';
+      osc.frequency.setValueAtTime(400, ctx.currentTime);
+      osc.frequency.exponentialRampToValueAtTime(100, ctx.currentTime + 0.3);
+      gain.gain.setValueAtTime(1, ctx.currentTime);
+      gain.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 0.3);
+      osc.connect(gain);
+      gain.connect(masterGain);
+      osc.start();
+      osc.stop(ctx.currentTime + 0.3);
+      setTimeout(playBeep, 500);
+    } else if (type === 'classic') {
+      osc.type = 'square';
+      osc.frequency.setValueAtTime(1200, ctx.currentTime);
+      gain.gain.setValueAtTime(1, ctx.currentTime);
+      gain.gain.setValueAtTime(0, ctx.currentTime + 0.1);
+      osc.connect(gain);
+      gain.connect(masterGain);
+      osc.start();
+      osc.stop(ctx.currentTime + 0.1);
+      
+      setTimeout(() => {
+        if (!isPlaying) return;
+        const osc2 = ctx.createOscillator();
+        const gain2 = ctx.createGain();
+        osc2.type = 'square';
+        osc2.frequency.setValueAtTime(1200, ctx.currentTime);
+        gain2.gain.setValueAtTime(1, ctx.currentTime);
+        gain2.gain.setValueAtTime(0, ctx.currentTime + 0.1);
+        osc2.connect(gain2);
+        gain2.connect(masterGain);
+        osc2.start();
+        osc2.stop(ctx.currentTime + 0.1);
+        setTimeout(playBeep, 600);
+      }, 150);
+    } else {
+      osc.type = 'sine';
+      osc.frequency.setValueAtTime(800, ctx.currentTime);
+      gain.gain.setValueAtTime(1, ctx.currentTime);
+      gain.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 0.2);
+      osc.connect(gain);
+      gain.connect(masterGain);
+      osc.start();
+      osc.stop(ctx.currentTime + 0.2);
+      setTimeout(playBeep, 1000);
+    }
+  };
+
+  playBeep();
+
+  return {
+    stop: () => {
+      isPlaying = false;
+      ctx.close().catch(() => {});
+    }
+  };
+};
 
 interface AlarmsContextType {
   alarms: PosAlarm[];
@@ -54,8 +128,8 @@ export const AlarmsProvider: React.FC<{ children: React.ReactNode }> = ({ childr
   });
 
   const [ringingAlarm, setRingingAlarm] = useState<PosAlarm | null>(null);
-  const audioRef = useRef<HTMLAudioElement | null>(null);
-  const testAudioRef = useRef<HTMLAudioElement | null>(null);
+  const synthRef = useRef<{ stop: () => void } | null>(null);
+  const testSynthRef = useRef<{ stop: () => void } | null>(null);
 
   const saveAlarms = (newAlarms: PosAlarm[]) => {
     setAlarms(newAlarms);
@@ -121,22 +195,17 @@ export const AlarmsProvider: React.FC<{ children: React.ReactNode }> = ({ childr
       navigator.vibrate([500, 500, 500, 500, 500]);
     }
 
-    // Áudio
-    const soundData = ALARM_SOUNDS.find(s => s.id === alarm.sound) || ALARM_SOUNDS[0];
-    if (audioRef.current) {
-      audioRef.current.pause();
+    // Áudio Synthesizer
+    if (synthRef.current) {
+      synthRef.current.stop();
     }
-    const audio = new Audio(soundData.url);
-    audio.loop = true;
-    audio.volume = alarm.volume / 100;
-    audioRef.current = audio;
-    audio.play().catch(e => console.error("Autoplay bloqueado", e));
+    synthRef.current = playSynthAlarm(alarm.sound, alarm.volume);
   };
 
   const stopAlarm = (id: string) => {
-    if (audioRef.current) {
-      audioRef.current.pause();
-      audioRef.current = null;
+    if (synthRef.current) {
+      synthRef.current.stop();
+      synthRef.current = null;
     }
     setRingingAlarm(null);
 
@@ -150,9 +219,9 @@ export const AlarmsProvider: React.FC<{ children: React.ReactNode }> = ({ childr
   };
 
   const snoozeAlarm = (id: string, minutes: number) => {
-    if (audioRef.current) {
-      audioRef.current.pause();
-      audioRef.current = null;
+    if (synthRef.current) {
+      synthRef.current.stop();
+      synthRef.current = null;
     }
     setRingingAlarm(null);
     const snoozeTime = addMinutes(new Date(), minutes).getTime();
@@ -177,17 +246,13 @@ export const AlarmsProvider: React.FC<{ children: React.ReactNode }> = ({ childr
 
   const testSound = (soundId: string, volume: number) => {
     stopTestSound();
-    const soundData = ALARM_SOUNDS.find(s => s.id === soundId) || ALARM_SOUNDS[0];
-    const audio = new Audio(soundData.url);
-    audio.volume = volume / 100;
-    testAudioRef.current = audio;
-    audio.play().catch(e => console.error(e));
+    testSynthRef.current = playSynthAlarm(soundId, volume);
   };
 
   const stopTestSound = () => {
-    if (testAudioRef.current) {
-      testAudioRef.current.pause();
-      testAudioRef.current = null;
+    if (testSynthRef.current) {
+      testSynthRef.current.stop();
+      testSynthRef.current = null;
     }
   };
 
@@ -219,13 +284,13 @@ export const AlarmsProvider: React.FC<{ children: React.ReactNode }> = ({ childr
                  onClick={() => snoozeAlarm(ringingAlarm.id, 5)}
                  className="col-span-1 bg-[#1A1A1E] hover:bg-[#2A2A2E] text-white border border-[rgba(255,255,255,0.1)] py-4 rounded-2xl font-bold flex flex-col items-center gap-1 transition-colors"
                >
-                 <Zzz className="size-5 text-amber-400" /> Soneca 5m
+                 <Moon className="size-5 text-amber-400" /> Soneca 5m
                </button>
                <button 
                  onClick={() => snoozeAlarm(ringingAlarm.id, 10)}
                  className="col-span-1 bg-[#1A1A1E] hover:bg-[#2A2A2E] text-white border border-[rgba(255,255,255,0.1)] py-4 rounded-2xl font-bold flex flex-col items-center gap-1 transition-colors"
                >
-                 <Zzz className="size-5 text-amber-400" /> Soneca 10m
+                 <Moon className="size-5 text-amber-400" /> Soneca 10m
                </button>
             </div>
 

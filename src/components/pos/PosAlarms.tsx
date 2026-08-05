@@ -1,8 +1,8 @@
 import React, { useState, useEffect } from "react";
-import { BellRing, Plus, Trash2, Power, Search, Volume2, Edit2, Copy, Play, Pause, Clock, Check, VolumeX, Volume1, Smartphone } from "lucide-react";
+import { BellRing, Plus, Trash2, Power, Search, Volume2, Edit2, Copy, Play, Pause, Clock, Check, VolumeX, Volume1, Smartphone, Moon } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { format, differenceInMinutes, differenceInHours, addDays, set } from "date-fns";
-import { useAlarms, ALARM_SOUNDS, PosAlarm } from "@/contexts/AlarmsContext";
+import { useAlarms, ALARM_SOUNDS, PosAlarm, playSynthAlarm } from "@/contexts/AlarmsContext";
 import { isPermissionGranted, requestPermission, sendNotification } from '@tauri-apps/plugin-notification';
 
 export interface PosTimer {
@@ -92,13 +92,14 @@ export function PosAlarms() {
       }
     }
     
-    // Toca som alto para o temporizador
-    const soundData = ALARM_SOUNDS.find(s => s.id === 'buzzer') || ALARM_SOUNDS[0];
-    const audio = new Audio(soundData.url);
-    audio.volume = 1.0;
-    audio.play().catch(e => console.error("Erro ao tocar som do temporizador:", e));
-
-    alert(`⏳ TEMPORIZADOR: ${label} finalizado!`);
+    // Toca som alto para o temporizador usando Web Audio API
+    const synth = playSynthAlarm('buzzer', 100);
+    
+    // Pequeno delay para garantir que o som comece antes de travar a thread com o alert
+    setTimeout(() => {
+       alert(`⏳ TEMPORIZADOR: ${label} finalizado!`);
+       synth.stop();
+    }, 100);
   };
 
   // -------------------------

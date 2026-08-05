@@ -897,6 +897,15 @@ function PersonalOSPage() {
   
   const [showNotifications, setShowNotifications] = useState(false);
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
+  
+  const [theme, setTheme] = useState(() => {
+    return localStorage.getItem('lifeos_theme') || 'theme-dark';
+  });
+
+  const changeTheme = (newTheme: string) => {
+    setTheme(newTheme);
+    localStorage.setItem('lifeos_theme', newTheme);
+  };
 
   const [notifications, setNotifications] = useState<any[]>([]);
 
@@ -987,7 +996,7 @@ function PersonalOSPage() {
 
   return (
     <AlarmsProvider>
-      <div className="flex flex-col h-screen bg-[#09090B] text-[#FFFFFF] font-sans selection:bg-rose-500/30 overflow-hidden relative">
+      <div className={cn("flex flex-col h-screen bg-[#09090B] text-[#FFFFFF] font-sans selection:bg-rose-500/30 overflow-hidden relative", theme)}>
       {/* Main Content */}
       <main className="flex-1 overflow-y-auto bg-[#09090B] pb-24 custom-scrollbar">
         
@@ -1089,9 +1098,37 @@ function PersonalOSPage() {
 
                 {/* Tema e Aparência */}
                 <div className="flex flex-col gap-2">
-                  <h3 className="text-[11px] font-bold text-[#6F6F6F] uppercase tracking-widest mb-1">Aparência</h3>
-                  <div className="bg-[#111113] p-4 rounded-xl border border-[rgba(255,255,255,0.06)]">
-                    <p className="text-sm text-[#A1A1AA] mb-3">O Personal OS opera exclusivamente no sistema <strong>Red Dark Mode</strong> nativo para maximizar o contraste e proteger sua visão durante turnos de execução profunda.</p>
+                  <h3 className="text-[11px] font-bold text-[#6F6F6F] uppercase tracking-widest mb-1">Aparência (Filtros Ópticos)</h3>
+                  <div className="bg-[#111113] p-4 rounded-xl border border-[rgba(255,255,255,0.06)] flex flex-col gap-3">
+                    <div>
+                      <p className="text-sm font-bold text-white">Selecione o Tema Inicial</p>
+                      <p className="text-[11px] text-[#A1A1AA] mt-1">Filtros CSS renderizados nativamente sobre a interface.</p>
+                    </div>
+                    
+                    <select 
+                      value={theme}
+                      onChange={(e) => changeTheme(e.target.value)}
+                      className="w-full bg-[#1A1A1E] border border-[rgba(255,255,255,0.1)] rounded-lg px-3 py-2.5 text-sm text-white focus:outline-none focus:border-rose-500 transition-colors"
+                    >
+                      <option value="theme-light">Light</option>
+                      <option value="theme-dark">Dark (Padrão)</option>
+                      <option value="theme-amoled">AMOLED (Preto Absoluto)</option>
+                      <option value="theme-midnight-blue">Midnight Blue</option>
+                      <option value="theme-forest">Forest</option>
+                      <option value="theme-emerald">Emerald</option>
+                      <option value="theme-ocean">Ocean</option>
+                      <option value="theme-sunset">Sunset</option>
+                      <option value="theme-lavender">Lavender</option>
+                      <option value="theme-sakura">Sakura</option>
+                      <option value="theme-nord">Nord</option>
+                      <option value="theme-dracula">Dracula</option>
+                      <option value="theme-cyberpunk">Cyberpunk</option>
+                      <option value="theme-material">Material</option>
+                      <option value="theme-apple">Apple</option>
+                      <option value="theme-glassmorphism">Glassmorphism</option>
+                      <option value="theme-minimal-white">Minimal White</option>
+                      <option value="theme-sepia">Sepia (Modo Leitura)</option>
+                    </select>
                   </div>
                 </div>
 
