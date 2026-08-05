@@ -1127,6 +1127,7 @@ function PersonalOSPage() {
                       <option value="theme-apple">Apple</option>
                       <option value="theme-glassmorphism">Glassmorphism</option>
                       <option value="theme-minimal-white">Minimal White</option>
+                      <option value="theme-monochrome">Monochrome (Preto e Branco)</option>
                       <option value="theme-sepia">Sepia (Modo Leitura)</option>
                     </select>
                   </div>
