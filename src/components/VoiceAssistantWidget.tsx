@@ -98,12 +98,12 @@ export function VoiceAssistantWidget() {
         // ==========================================
         // 1. FINANÇAS (CRUD) -> Estrategista
         // ==========================================
-        if (cmd.includes('lançar custo') || cmd.includes('lançar despesa') || cmd.includes('adicionar despesa') || cmd.includes('gastei') || cmd.includes('registre um gasto')) {
+        if (cmd.match(/(lançar?|lance|adicionar?|adicione)\s+(um\s+|uma\s+)?(custo|despesa)|gastei|registre\s+(um\s+)?gasto/i)) {
           const numbers = cmd.match(/\d+(?:[.,]\d+)?/g);
           const amountStr = numbers ? numbers[0].replace(',', '.') : null;
-          let title = cmd.replace(/lançar custo|lançar despesa|adicionar despesa|gastei|registre um gasto/i, '').trim();
+          let title = cmd.replace(/(lançar?|lance|adicionar?|adicione)\s+(um\s+|uma\s+)?(custo|despesa)|gastei|registre\s+(um\s+)?gasto/gi, '').trim();
           if (amountStr) title = title.replace(new RegExp(`${amountStr.replace('.', '\\.')}\\s*(reais|centavos|de|em)?`, 'i'), '').trim();
-          title = title.replace(/^(de|com|no|na)\s+/i, '').trim();
+          title = title.replace(/^(de|com|no|na|a|o)\s+/i, '').trim();
 
           if (amountStr && title) {
             const amount = parseFloat(amountStr);
@@ -124,9 +124,9 @@ export function VoiceAssistantWidget() {
         // ==========================================
         // 2. TAREFAS - CRIAR -> Executor
         // ==========================================
-        else if (cmd.includes('criar tarefa') || cmd.includes('adicionar tarefa') || cmd.includes('nova tarefa')) {
-          let title = cmd.replace(/criar tarefa|adicionar tarefa|nova tarefa/gi, '').trim();
-          if (title.startsWith('de') || title.startsWith('para')) title = title.substring(2).trim();
+        else if (cmd.match(/(criar?|crie|adicionar?|adicione)\s+(uma\s+)?tarefa|nova\s+tarefa/i)) {
+          let title = cmd.replace(/(criar?|crie|adicionar?|adicione)\s+(uma\s+)?tarefa|nova\s+tarefa/gi, '').trim();
+          title = title.replace(/^(de|para|chamada|sobre|a|o)\s+/i, '').trim();
 
           if (title) {
             const { error } = await supabase.from('pos_tasks').insert([{
@@ -144,9 +144,9 @@ export function VoiceAssistantWidget() {
         // ==========================================
         // 3. TAREFAS - CONCLUIR -> Executor
         // ==========================================
-        else if (cmd.includes('concluir tarefa') || cmd.includes('tarefa feita') || cmd.includes('terminei a tarefa') || cmd.includes('marque a tarefa')) {
-           let title = cmd.replace(/concluir tarefa|tarefa feita|terminei a tarefa|marque a tarefa|como concluída/gi, '').trim();
-           title = title.replace(/^(de|a|o)\s+/i, '').trim();
+        else if (cmd.match(/(concluir?|conclua|terminei?|marcar?|marque)\s+(a\s+)?tarefa|tarefa\s+feita/i) || cmd.match(/como\s+conclu[ií]da/i)) {
+           let title = cmd.replace(/(concluir?|conclua|terminei?|marcar?|marque)\s+(a\s+)?tarefa|tarefa\s+feita|como\s+conclu[ií]da/gi, '').trim();
+           title = title.replace(/^(de|a|o|que)\s+/i, '').trim();
            
            if (title) {
               const { data } = await supabase.from('pos_tasks').select('*').ilike('title', `%${title}%`).eq('status', 'pendente').limit(1);
@@ -293,7 +293,7 @@ export function VoiceAssistantWidget() {
       {/* Overlay for voice feedback */}
       {isOpen && (
         <div className="fixed inset-0 z-[150] flex items-center justify-center bg-black/60 backdrop-blur-md p-4 animate-in fade-in duration-300">
-          <div className="w-full max-w-md bg-[#111113]/95 border border-[rgba(255,255,255,0.1)] p-6 rounded-3xl shadow-2xl animate-in zoom-in-95 flex flex-col gap-5 relative">
+          <div className="w-full max-w-xl bg-[#111113]/95 border border-[rgba(255,255,255,0.1)] p-6 rounded-3xl shadow-2xl animate-in zoom-in-95 flex flex-col gap-5 relative">
             
             <div className="flex items-center justify-between border-b border-[rgba(255,255,255,0.05)] pb-3">
               <h4 className="text-base font-bold text-white flex items-center gap-2">
@@ -318,15 +318,38 @@ export function VoiceAssistantWidget() {
                   </p>
                   
                   {!transcript && (
-                    <div className="w-full mt-4 flex flex-col gap-2">
-                       <p className="text-[10px] font-bold text-[#A1A1AA] uppercase tracking-widest mb-1 text-left">Exemplos de Comandos:</p>
-                       <div className="bg-[#1A1A1E] border border-[rgba(255,255,255,0.05)] p-3 rounded-xl text-sm text-white/80 flex items-center gap-3">
-                         <Target className="size-4 text-rose-500 shrink-0" />
-                         <p className="text-left font-medium">"Crie a tarefa revisar os emails"</p>
-                       </div>
-                       <div className="bg-[#1A1A1E] border border-[rgba(255,255,255,0.05)] p-3 rounded-xl text-sm text-white/80 flex items-center gap-3">
-                         <Brain className="size-4 text-blue-400 shrink-0" />
-                         <p className="text-left font-medium">"Registre um gasto de 50 reais de lanche"</p>
+                    <div className="w-full mt-6 flex flex-col gap-3">
+                       <p className="text-[11px] font-bold text-[#A1A1AA] uppercase tracking-widest mb-2 text-center border-b border-[rgba(255,255,255,0.05)] pb-3">O que você pode me pedir agora:</p>
+                       
+                       <div className="grid grid-cols-1 md:grid-cols-2 gap-3 mt-1">
+                         <div className="bg-[#1A1A1E] border border-[rgba(255,255,255,0.05)] p-3.5 rounded-xl text-sm text-white/90 flex items-start gap-3 shadow-inner">
+                           <Target className="size-4 text-rose-500 shrink-0 mt-0.5" />
+                           <div>
+                             <p className="text-left font-bold mb-1">Criar Tarefa</p>
+                             <p className="text-left text-[#A1A1AA] text-xs">"Crie a tarefa revisar o relatório"</p>
+                           </div>
+                         </div>
+                         <div className="bg-[#1A1A1E] border border-[rgba(255,255,255,0.05)] p-3.5 rounded-xl text-sm text-white/90 flex items-start gap-3 shadow-inner">
+                           <Brain className="size-4 text-blue-400 shrink-0 mt-0.5" />
+                           <div>
+                             <p className="text-left font-bold mb-1">Lançar Despesa</p>
+                             <p className="text-left text-[#A1A1AA] text-xs">"Lance uma despesa de 50 reais de almoço"</p>
+                           </div>
+                         </div>
+                         <div className="bg-[#1A1A1E] border border-[rgba(255,255,255,0.05)] p-3.5 rounded-xl text-sm text-white/90 flex items-start gap-3 shadow-inner">
+                           <Target className="size-4 text-rose-500 shrink-0 mt-0.5" />
+                           <div>
+                             <p className="text-left font-bold mb-1">Concluir Tarefa</p>
+                             <p className="text-left text-[#A1A1AA] text-xs">"Marque a tarefa reunião como concluída"</p>
+                           </div>
+                         </div>
+                         <div className="bg-[#1A1A1E] border border-[rgba(255,255,255,0.05)] p-3.5 rounded-xl text-sm text-white/90 flex items-start gap-3 shadow-inner">
+                           <Coffee className="size-4 text-emerald-400 shrink-0 mt-0.5" />
+                           <div>
+                             <p className="text-left font-bold mb-1">Atualizar Leitura</p>
+                             <p className="text-left text-[#A1A1AA] text-xs">"Marque minha leitura atual como lida"</p>
+                           </div>
+                         </div>
                        </div>
                     </div>
                   )}

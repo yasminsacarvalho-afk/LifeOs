@@ -33,6 +33,7 @@ import { PosPrincipal } from "@/components/pos/PosPrincipal";
 import { PosEvolution } from "@/components/pos/PosEvolution";
 import { PosRewards } from "@/components/pos/PosRewards";
 import { PieChart, PiggyBank, Gift, BellRing } from "lucide-react";
+import { AlarmsProvider } from "@/contexts/AlarmsContext";
 
 export const Route = createFileRoute("/personal-os")({
   validateSearch: (search: Record<string, unknown>) => {
@@ -985,7 +986,8 @@ function PersonalOSPage() {
   };
 
   return (
-    <div className="flex flex-col h-screen bg-[#09090B] text-[#FFFFFF] font-sans selection:bg-rose-500/30 overflow-hidden relative">
+    <AlarmsProvider>
+      <div className="flex flex-col h-screen bg-[#09090B] text-[#FFFFFF] font-sans selection:bg-rose-500/30 overflow-hidden relative">
       {/* Main Content */}
       <main className="flex-1 overflow-y-auto bg-[#09090B] pb-24 custom-scrollbar">
         
@@ -1204,6 +1206,7 @@ function PersonalOSPage() {
         )}
 
       </main>
-    </div>
+      </div>
+    </AlarmsProvider>
   );
 }
