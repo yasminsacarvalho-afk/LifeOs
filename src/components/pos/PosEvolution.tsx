@@ -38,7 +38,6 @@ export function PosEvolution() {
 
     const totalGoals = goals?.length || 1;
     const completedGoals = goals?.filter(g => {
-      // Safely calculate progress depending on available fields
       const progress = g.target_value && g.current_value ? (g.current_value / g.target_value) * 100 : 0;
       return g.status === 'concluida' || progress >= 100;
     }).length || 0;
@@ -47,17 +46,59 @@ export function PosEvolution() {
     const studyMins = studySessions.reduce((acc, s) => acc + (s.duration_minutes || 0), 0);
     const prodHours = Math.round(studyMins / 60) + Math.round(readingSessions.reduce((acc, s) => acc + (s.duration_minutes || 30), 0) / 60);
 
+    // Calcular dias usando o sistema
+    const allDates = [
+      ...habitLogs.map(l => l.log_date),
+      ...readingSessions.map(s => s.session_date),
+      ...studySessions.map(s => s.session_date),
+      ...tasks.map(t => t.deadline?.split('T')[0]).filter(Boolean)
+    ].sort();
+    const firstDate = allDates.length > 0 ? parseISO(allDates[0]) : new Date();
+    const daysUsing = Math.max(1, Math.round((new Date().getTime() - firstDate.getTime()) / (1000 * 60 * 60 * 24)));
+
+    // Calcular Ofensiva (Dias Seguidos)
+    let consecutiveDays = 0;
+    let checkDate = new Date();
+    while (true) {
+      const dStr = format(checkDate, 'yyyy-MM-dd');
+      const hasActivity = habitLogs.some(l => l.log_date === dStr && l.status === 'concluido') || 
+                          readingSessions.some(s => s.session_date === dStr) ||
+                          studySessions.some(s => s.session_date === dStr);
+      if (hasActivity) {
+        consecutiveDays++;
+        checkDate = subDays(checkDate, 1);
+      } else {
+        if (format(new Date(), 'yyyy-MM-dd') === dStr && consecutiveDays === 0) {
+          checkDate = subDays(checkDate, 1);
+          continue; // Pula hoje se não tem nada ainda, para não quebrar a ofensiva de ontem
+        }
+        break;
+      }
+    }
+
+    // Dias perfeitos
+    const logsByDate = habitLogs.reduce((acc: any, log) => {
+       if (!acc[log.log_date]) acc[log.log_date] = { total: 0, completed: 0 };
+       acc[log.log_date].total++;
+       if (log.status === 'concluido') acc[log.log_date].completed++;
+       return acc;
+    }, {});
+    const perfectDays = Object.values(logsByDate).filter((d: any) => d.total > 0 && d.total === d.completed).length;
+
+    // Troféus (Cursos concluídos + Livros lidos)
+    const totalTrophies = courses.filter(c => c.status === 'concluido').length + books.filter(b => b.status === 'concluido').length;
+
     return {
-      daysUsing: 47, // Derived or mocked
-      consecutiveDays: 14,
-      totalTrophies: 12,
+      daysUsing,
+      consecutiveDays,
+      totalTrophies,
       goalRate,
       taskRate,
       habitRate,
       prodHours,
-      perfectDays: 8
+      perfectDays
     };
-  }, [tasks, habitLogs, goals, studySessions, readingSessions]);
+  }, [tasks, habitLogs, goals, studySessions, readingSessions, courses, books]);
 
   // --- 1.5 RECORDES PESSOAIS ---
   const records = useMemo(() => {
@@ -106,18 +147,20 @@ export function PosEvolution() {
     const classesWatched = studySessions.length;
     const avgStudyTime = classesWatched > 0 ? Math.round(studyMins / classesWatched) : 0;
     
+    // Substituindo dados falsos por métricas reais baseadas no progresso
+    const totalCourses = courses.length;
+    const completionRate = totalCourses > 0 ? Math.round((coursesCompleted / totalCourses) * 100) : 0;
+    const activeSessions = studySessions.filter(s => isThisMonth(parseISO(s.session_date))).length;
+    
     return {
       hours: Math.round(studyMins / 60),
       coursesStarted,
       coursesCompleted,
-      certificates: coursesCompleted, // Mocked 1:1
+      certificates: coursesCompleted, // Real
       classesWatched,
-      exercisesDone: Math.round(classesWatched * 1.5), // Mocked relation
-      projectsCompleted: Math.round(coursesCompleted / 2),
       avgStudyTime,
-      collegeAvg: 8.7, // Mocked
-      attendance: 92, // Mocked
-      disciplinesCompleted: 14 // Mocked
+      completionRate, // Substitui a média fake
+      activeSessions // Substitui frequência fake
     };
   }, [studySessions, courses]);
 
@@ -426,7 +469,7 @@ export function PosEvolution() {
       {/* 2. ESTUDOS ACADÊMICOS */}
       <section className="space-y-4">
         <h2 className="text-lg font-black text-white flex items-center gap-2"><GraduationCap className="size-5 text-indigo-500" /> Dossiê Acadêmico</h2>
-        <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
+        <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-8 gap-3">
           <div className="bg-[#111113] border border-[rgba(255,255,255,0.04)] p-4 rounded-xl text-center">
             <div className="text-2xl font-black text-indigo-400">{academic.hours}h</div>
             <div className="text-[10px] uppercase font-bold text-[#71717A] mt-1">Horas Estudadas</div>
@@ -445,27 +488,19 @@ export function PosEvolution() {
           </div>
           <div className="bg-[#111113] border border-[rgba(255,255,255,0.04)] p-4 rounded-xl text-center">
             <div className="text-2xl font-black text-white">{academic.classesWatched}</div>
-            <div className="text-[10px] uppercase font-bold text-[#71717A] mt-1">Aulas Assistidas</div>
-          </div>
-          <div className="bg-[#111113] border border-[rgba(255,255,255,0.04)] p-4 rounded-xl text-center">
-            <div className="text-2xl font-black text-white">{academic.exercisesDone}</div>
-            <div className="text-[10px] uppercase font-bold text-[#71717A] mt-1">Exercícios</div>
-          </div>
-          <div className="bg-[#111113] border border-[rgba(255,255,255,0.04)] p-4 rounded-xl text-center">
-            <div className="text-2xl font-black text-white">{academic.projectsCompleted}</div>
-            <div className="text-[10px] uppercase font-bold text-[#71717A] mt-1">Projetos</div>
+            <div className="text-[10px] uppercase font-bold text-[#71717A] mt-1">Sessões Realizadas</div>
           </div>
           <div className="bg-[#111113] border border-[rgba(255,255,255,0.04)] p-4 rounded-xl text-center">
             <div className="text-2xl font-black text-white">{academic.avgStudyTime}m</div>
-            <div className="text-[10px] uppercase font-bold text-[#71717A] mt-1">Tempo Médio/Aula</div>
+            <div className="text-[10px] uppercase font-bold text-[#71717A] mt-1">Tempo Médio/Sessão</div>
           </div>
           <div className="bg-[#111113] border border-[rgba(255,255,255,0.04)] p-4 rounded-xl text-center">
-            <div className="text-2xl font-black text-cyan-400">{academic.collegeAvg}</div>
-            <div className="text-[10px] uppercase font-bold text-[#71717A] mt-1">Média Faculdade</div>
+            <div className="text-2xl font-black text-cyan-400">{academic.completionRate}%</div>
+            <div className="text-[10px] uppercase font-bold text-[#71717A] mt-1">Taxa de Conclusão</div>
           </div>
           <div className="bg-[#111113] border border-[rgba(255,255,255,0.04)] p-4 rounded-xl text-center">
-            <div className="text-2xl font-black text-white">{academic.attendance}%</div>
-            <div className="text-[10px] uppercase font-bold text-[#71717A] mt-1">Frequência</div>
+            <div className="text-2xl font-black text-rose-400">{academic.activeSessions}</div>
+            <div className="text-[10px] uppercase font-bold text-[#71717A] mt-1">Sessões (Mês)</div>
           </div>
         </div>
       </section>

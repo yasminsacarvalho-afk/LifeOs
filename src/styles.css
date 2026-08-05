@@ -217,6 +217,8 @@
   --accent: oklch(0.7 0 0); /* Gray */
   --success: oklch(0.7 0 0); /* Grayscale */
   --warning: oklch(0.6 0 0);
+}
+
 /* MASSIVE CSS FILTER THEMES */
 .theme-dark { filter: none; }
 .theme-light { filter: invert(1) hue-rotate(180deg) brightness(1.05) contrast(1.05); background-color: #FAFAFA; }

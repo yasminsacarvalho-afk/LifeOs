@@ -32,6 +32,8 @@ import { format, isToday, parseISO, isThisMonth, isThisWeek } from "date-fns";
 import { PosPrincipal } from "@/components/pos/PosPrincipal";
 import { PosEvolution } from "@/components/pos/PosEvolution";
 import { PosRewards } from "@/components/pos/PosRewards";
+import { PosProfessional } from "@/components/pos/PosProfessional";
+import { GlobalNextTripTicker } from "@/components/pos/GlobalNextTripTicker";
 import { PieChart, PiggyBank, Gift, BellRing } from "lucide-react";
 import { AlarmsProvider } from "@/contexts/AlarmsContext";
 
@@ -49,7 +51,7 @@ const modules = [
   { id: "geral", name: "Pessoal", icon: Target },
   { id: "agenda", name: "Agenda", icon: Calendar },
   { id: "tarefas", name: "Tarefas", icon: CheckSquare },
-  { id: "projetos", name: "Projetos", icon: Briefcase },
+  { id: "profissional", name: "Profissional", icon: Briefcase },
   { id: "habitos", name: "Hábitos", icon: Activity },
   { id: "metas", name: "Metas", icon: Target },
   { id: "evolucao", name: "Evolução", icon: TrendingUp },
@@ -69,7 +71,7 @@ const modules = [
 const healthScores = [
   { name: "Hábitos", score: 87, status: "verde" },
   { name: "Estudos", score: 71, status: "amarelo" },
-  { name: "Trabalho", score: 94, status: "verde" },
+  { name: "Profissional", score: 94, status: "verde" },
   { name: "Leitura", score: 42, status: "vermelho" },
   { name: "Finanças", score: 90, status: "verde" },
   { name: "Agenda", score: 76, status: "amarelo" },
@@ -1016,6 +1018,8 @@ function PersonalOSPage() {
             </div>
           </div>
           <div className="flex items-center gap-4 md:gap-5">
+            <GlobalNextTripTicker />
+            
             <div className="relative">
               <button 
                 onClick={() => { setShowNotifications(!showNotifications); if (unreadCount > 0) markAllAsRead(); }}
@@ -1232,6 +1236,8 @@ function PersonalOSPage() {
           <PosEntertainment />
         ) : activeModule === "alarmes" ? (
           <PosAlarms />
+        ) : activeModule === "profissional" ? (
+          <PosProfessional />
         ) : (
           <div className="p-10 max-w-[1400px] mx-auto flex flex-col items-center justify-center min-h-[60vh] text-center">
             {activeModuleData && <activeModuleData.icon className="size-16 text-[#1A1A1E] mb-6" />}
