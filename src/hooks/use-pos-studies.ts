@@ -79,7 +79,7 @@ export function usePosStudies() {
     try {
       const { data, error } = await supabase
         .from('pos_studies')
-        .insert([{ ...course, completed_hours: 0, xp_awarded: 0, status: 'em_andamento' }])
+        .insert([{ ...course, completed_hours: 0, xp_awarded: 0, status: course.status || 'em_andamento' }])
         .select()
         .single();
 

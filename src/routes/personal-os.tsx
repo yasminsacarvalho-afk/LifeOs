@@ -4,7 +4,7 @@ import {
   GraduationCap, BookOpen, DollarSign, Lightbulb, Target, 
   Brain, Coffee, Timer, Book, LineChart, Plus, AlertCircle, 
   ChevronRight, ArrowRight, Sparkles, TrendingUp, TrendingDown, Clock, Home, Menu, X, CheckCircle2, XCircle,
-  Settings, Monitor, Smartphone, ShieldAlert, User, Download
+  Settings, Monitor, Smartphone, ShieldAlert, User, Download, Mic, MicOff, Volume2
 } from "lucide-react";
 import { useState, useEffect } from "react";
 import { cn } from "@/lib/utils";
@@ -142,14 +142,37 @@ function DashboardGeral() {
   const [isAdvisorOpen, setIsAdvisorOpen] = useState(false);
   const [advisorMsg, setAdvisorMsg] = useState('');
   const [chatLog, setChatLog] = useState<{role: 'user' | 'estrategista' | 'executor' | 'companheiro', content: string}[]>([]);
+  const [isListening, setIsListening] = useState(false);
 
-  const handleAdvisorSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!advisorMsg.trim()) return;
+  const handleAdvisorSubmit = (e?: React.FormEvent, forceMsg?: string) => {
+    if (e) e.preventDefault();
+    const textToProcess = forceMsg || advisorMsg;
+    if (!textToProcess.trim()) return;
     
-    const userMessage = advisorMsg;
-    setChatLog([...chatLog, {role: 'user', content: userMessage}]);
+    const userMessage = textToProcess.trim();
+    setChatLog(prev => [...prev, {role: 'user', content: userMessage}]);
     setAdvisorMsg('');
+    
+    if (userMessage.toLowerCase().includes("agenda") && (userMessage.toLowerCase().includes("hoje") || userMessage.toLowerCase().includes("hoje?"))) {
+      setTimeout(() => {
+        let response = "Você não tem nenhum compromisso na agenda hoje. O caminho está livre!";
+        
+        const todayStr = format(new Date(), 'yyyy-MM-dd');
+        const eventsToday = events.filter(ev => ev.event_date === todayStr);
+        
+        if (eventsToday.length > 0) {
+          response = `Você tem ${eventsToday.length} compromisso(s) hoje:\n\n` + 
+            eventsToday.map(ev => `• ${ev.event_time} - ${ev.title}`).join('\n');
+        }
+        
+        setChatLog(prev => [...prev, { role: 'estrategista', content: response }]);
+        
+        const utterance = new SpeechSynthesisUtterance(response.replace(/\n/g, ". "));
+        utterance.lang = 'pt-BR';
+        window.speechSynthesis.speak(utterance);
+      }, 500);
+      return;
+    }
     
     setTimeout(() => {
       setChatLog(prev => [
@@ -168,6 +191,25 @@ function DashboardGeral() {
         }
       ]);
     }, 1200);
+  };
+
+  const startListening = () => {
+    const SpeechRecognition = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
+    if (!SpeechRecognition) {
+      alert("Seu navegador não suporta reconhecimento de voz.");
+      return;
+    }
+    const recognition = new SpeechRecognition();
+    recognition.lang = "pt-BR";
+    recognition.onstart = () => setIsListening(true);
+    recognition.onresult = (event: any) => {
+      const transcript = event.results[0][0].transcript;
+      setAdvisorMsg(transcript);
+      handleAdvisorSubmit(undefined, transcript);
+    };
+    recognition.onerror = () => setIsListening(false);
+    recognition.onend = () => setIsListening(false);
+    recognition.start();
   };
 
   const todayStr = format(new Date(), 'yyyy-MM-dd');
@@ -860,14 +902,17 @@ function DashboardGeral() {
             {/* Input Area */}
             <div className="p-4 bg-[#0A0A0C] border-t border-[#1C1C21] shrink-0">
               <form onSubmit={handleAdvisorSubmit} className="flex items-center gap-2 bg-[#111113] border border-[#1C1C21] rounded-full px-2 py-2 focus-within:border-white/50 transition-colors">
+                <button type="button" onClick={startListening} className={cn("p-2.5 rounded-full transition-colors", isListening ? "bg-rose-500 text-white animate-pulse" : "bg-transparent text-[#71717A] hover:bg-white/10 hover:text-white")}>
+                  {isListening ? <Mic className="size-4" /> : <MicOff className="size-4" />}
+                </button>
                 <input 
                   type="text" 
                   value={advisorMsg}
                   onChange={e => setAdvisorMsg(e.target.value)}
-                  placeholder="Peça um conselho..." 
-                  className="flex-1 bg-transparent px-4 text-sm text-white focus:outline-none placeholder:text-[#3f3f46]" 
+                  placeholder="Peça um conselho ou diga 'minha agenda hoje'..." 
+                  className="flex-1 bg-transparent px-2 text-sm text-white focus:outline-none placeholder:text-[#3f3f46]" 
                 />
-                <button type="submit" disabled={!advisorMsg.trim()} className="bg-white p-2.5 rounded-full text-black hover:bg-gray-200 transition-colors disabled:opacity-50 disabled:cursor-not-allowed">
+                <button type="submit" disabled={!advisorMsg.trim() && !isListening} className="bg-white p-2.5 rounded-full text-black hover:bg-gray-200 transition-colors disabled:opacity-50 disabled:cursor-not-allowed">
                   <ArrowRight className="size-4" />
                 </button>
               </form>
@@ -998,9 +1043,9 @@ function PersonalOSPage() {
 
   return (
     <AlarmsProvider>
-      <div className={cn("flex flex-col h-screen bg-[#09090B] text-[#FFFFFF] font-sans selection:bg-rose-500/30 overflow-hidden relative", theme)}>
+      <div className={cn("flex flex-col min-h-screen bg-[#09090B] text-[#FFFFFF] font-sans selection:bg-rose-500/30 relative", theme)}>
       {/* Main Content */}
-      <main className="flex-1 overflow-y-auto bg-[#09090B] pb-24 custom-scrollbar">
+      <main className="flex-1 bg-[#09090B] custom-scrollbar">
         
         {/* Header / Topbar */}
         <header className="h-20 md:h-24 border-b border-[rgba(255,255,255,0.08)] flex items-center justify-between px-4 md:px-10 sticky top-0 bg-[#09090B]/90 backdrop-blur-md z-40 shadow-xl shadow-black/50">

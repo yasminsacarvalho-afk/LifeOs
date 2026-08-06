@@ -41,7 +41,7 @@ export function PosStudies() {
   });
 
   const initialCourseState = {
-    title: "", knowledge_area: "Tecnologia", category: "Programação", platform: "", instructor: "", course_url: "",
+    title: "", knowledge_area: "Tecnologia", category: "Programação", status: "fila", platform: "", instructor: "", course_url: "",
     total_hours: 0, deadline: "", level: "intermediario"
   };
   const [newCourse, setNewCourse] = useState(initialCourseState);
@@ -141,7 +141,7 @@ export function PosStudies() {
 
   const selectedCourse = courses.find(c => c.id === selectedCourseId);
   const activeCourses = courses.filter(c => c.status !== 'concluido');
-  const recentCourses = activeCourses;
+  const recentCourses = activeCourses.filter(c => c.status === 'em_andamento');
 
   const renderDashboard = () => (
     <div className="animate-in fade-in slide-in-from-bottom-4 duration-500">
@@ -259,8 +259,15 @@ export function PosStudies() {
              <div key={c.id} onClick={() => setSelectedCourseId(c.id)} className="bg-[#111113] border border-[rgba(255,255,255,0.04)] rounded-2xl overflow-hidden hover:border-cyan-500/30 transition-all group cursor-pointer shadow-lg flex flex-col">
                <div className="h-24 w-full relative overflow-hidden bg-gradient-to-br from-[#1A1A1E] to-[#111113] flex items-center justify-center">
                  <div className="absolute inset-0 bg-gradient-to-t from-[#111113] to-transparent z-10"></div>
-                 <GraduationCap className="size-10 text-cyan-500/20 group-hover:scale-110 transition-transform duration-500" />
+                 {(() => {
+                    try {
+                      const p = JSON.parse(c.description || '{}');
+                      if (p.cover_url) return <img src={p.cover_url} alt="Cover" className="absolute inset-0 w-full h-full object-cover opacity-50 group-hover:opacity-80 group-hover:scale-105 transition-all duration-500 z-0" />;
+                    } catch(e) {}
+                    return <GraduationCap className="size-10 text-cyan-500/20 group-hover:scale-110 transition-transform duration-500 z-0" />;
+                 })()}
                  <div className="absolute bottom-3 left-4 z-20 flex items-center gap-2">
+                   <span className="px-2 py-0.5 bg-cyan-500/20 backdrop-blur-md rounded border border-cyan-500/30 text-[9px] font-bold text-cyan-400 uppercase tracking-wider">{c.knowledge_area || "Área"}</span>
                    <span className="px-2 py-0.5 bg-black/50 backdrop-blur-md rounded border border-white/10 text-[9px] font-bold text-white uppercase tracking-wider">{c.platform || "Plataforma"}</span>
                  </div>
                </div>
@@ -338,16 +345,28 @@ export function PosStudies() {
                 onClick={() => setSelectedCourseId(course.id)}
                 className="bg-[#111113] border border-[rgba(255,255,255,0.04)] rounded-2xl overflow-hidden hover:border-cyan-500/30 transition-all group cursor-pointer shadow-lg flex flex-col"
               >
-                <div className="p-5 flex-1 flex flex-col">
-                  <div className="flex justify-between items-start mb-4">
-                    <span className={cn(
-                      "text-[9px] uppercase font-bold px-2 py-1 rounded border tracking-widest",
-                      isCompleted ? "text-emerald-500 border-emerald-500/20 bg-emerald-500/10" : "text-cyan-400 border-cyan-400/20 bg-cyan-400/10"
-                    )}>
-                      {course.knowledge_area}
-                    </span>
-                    <button className="text-[#71717A] hover:text-white"><MoreVertical className="size-4" /></button>
+                <div className="h-24 w-full relative overflow-hidden bg-gradient-to-br from-[#1A1A1E] to-[#111113] flex items-center justify-center">
+                  <div className="absolute inset-0 bg-gradient-to-t from-[#111113] to-transparent z-10"></div>
+                  {(() => {
+                     try {
+                       const p = JSON.parse(course.description || '{}');
+                       if (p.cover_url) return <img src={p.cover_url} alt="Cover" className="absolute inset-0 w-full h-full object-cover opacity-50 group-hover:opacity-80 group-hover:scale-105 transition-all duration-500 z-0" />;
+                     } catch(e) {}
+                     return <GraduationCap className="size-10 text-cyan-500/20 group-hover:scale-110 transition-transform duration-500 z-0" />;
+                  })()}
+                  <div className="absolute top-3 right-3 z-20">
+                     <button className="text-[#71717A] hover:text-white bg-black/50 p-1 rounded-md backdrop-blur-md border border-white/10"><MoreVertical className="size-4" /></button>
                   </div>
+                  <div className="absolute bottom-3 left-4 z-20 flex items-center gap-2">
+                    <span className={cn(
+                      "px-2 py-0.5 backdrop-blur-md rounded border text-[9px] font-bold uppercase tracking-wider",
+                      isCompleted ? "text-emerald-400 border-emerald-500/30 bg-emerald-500/20" : "text-cyan-400 border-cyan-500/30 bg-cyan-500/20"
+                    )}>
+                      {course.knowledge_area || "Área"}
+                    </span>
+                  </div>
+                </div>
+                <div className="p-5 flex-1 flex flex-col">
                   <h4 className="font-bold text-white text-base leading-tight mb-4">{course.title}</h4>
                   
                   <div className="mt-auto">
@@ -1182,14 +1201,16 @@ export function PosStudies() {
                <button className="flex items-center gap-2 px-5 py-2.5 bg-white/5 hover:bg-white/10 border border-white/10 rounded-xl text-sm font-bold text-white transition-all shadow-lg">
                  <Plus className="size-4" /> Novo <ChevronDown className="size-4 opacity-50" />
                </button>
-               {/* Dropdown menu mock */}
-               <div className="absolute right-0 top-full mt-2 w-56 bg-[#111113] border border-[#222] rounded-2xl shadow-2xl overflow-hidden opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all z-50 p-2 transform origin-top-right scale-95 group-hover:scale-100">
-                  <button className="w-full text-left px-4 py-2.5 text-sm font-medium text-white hover:bg-white/5 rounded-xl transition-colors">📘 Curso</button>
-                  <button className="w-full text-left px-4 py-2.5 text-sm font-medium text-white hover:bg-white/5 rounded-xl transition-colors">🎓 Faculdade</button>
-                  <button className="w-full text-left px-4 py-2.5 text-sm font-medium text-white hover:bg-white/5 rounded-xl transition-colors">📜 Certificação</button>
-                  <button className="w-full text-left px-4 py-2.5 text-sm font-medium text-white hover:bg-white/5 rounded-xl transition-colors">🗺️ Trilha</button>
-                  <button className="w-full text-left px-4 py-2.5 text-sm font-medium text-white hover:bg-white/5 rounded-xl transition-colors">📚 Disciplina</button>
-                  <button className="w-full text-left px-4 py-2.5 text-sm font-medium text-white hover:bg-white/5 rounded-xl transition-colors">🔬 Projeto Acadêmico</button>
+               {/* Dropdown menu */}
+               <div className="absolute right-0 top-full pt-2 w-56 opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all z-50">
+                 <div className="bg-[#111113] border border-[#222] rounded-2xl shadow-2xl p-2 transform origin-top-right scale-95 group-hover:scale-100 transition-all">
+                  <button onClick={() => { setNewCourse({...initialCourseState, category: 'Curso'}); setIsCreatingCourse(true); }} className="w-full text-left px-4 py-2.5 text-sm font-medium text-white hover:bg-white/5 rounded-xl transition-colors">📘 Curso</button>
+                  <button onClick={() => { setNewCourse({...initialCourseState, category: 'Faculdade'}); setIsCreatingCourse(true); }} className="w-full text-left px-4 py-2.5 text-sm font-medium text-white hover:bg-white/5 rounded-xl transition-colors">🎓 Faculdade</button>
+                  <button onClick={() => { setNewCourse({...initialCourseState, category: 'Certificação'}); setIsCreatingCourse(true); }} className="w-full text-left px-4 py-2.5 text-sm font-medium text-white hover:bg-white/5 rounded-xl transition-colors">📜 Certificação</button>
+                  <button onClick={() => { setNewCourse({...initialCourseState, category: 'Trilha'}); setIsCreatingCourse(true); }} className="w-full text-left px-4 py-2.5 text-sm font-medium text-white hover:bg-white/5 rounded-xl transition-colors">🗺️ Trilha</button>
+                  <button onClick={() => { setNewCourse({...initialCourseState, category: 'Disciplina'}); setIsCreatingCourse(true); }} className="w-full text-left px-4 py-2.5 text-sm font-medium text-white hover:bg-white/5 rounded-xl transition-colors">📚 Disciplina</button>
+                  <button onClick={() => { setNewCourse({...initialCourseState, category: 'Projeto Acadêmico'}); setIsCreatingCourse(true); }} className="w-full text-left px-4 py-2.5 text-sm font-medium text-white hover:bg-white/5 rounded-xl transition-colors">🔬 Projeto Acadêmico</button>
+                 </div>
                </div>
             </div>
             <button 
@@ -1253,6 +1274,34 @@ export function PosStudies() {
                   className="w-full bg-[#1A1A1E] border border-[rgba(255,255,255,0.06)] rounded-xl px-4 py-3 text-sm text-white focus:border-cyan-500 focus:outline-none transition-colors"
                   placeholder="Nome do Instrutor"
                 />
+              </div>
+
+              <div>
+                <label className="text-[10px] uppercase tracking-widest text-[#71717A] font-bold mb-2 block">Status</label>
+                <select 
+                  value={newCourse.status} onChange={e => setNewCourse({...newCourse, status: e.target.value})}
+                  className="w-full bg-[#1A1A1E] border border-[rgba(255,255,255,0.06)] rounded-xl px-4 py-3 text-sm text-white focus:border-cyan-500 focus:outline-none transition-colors"
+                >
+                  <option value="fila">Na Fila (Planejado)</option>
+                  <option value="em_andamento">Ativo (Estou Fazendo)</option>
+                  <option value="pausado">Pausado</option>
+                  <option value="concluido">Concluído</option>
+                </select>
+              </div>
+
+              <div>
+                <label className="text-[10px] uppercase tracking-widest text-[#71717A] font-bold mb-2 block">Tipo (Categoria)</label>
+                <select 
+                  value={newCourse.category} onChange={e => setNewCourse({...newCourse, category: e.target.value})}
+                  className="w-full bg-[#1A1A1E] border border-[rgba(255,255,255,0.06)] rounded-xl px-4 py-3 text-sm text-white focus:border-cyan-500 focus:outline-none transition-colors"
+                >
+                  <option value="Curso">Curso</option>
+                  <option value="Faculdade">Faculdade</option>
+                  <option value="Certificação">Certificação</option>
+                  <option value="Trilha">Trilha</option>
+                  <option value="Disciplina">Disciplina</option>
+                  <option value="Projeto Acadêmico">Projeto Acadêmico</option>
+                </select>
               </div>
 
               <div>
@@ -1325,6 +1374,22 @@ export function PosStudies() {
                   type="url" value={newCourse.course_url} onChange={e => setNewCourse({...newCourse, course_url: e.target.value})}
                   className="w-full bg-[#1A1A1E] border border-[rgba(255,255,255,0.06)] rounded-xl px-4 py-3 text-sm text-white focus:border-cyan-500 focus:outline-none transition-colors"
                   placeholder="https://"
+                />
+              </div>
+
+              <div className="md:col-span-2">
+                <label className="text-[10px] uppercase tracking-widest text-[#71717A] font-bold mb-2 block">Capa do Curso (URL da Imagem)</label>
+                <input 
+                  type="url" 
+                  value={(() => { try { const p = JSON.parse(newCourse.description || '{}'); return p.cover_url || ""; } catch(e){ return ""; } })()}
+                  onChange={e => {
+                     let s: any = { days: [] as number[], time: "19:00" };
+                     try { const p = JSON.parse(newCourse.description || '{}'); if (p.days) s = p; } catch(e){}
+                     s.cover_url = e.target.value;
+                     setNewCourse({...newCourse, description: JSON.stringify(s)});
+                  }}
+                  className="w-full bg-[#1A1A1E] border border-[rgba(255,255,255,0.06)] rounded-xl px-4 py-3 text-sm text-white focus:border-cyan-500 focus:outline-none transition-colors"
+                  placeholder="https://..."
                 />
               </div>
             </div>
