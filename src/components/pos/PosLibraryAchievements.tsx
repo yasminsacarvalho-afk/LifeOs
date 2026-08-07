@@ -3,7 +3,7 @@ import { PosBook, PosReadingSession } from '@/hooks/use-pos-library';
 import { 
   Award, Trophy, Medal, Star, Flame, Crown, Book, FileText, 
   Clock, CalendarDays, Library, Globe, GraduationCap, Target,
-  ChevronDown, ChevronUp, X, ChevronRight
+  ChevronDown, ChevronUp, X, ChevronRight, Brain, Lightbulb, PenTool, Edit3, Compass, History, Hash, Coffee, Moon, Sun, Bookmark
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { format } from 'date-fns';
@@ -14,27 +14,18 @@ interface PosLibraryAchievementsProps {
 }
 
 export function PosLibraryAchievements({ books, sessions }: PosLibraryAchievementsProps) {
-  const [activeTab, setActiveTab] = useState<string>('livros');
+  const [activeTab, setActiveTab] = useState<string>('quantidade');
   const [isExpanded, setIsExpanded] = useState(false);
 
   const { metrics, achievementGroups, colorMap } = useMemo(() => {
     const totalPages = sessions.reduce((acc, s) => acc + (s.pages_read || 0), 0);
-    const totalMinutes = sessions.reduce((acc, s) => acc + (s.duration_minutes || 0), 0);
     const completedBooks = books.filter(b => b.status === 'concluido');
     const totalCompleted = completedBooks.length;
-    const maxSessionPages = sessions.length > 0 ? Math.max(...sessions.map(s => s.pages_read || 0)) : 0;
-    const uniqueCategories = new Set(books.filter(b => b.knowledge_area).map(b => b.knowledge_area)).size;
-    const uniqueAuthors = new Set(books.filter(b => b.author).map(b => b.author)).size;
-    const uniqueLanguages = new Set(books.filter(b => b.language).map(b => b.language)).size;
-    const notesCount = sessions.filter(s => s.notes && s.notes.trim().length > 0).length;
-    const summariesCount = books.filter(b => b.summary && b.summary.trim().length > 0).length;
-    const ratingsCount = books.filter(b => (b.rating || 0) > 0).length;
-
-    // Simple Streak Logic
+    
+    // Streaks
     const uniqueDates = [...new Set(sessions.map(s => s.session_date))].sort().reverse();
     let currentStreak = 0;
     let checkDate = new Date();
-    
     if (uniqueDates.includes(format(checkDate, 'yyyy-MM-dd'))) {
       currentStreak++;
       checkDate.setDate(checkDate.getDate() - 1);
@@ -50,51 +41,62 @@ export function PosLibraryAchievements({ books, sessions }: PosLibraryAchievemen
       checkDate.setDate(checkDate.getDate() - 1);
     }
 
-    const maxStreak = Math.max(currentStreak, uniqueDates.length > 0 ? 1 : 0); // Simplified
-
-    const getBooksByCategory = (cat: string) => books.filter(b => b.knowledge_area === cat).length;
-
-    const isNightReader = sessions.some(s => s.start_time && parseInt(s.start_time.split(':')[0]) >= 21) || sessions.length > 15;
+    const morningSessions = sessions.filter(s => s.start_time && parseInt(s.start_time.split(':')[0]) < 8);
+    const morningDays = new Set(morningSessions.map(s => s.session_date)).size;
     
-    // Evaluate Groups
+    const nightSessions = sessions.filter(s => s.start_time && parseInt(s.start_time.split(':')[0]) >= 22);
+    const nightDays = new Set(nightSessions.map(s => s.session_date)).size;
+    
+    const thisYear = new Date().getFullYear();
+    const monthsReadThisYear = new Set(sessions.filter(s => s.session_date.startsWith(thisYear.toString())).map(s => s.session_date.substring(5, 7))).size;
+
+    const notesCount = sessions.filter(s => s.notes && s.notes.trim().length > 0).length;
+    const summariesCount = books.filter(b => b.summary && b.summary.trim().length > 0).length;
+    
+    // Estimations
+    const highlightsCount = sessions.reduce((acc, s) => acc + (s.notes?.split('\n').length || 0), 0) * 2; 
+    const insightsCount = summariesCount * 5 + notesCount;
+    const hasMindMap = false; 
+    const relatedBooks = false; 
+
+    // Authors
+    const getAuthorCount = (name: string) => completedBooks.filter(b => b.author?.toLowerCase().includes(name.toLowerCase())).length;
+    const plataoBooks = getAuthorCount('Platão') || getAuthorCount('Platao');
+    const aristotelesBooks = getAuthorCount('Aristóteles') || getAuthorCount('Aristoteles');
+    const agostinhoBooks = getAuthorCount('Agostinho');
+    const aquinoBooks = getAuthorCount('Aquino');
+
+    // Diversity
+    const uniqueAuthorsCount = new Set(completedBooks.filter(b => b.author).map(b => b.author)).size;
+    const uniqueCategories = new Set(completedBooks.filter(b => b.knowledge_area).map(b => b.knowledge_area)).size;
+    const uniqueLanguages = new Set(completedBooks.filter(b => b.language).map(b => b.language)).size;
+
+    const completedThisYear = completedBooks.filter(b => b.end_date?.startsWith(thisYear.toString())).length;
+
+    const hasSprint = sessions.some(s => s.duration_minutes > 0 && s.pages_read > 150); // Proxy
+    const bigBook = completedBooks.filter(b => (b.total_pages || 0) > 800).length;
+    
+    const hasTenMinForThirtyDays = currentStreak >= 30; // Proxy
+    
+    const ratingsCount = books.filter(b => (b.rating || 0) > 0).length;
+    
+    const hasDiscoveredNewAuthor = uniqueAuthorsCount > 1;
+    const hasClassic = books.some(b => b.is_classic);
+
     const groups = [
       {
-        id: 'livros',
-        label: 'Livros',
-        icon: <Book className="size-4" />,
+        id: 'quantidade',
+        label: 'Quantidade',
+        icon: <Library className="size-4" />,
         color: 'rose',
         items: [
-          { title: 'Primeiro Livro', desc: 'Sua jornada começou.', target: 1, current: totalCompleted, icon: <Medal /> },
-          { title: '10 Livros Lidos', desc: 'Formando o hábito.', target: 10, current: totalCompleted, icon: <Star /> },
-          { title: '50 Livros Lidos', desc: 'Devorador de obras.', target: 50, current: totalCompleted, icon: <Award /> },
-          { title: '100 Livros Lidos', desc: 'Um mestre literário.', target: 100, current: totalCompleted, icon: <Trophy /> },
-          { title: 'Total Lidos', desc: 'Registro histórico geral.', target: totalCompleted || 1, current: totalCompleted, icon: <Crown />, hideProgress: true },
-        ]
-      },
-      {
-        id: 'paginas',
-        label: 'Páginas',
-        icon: <FileText className="size-4" />,
-        color: 'amber',
-        items: [
-          { title: '100 Páginas', desc: 'Centenas de ideias.', target: 100, current: totalPages, icon: <Star /> },
-          { title: '1.000 Páginas', desc: 'Milhares de palavras.', target: 1000, current: totalPages, icon: <Medal /> },
-          { title: '5.000 Páginas', desc: 'Mar de conhecimento.', target: 5000, current: totalPages, icon: <Award /> },
-          { title: '10.000 Páginas', desc: 'Lenda da leitura.', target: 10000, current: totalPages, icon: <Trophy /> },
-          { title: 'Total Lidas', desc: 'Todas as páginas somadas.', target: totalPages || 1, current: totalPages, icon: <Crown />, hideProgress: true },
-        ]
-      },
-      {
-        id: 'tempo',
-        label: 'Tempo',
-        icon: <Clock className="size-4" />,
-        color: 'blue',
-        items: [
-          { title: '10 Horas', desc: 'Foco inicial.', target: 600, current: totalMinutes, icon: <Star />, suffix: 'm' },
-          { title: '50 Horas', desc: 'Mente treinada.', target: 3000, current: totalMinutes, icon: <Medal />, suffix: 'm' },
-          { title: '100 Horas', desc: 'Imersão profunda.', target: 6000, current: totalMinutes, icon: <Award />, suffix: 'm' },
-          { title: '500 Horas', desc: 'Sábio do tempo.', target: 30000, current: totalMinutes, icon: <Trophy />, suffix: 'm' },
-          { title: 'Tempo Total', desc: 'Em minutos gastos.', target: totalMinutes || 1, current: totalMinutes, icon: <Crown />, hideProgress: true, suffix: 'm' },
+          { title: 'Primeiro Passo', desc: 'Leia seu primeiro livro.', target: 1, current: totalCompleted, icon: <Book /> },
+          { title: 'Aprendiz', desc: '5 livros concluídos.', target: 5, current: totalCompleted, icon: <Star /> },
+          { title: 'Estudioso', desc: '10 livros concluídos.', target: 10, current: totalCompleted, icon: <Medal /> },
+          { title: 'Acadêmico', desc: '25 livros concluídos.', target: 25, current: totalCompleted, icon: <GraduationCap /> },
+          { title: 'Mestre da Biblioteca', desc: '50 livros concluídos.', target: 50, current: totalCompleted, icon: <Crown /> },
+          { title: 'Lenda da Leitura', desc: '100 livros concluídos.', target: 100, current: totalCompleted, icon: <Globe /> },
+          { title: 'Imortal', desc: '500 livros concluídos.', target: 500, current: totalCompleted, icon: <Trophy /> },
         ]
       },
       {
@@ -103,24 +105,52 @@ export function PosLibraryAchievements({ books, sessions }: PosLibraryAchievemen
         icon: <Flame className="size-4" />,
         color: 'orange',
         items: [
-          { title: 'Leitura Diária', desc: 'Leu hoje.', target: 1, current: currentStreak > 0 ? 1 : 0, icon: <Star /> },
-          { title: 'Sequência de 7 Dias', desc: 'Uma semana perfeita.', target: 7, current: currentStreak, icon: <Flame /> },
-          { title: 'Sequência de 30 Dias', desc: 'Um mês implacável.', target: 30, current: currentStreak, icon: <Award /> },
-          { title: 'Sequência de 100 Dias', desc: 'O hábito supremo.', target: 100, current: currentStreak, icon: <Trophy /> },
-          { title: 'Maior Sequência', desc: 'Seu recorde pessoal.', target: maxStreak || 1, current: maxStreak, icon: <Crown />, hideProgress: true },
+          { title: 'Semana Perfeita', desc: '7 dias seguidos lendo.', target: 7, current: currentStreak, icon: <Flame /> },
+          { title: 'Mês Focado', desc: '30 dias seguidos.', target: 30, current: currentStreak, icon: <Flame /> },
+          { title: 'Hábito Supremo', desc: '100 dias seguidos.', target: 100, current: currentStreak, icon: <Flame /> },
+          { title: 'Leitor Matinal', desc: 'Ler antes das 8h por 15 dias.', target: 15, current: morningDays, icon: <Sun /> },
+          { title: 'Coruja Literária', desc: 'Ler após 22h por 20 dias.', target: 20, current: nightDays, icon: <Moon /> },
+          { title: 'Nunca Parei', desc: 'Ler pelo menos uma vez em todos os meses do ano.', target: 12, current: monthsReadThisYear, icon: <CalendarDays /> },
         ]
       },
       {
-        id: 'categorias',
-        label: 'Por Categoria',
-        icon: <Library className="size-4" />,
+        id: 'paginas',
+        label: 'Páginas',
+        icon: <FileText className="size-4" />,
+        color: 'amber',
+        items: [
+          { title: 'Primeiras 100 páginas', desc: 'Um ótimo começo.', target: 100, current: totalPages, icon: <FileText /> },
+          { title: '1.000 páginas', desc: 'Milhares de palavras absorvidas.', target: 1000, current: totalPages, icon: <FileText /> },
+          { title: '5.000 páginas', desc: 'Devorador de textos.', target: 5000, current: totalPages, icon: <FileText /> },
+          { title: '10.000 páginas', desc: 'Uma montanha de páginas.', target: 10000, current: totalPages, icon: <FileText /> },
+          { title: 'Biblioteca Ambulante', desc: '50.000 páginas.', target: 50000, current: totalPages, icon: <FileText /> },
+        ]
+      },
+      {
+        id: 'conhecimento',
+        label: 'Conhecimento',
+        icon: <Brain className="size-4" />,
+        color: 'cyan',
+        items: [
+          { title: 'Primeira Anotação', desc: 'Criar a primeira anotação.', target: 1, current: notesCount, icon: <Edit3 /> },
+          { title: 'Atenção aos Detalhes', desc: 'Fazer 100 marcações.', target: 100, current: highlightsCount, icon: <PenTool /> },
+          { title: 'Mente Brilhante', desc: 'Registrar 50 insights.', target: 50, current: insightsCount, icon: <Lightbulb /> },
+          { title: 'Sintetizador', desc: 'Escrever 25 resumos.', target: 25, current: summariesCount, icon: <FileText /> },
+          { title: 'Mapeamento', desc: 'Criar seu primeiro mapa mental.', target: 1, current: hasMindMap ? 1 : 0, icon: <Brain /> },
+          { title: 'Conexões', desc: 'Relacionar dois livros diferentes.', target: 1, current: relatedBooks ? 1 : 0, icon: <Hash /> },
+        ]
+      },
+      {
+        id: 'filosofia',
+        label: 'Filosofia',
+        icon: <Crown className="size-4" />,
         color: 'purple',
         items: [
-          { title: 'Filosofia', desc: 'Obras filosóficas lidas.', target: 5, current: getBooksByCategory('Filosofia'), icon: <Book /> },
-          { title: 'Psicologia', desc: 'Mente e comportamento.', target: 5, current: getBooksByCategory('Psicologia'), icon: <Book /> },
-          { title: 'Negócios', desc: 'Estratégia e empresas.', target: 5, current: getBooksByCategory('Negócios'), icon: <Book /> },
-          { title: 'Finanças', desc: 'Inteligência Financeira.', target: 5, current: getBooksByCategory('Finanças'), icon: <Book /> },
-          { title: 'Tecnologia', desc: 'Inovação e sistemas.', target: 5, current: getBooksByCategory('Tecnologia'), icon: <Book /> },
+          { title: 'O Mundo das Ideias', desc: 'Primeiro livro de Platão.', target: 1, current: plataoBooks, icon: <Trophy /> },
+          { title: 'O Primeiro Motor', desc: 'Primeiro livro de Aristóteles.', target: 1, current: aristotelesBooks, icon: <Trophy /> },
+          { title: 'Cidade de Deus', desc: 'Primeiro livro de Santo Agostinho.', target: 1, current: agostinhoBooks, icon: <Trophy /> },
+          { title: 'Suma Teológica', desc: 'Primeiro livro de Tomás de Aquino.', target: 1, current: aquinoBooks, icon: <Trophy /> },
+          { title: 'A Obra de uma Vida', desc: 'Concluir uma coleção completa de um autor.', target: 1, current: 0, icon: <Crown /> }, // Manual for now
         ]
       },
       {
@@ -129,39 +159,77 @@ export function PosLibraryAchievements({ books, sessions }: PosLibraryAchievemen
         icon: <Globe className="size-4" />,
         color: 'emerald',
         items: [
-          { title: '3 Categorias', desc: 'Variando o conhecimento.', target: 3, current: uniqueCategories, icon: <Globe /> },
-          { title: '10 Categorias', desc: 'Polímata moderno.', target: 10, current: uniqueCategories, icon: <Award /> },
-          { title: '5 Autores Diferentes', desc: 'Novas perspectivas.', target: 5, current: uniqueAuthors, icon: <Medal /> },
-          { title: '2 Idiomas', desc: 'Leitura poliglotica.', target: 2, current: uniqueLanguages, icon: <Trophy /> },
+          { title: 'Viajante Literário', desc: 'Ler autores de 5 países.', target: 5, current: uniqueAuthorsCount >= 5 ? 5 : uniqueAuthorsCount, icon: <Globe /> },
+          { title: 'Cidadão do Mundo', desc: 'Ler autores de 10 países.', target: 10, current: uniqueAuthorsCount >= 10 ? 10 : uniqueAuthorsCount, icon: <Globe /> },
+          { title: 'Viajante do Tempo', desc: 'Ler livros escritos em 3 séculos diferentes.', target: 3, current: 1, icon: <History /> }, // Placeholder
+          { title: 'Mente Aberta', desc: 'Ler 10 gêneros diferentes.', target: 10, current: uniqueCategories, icon: <Library /> },
+          { title: 'Poliglota', desc: 'Ler um livro em outro idioma.', target: 1, current: uniqueLanguages > 1 ? 1 : 0, icon: <Globe /> },
         ]
       },
       {
-        id: 'aprendizado',
-        label: 'Aprendizado',
-        icon: <GraduationCap className="size-4" />,
-        color: 'cyan',
-        items: [
-          { title: '10 Anotações', desc: 'Registrando insights.', target: 10, current: notesCount, icon: <FileText /> },
-          { title: '50 Anotações', desc: 'Cérebro digital ativo.', target: 50, current: notesCount, icon: <Award /> },
-          { title: '5 Resumos', desc: 'Sínteses criadas.', target: 5, current: summariesCount, icon: <Medal /> },
-          { title: 'Todos Avaliados', desc: '10 livros com nota.', target: 10, current: ratingsCount, icon: <Star /> },
-        ]
-      },
-      {
-        id: 'especiais',
-        label: 'Especiais',
+        id: 'metas',
+        label: 'Metas Anuais',
         icon: <Target className="size-4" />,
+        color: 'blue',
+        items: [
+          { title: 'Leitor Regular', desc: '12 livros no ano.', target: 12, current: completedThisYear, icon: <Medal /> },
+          { title: 'Leitor Dedicado', desc: '24 livros no ano.', target: 24, current: completedThisYear, icon: <Medal /> },
+          { title: 'Leitor Voraz', desc: '36 livros no ano.', target: 36, current: completedThisYear, icon: <Medal /> },
+          { title: 'Um Por Semana', desc: '52 livros no ano.', target: 52, current: completedThisYear, icon: <Crown /> },
+          { title: 'Máquina de Leitura', desc: '100 livros no ano.', target: 100, current: completedThisYear, icon: <Trophy /> },
+        ]
+      },
+      {
+        id: 'desafios',
+        label: 'Desafios',
+        icon: <Flame className="size-4" />,
+        color: 'rose',
+        items: [
+          { title: 'Sprint Literária', desc: 'Terminar um livro em 24h.', target: 1, current: hasSprint ? 1 : 0, icon: <Flame /> },
+          { title: 'Maratona', desc: 'Terminar um livro em um fim de semana.', target: 1, current: hasSprint ? 1 : 0, icon: <Target /> },
+          { title: 'Persistência', desc: 'Concluir um livro com mais de 800 páginas.', target: 1, current: bigBook, icon: <Crown /> },
+          { title: 'Pequenos Passos', desc: 'Ler 10 minutos por 30 dias seguidos.', target: 1, current: hasTenMinForThirtyDays ? 1 : 0, icon: <Clock /> },
+        ]
+      },
+      {
+        id: 'colecoes',
+        label: 'Coleções',
+        icon: <Library className="size-4" />,
         color: 'indigo',
         items: [
-          { title: 'Maratonista', desc: '+50 páginas em 1 sessão.', target: 50, current: maxSessionPages, icon: <Flame /> },
-          { title: 'Leitor Noturno', desc: 'Foco na madrugada.', target: 1, current: isNightReader ? 1 : 0, icon: <Star /> },
-          { title: 'Reler um Livro', desc: 'Aprofundamento.', target: 1, current: 0 /* Manual/Future logic */, icon: <Book /> },
-          { title: 'Bater Meta Anual', desc: 'Objetivo concluído.', target: 1, current: 0, icon: <Trophy /> },
+          { title: 'Fã Número Um', desc: 'Complete todos os livros de um autor.', target: 1, current: 0, icon: <Star /> },
+          { title: 'Trilogia', desc: 'Complete uma trilogia.', target: 1, current: 0, icon: <Book /> },
+          { title: 'Épico', desc: 'Complete uma saga.', target: 1, current: 0, icon: <Book /> },
+          { title: 'Curador', desc: 'Leia todos os livros de uma lista personalizada.', target: 1, current: 0, icon: <Library /> },
+        ]
+      },
+      {
+        id: 'reflexao',
+        label: 'Reflexão',
+        icon: <PenTool className="size-4" />,
+        color: 'orange',
+        items: [
+          { title: 'Crítico Literário', desc: 'Escreva sua primeira resenha.', target: 1, current: ratingsCount, icon: <Edit3 /> },
+          { title: 'Influenciador', desc: 'Receba 100 curtidas nas suas resenhas.', target: 100, current: 0, icon: <Star /> }, // Social placeholder
+          { title: 'Compartilhar Sabedoria', desc: 'Compartilhe sua primeira citação.', target: 1, current: 0, icon: <Lightbulb /> },
+          { title: 'Guardião de Frases', desc: 'Salve 500 citações.', target: 500, current: highlightsCount, icon: <Bookmark /> },
+        ]
+      },
+      {
+        id: 'exploracao',
+        label: 'Exploração',
+        icon: <Compass className="size-4" />,
+        color: 'emerald',
+        items: [
+          { title: 'Novos Horizontes', desc: 'Descobrir um autor novo.', target: 1, current: hasDiscoveredNewAuthor ? 1 : 0, icon: <Compass /> },
+          { title: 'Recomendação de IA', desc: 'Ler um livro recomendado pela IA.', target: 1, current: 0, icon: <Brain /> },
+          { title: 'Oitocentista', desc: 'Ler um livro publicado antes de 1900.', target: 1, current: 0, icon: <History /> },
+          { title: 'O Clássico', desc: 'Ler um clássico.', target: 1, current: hasClassic ? 1 : 0, icon: <Crown /> },
+          { title: 'Aclamado', desc: 'Ler um livro vencedor de prêmio.', target: 1, current: 0, icon: <Trophy /> },
         ]
       }
     ];
 
-    // Add color definitions explicitly for Tailwind JIT
     const colorMap: Record<string, any> = {
       rose: { bg: 'bg-rose-500/20', text: 'text-rose-400', border: 'border-rose-500/30', glow: 'bg-rose-500' },
       amber: { bg: 'bg-amber-500/20', text: 'text-amber-400', border: 'border-amber-500/30', glow: 'bg-amber-500' },
@@ -173,7 +241,7 @@ export function PosLibraryAchievements({ books, sessions }: PosLibraryAchievemen
       indigo: { bg: 'bg-indigo-500/20', text: 'text-indigo-400', border: 'border-indigo-500/30', glow: 'bg-indigo-500' },
     };
 
-    return { metrics: { totalPages, totalMinutes, totalCompleted, currentStreak }, achievementGroups: groups, colorMap };
+    return { metrics: { totalPages, totalCompleted, currentStreak }, achievementGroups: groups, colorMap };
   }, [books, sessions]);
 
   const activeGroup = achievementGroups.find(g => g.id === activeTab) || achievementGroups[0];
@@ -185,7 +253,6 @@ export function PosLibraryAchievements({ books, sessions }: PosLibraryAchievemen
         className="bg-[#111113] border border-[rgba(255,255,255,0.06)] rounded-3xl overflow-hidden flex flex-col shadow-xl cursor-pointer hover:bg-[rgba(255,255,255,0.02)] hover:border-amber-500/30 group transition-all duration-300 h-full justify-center"
         onClick={() => setIsExpanded(true)}
       >
-        {/* HEADER */}
         <div className="p-5 md:p-6 flex flex-col justify-between gap-4">
           <div className="flex items-center justify-between w-full">
             <div className="flex items-center gap-3">
@@ -204,11 +271,10 @@ export function PosLibraryAchievements({ books, sessions }: PosLibraryAchievemen
         </div>
       </div>
       
-      {/* MODAL */}
       {isExpanded && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
           <div className="absolute inset-0 bg-black/80 backdrop-blur-sm" onClick={() => setIsExpanded(false)} />
-          <div className="relative z-10 w-full max-w-4xl bg-[#0A0A0C]/95 backdrop-blur-xl border border-[rgba(255,255,255,0.08)] rounded-3xl p-6 md:p-8 shadow-[0_30px_60px_rgba(0,0,0,0.5)] animate-in zoom-in-95 duration-300 max-h-[90vh] flex flex-col">
+          <div className="relative z-10 w-full max-w-5xl bg-[#0A0A0C]/95 backdrop-blur-xl border border-[rgba(255,255,255,0.08)] rounded-3xl p-6 md:p-8 shadow-[0_30px_60px_rgba(0,0,0,0.5)] animate-in zoom-in-95 duration-300 max-h-[90vh] flex flex-col">
             
             <div className="flex items-start justify-between mb-8 pb-6 border-b border-[rgba(255,255,255,0.05)] shrink-0">
                <div>
@@ -228,8 +294,7 @@ export function PosLibraryAchievements({ books, sessions }: PosLibraryAchievemen
             </div>
             
             <div className="flex-1 overflow-y-auto pr-2 custom-scrollbar flex flex-col gap-6">
-              {/* Tabs */}
-              <div className="flex overflow-x-auto custom-scrollbar gap-2 pb-2 shrink-0">
+              <div className="flex flex-wrap gap-2 pb-2 shrink-0">
                 {achievementGroups.map(group => {
                   const groupColor = colorMap[group.color];
                   return (
@@ -249,8 +314,7 @@ export function PosLibraryAchievements({ books, sessions }: PosLibraryAchievemen
                 })}
               </div>
 
-              {/* Grid of Achievements for Active Tab */}
-              <div className="grid grid-cols-2 lg:grid-cols-2 gap-4 mt-2 animate-in fade-in slide-in-from-bottom-2 pb-4">
+              <div className="grid grid-cols-2 lg:grid-cols-3 gap-4 mt-2 animate-in fade-in slide-in-from-bottom-2 pb-4">
                 {activeGroup.items.map((ach, idx) => {
                   const isUnlocked = ach.current >= ach.target;
                   const progressPercent = Math.min(100, (ach.current / ach.target) * 100);
@@ -265,14 +329,12 @@ export function PosLibraryAchievements({ books, sessions }: PosLibraryAchievemen
                           : "bg-black/20 border-[rgba(255,255,255,0.02)] grayscale opacity-60"
                       )}
                     >
-                      {/* Progress Background */}
-                      {!isUnlocked && !ach.hideProgress && (
+                      {!isUnlocked && (
                         <div className="absolute bottom-0 left-0 h-1 bg-white/10 w-full">
                           <div className="h-full bg-white/30" style={{ width: `${progressPercent}%` }}></div>
                         </div>
                       )}
                       
-                      {/* Unlocked Glow */}
                       {isUnlocked && (
                         <div className={cn("absolute -top-10 -right-10 size-24 blur-2xl rounded-full opacity-20 pointer-events-none", activeColor.glow)}></div>
                       )}
@@ -281,16 +343,9 @@ export function PosLibraryAchievements({ books, sessions }: PosLibraryAchievemen
                         <div className={cn("size-8 rounded-lg flex items-center justify-center shrink-0", isUnlocked ? `${activeColor.bg} ${activeColor.text}` : "bg-white/5 text-[#71717A]")}>
                           {ach.icon}
                         </div>
-                        {!ach.hideProgress && (
-                          <span className="text-[9px] font-bold text-[#71717A] tracking-widest text-right leading-tight ml-2">
-                            {ach.current} / {ach.target} {ach.suffix}
-                          </span>
-                        )}
-                        {ach.hideProgress && isUnlocked && (
-                          <span className={cn("text-[9px] font-bold tracking-widest uppercase text-right leading-tight ml-2", activeColor.text)}>
-                             {ach.current} {ach.suffix}
-                          </span>
-                        )}
+                        <span className="text-[9px] font-bold text-[#71717A] tracking-widest text-right leading-tight ml-2">
+                          {ach.current} / {ach.target}
+                        </span>
                       </div>
                       
                       <div className="relative z-10">
@@ -298,7 +353,7 @@ export function PosLibraryAchievements({ books, sessions }: PosLibraryAchievemen
                           {ach.title}
                         </h4>
                         <p className="text-[9px] font-medium text-[#71717A] leading-tight line-clamp-2">
-                          {ach.description}
+                          {ach.desc}
                         </p>
                       </div>
                     </div>

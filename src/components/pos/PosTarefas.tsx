@@ -125,8 +125,8 @@ export function PosTarefas() {
         </button>
         <div className="flex-1">
           <h4 className={cn("text-base font-medium transition-colors", task.status === 'concluida' ? "line-through text-[#6F6F6F]" : "text-white")}>{task.title}</h4>
-          {isGrid && task.description && (
-             <p className="text-xs text-[#A1A1AA] mt-2 line-clamp-2">{task.description}</p>
+          {task.description && (
+             <p className="text-xs text-[#A1A1AA] mt-2 whitespace-pre-wrap line-clamp-4 leading-relaxed">{task.description}</p>
           )}
           <div className="flex flex-wrap items-center gap-2 text-[11px] font-medium text-[#6F6F6F] mt-3 tracking-wide">
              {task.deadline && <span className={cn(getSafeDate(task.deadline)! < new Date() && !isToday(getSafeDate(task.deadline)!) && task.status !== 'concluida' ? "text-rose-500 bg-rose-500/10 px-2 py-0.5 rounded" : "bg-[#1A1A1E] px-2 py-0.5 rounded")}>{format(getSafeDate(task.deadline)!, "dd MMM yyyy", {locale: ptBR})} {task.due_time && `às ${task.due_time.substring(0,5)}`}</span>}
@@ -279,18 +279,18 @@ export function PosTarefas() {
              <div className="flex items-center gap-2 bg-[#111113] border border-[rgba(255,255,255,0.06)] rounded-xl px-2 py-1">
                 <Filter className="size-4 text-[#6F6F6F] ml-1" />
                 <select value={statusFilter} onChange={e => setStatusFilter(e.target.value)} className="bg-transparent text-xs font-medium text-[#A1A1AA] focus:outline-none focus:text-white py-1">
-                  <option value="all">Status: Todos</option>
-                  <option value="pendente">Pendente</option>
-                  <option value="em_andamento">Em Andamento</option>
-                  <option value="concluida">Concluída</option>
+                  <option value="all" className="bg-[#111113] text-white">Status: Todos</option>
+                  <option value="pendente" className="bg-[#111113] text-white">Pendente</option>
+                  <option value="em_andamento" className="bg-[#111113] text-white">Em Andamento</option>
+                  <option value="concluida" className="bg-[#111113] text-white">Concluída</option>
                 </select>
                 <div className="w-px h-4 bg-[rgba(255,255,255,0.1)] mx-1"></div>
                 <select value={priorityFilter} onChange={e => setPriorityFilter(e.target.value)} className="bg-transparent text-xs font-medium text-[#A1A1AA] focus:outline-none focus:text-white py-1">
-                  <option value="all">Prioridade: Todas</option>
-                  <option value="baixa">Baixa</option>
-                  <option value="media">Média</option>
-                  <option value="alta">Alta</option>
-                  <option value="critica">Crítica</option>
+                  <option value="all" className="bg-[#111113] text-white">Prioridade: Todas</option>
+                  <option value="baixa" className="bg-[#111113] text-white">Baixa</option>
+                  <option value="media" className="bg-[#111113] text-white">Média</option>
+                  <option value="alta" className="bg-[#111113] text-white">Alta</option>
+                  <option value="critica" className="bg-[#111113] text-white">Crítica</option>
                 </select>
              </div>
 
@@ -392,18 +392,18 @@ export function PosTarefas() {
                 <div>
                   <label className="text-[10px] text-[#6F6F6F] uppercase tracking-widest font-bold mb-3 block">Status</label>
                   <select value={taskForm.status} onChange={e => setTaskForm({...taskForm, status: e.target.value})} className="w-full bg-[#111113] border border-[rgba(255,255,255,0.06)] rounded-xl px-4 py-2.5 text-sm font-medium text-white focus:outline-none focus:border-rose-500 transition-colors">
-                    <option value="pendente">Pendente</option>
-                    <option value="em_andamento">Em Andamento</option>
-                    <option value="concluida">Concluída</option>
+                    <option value="pendente" className="bg-[#111113] text-white">Pendente</option>
+                    <option value="em_andamento" className="bg-[#111113] text-white">Em Andamento</option>
+                    <option value="concluida" className="bg-[#111113] text-white">Concluída</option>
                   </select>
                 </div>
                 <div>
                   <label className="text-[10px] text-[#6F6F6F] uppercase tracking-widest font-bold mb-3 block">Prioridade</label>
                   <select value={taskForm.priority} onChange={e => setTaskForm({...taskForm, priority: e.target.value})} className="w-full bg-[#111113] border border-[rgba(255,255,255,0.06)] rounded-xl px-4 py-2.5 text-sm font-medium text-white focus:outline-none focus:border-rose-500 transition-colors">
-                    <option value="baixa">Baixa</option>
-                    <option value="media">Média</option>
-                    <option value="alta">Alta</option>
-                    <option value="critica">Crítica</option>
+                    <option value="baixa" className="bg-[#111113] text-white">Baixa</option>
+                    <option value="media" className="bg-[#111113] text-white">Média</option>
+                    <option value="alta" className="bg-[#111113] text-white">Alta</option>
+                    <option value="critica" className="bg-[#111113] text-white">Crítica</option>
                   </select>
                 </div>
               </div>

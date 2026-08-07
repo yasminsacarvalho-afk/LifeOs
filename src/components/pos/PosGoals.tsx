@@ -49,12 +49,16 @@ export function PosGoals() {
   };
 
   const getTypeLabel = (type: string) => {
-    switch(type) {
+    switch(type?.toLowerCase()) {
       case 'anual': return 'Meta Anual';
       case 'mensal': return 'Meta Mensal';
       case 'diaria': return 'Meta Diária';
       case 'leitura': return 'Meta de Leitura';
       case 'habito': return 'Meta de Hábitos';
+      case 'aquisição':
+      case 'aquisicao':
+      case 'aquisição (compras)':
+        return 'Aquisição';
       default: return type || 'Objetivo Estratégico';
     }
   };
@@ -114,6 +118,7 @@ export function PosGoals() {
                       <option value="Finanças" />
                       <option value="Carreira" />
                       <option value="Networking" />
+                      <option value="Aquisição (Compras)" />
                     </datalist>
                   </div>
                   <div>

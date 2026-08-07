@@ -3,6 +3,7 @@ import { usePosIdeas, PosIdea } from "@/hooks/use-pos-ideas";
 import { Plus, Trash2, Lightbulb, Zap, Rocket, CheckCircle2, Pencil } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { VoiceRecordButton } from "@/components/ui/VoiceRecordButton";
 
 export function PosIdeas() {
   const { ideas, loading, addIdea, updateIdea, deleteIdea } = usePosIdeas();
@@ -56,11 +57,16 @@ export function PosIdeas() {
           <div className="grid grid-cols-1 md:grid-cols-5 gap-4 mb-4">
             <div className="md:col-span-5">
               <label className="text-[11px] uppercase tracking-widest text-[#71717A] font-bold mb-1 block">Título da Ideia / Brainstorm</label>
-              <input 
-                type="text" required value={newIdea.title} onChange={e => setNewIdea({...newIdea, title: e.target.value})}
-                className="w-full bg-[#1A1A1E] border border-[rgba(255,255,255,0.06)] rounded-lg px-4 py-2.5 text-white focus:border-yellow-500 focus:outline-none transition-colors"
-                placeholder="O que passou pela sua cabeça?"
-              />
+              <div className="flex gap-2 items-center bg-[#1A1A1E] border border-[rgba(255,255,255,0.06)] rounded-lg focus-within:border-yellow-500 transition-colors">
+                <input 
+                  type="text" required value={newIdea.title} onChange={e => setNewIdea({...newIdea, title: e.target.value})}
+                  className="w-full bg-transparent px-4 py-2.5 text-white focus:outline-none"
+                  placeholder="O que passou pela sua cabeça?"
+                />
+                <div className="pr-1">
+                  <VoiceRecordButton onTranscript={(t) => setNewIdea(prev => ({...prev, title: prev.title ? `${prev.title} ${t}` : t}))} />
+                </div>
+              </div>
             </div>
             <div>
               <label className="text-[11px] uppercase tracking-widest text-[#71717A] font-bold mb-1 block">Categoria</label>
@@ -177,10 +183,15 @@ export function PosIdeas() {
             <form onSubmit={handleUpdate} className="flex flex-col gap-4 mt-4">
               <div>
                 <label className="text-[11px] uppercase tracking-widest text-[#71717A] font-bold mb-1 block">Título da Ideia / Brainstorm</label>
-                <input 
-                  type="text" required value={editingIdea.title} onChange={e => setEditingIdea({...editingIdea, title: e.target.value})}
-                  className="w-full bg-[#1A1A1E] border border-[rgba(255,255,255,0.06)] rounded-lg px-4 py-2.5 text-white focus:border-yellow-500 focus:outline-none transition-colors"
-                />
+                <div className="flex gap-2 items-center bg-[#1A1A1E] border border-[rgba(255,255,255,0.06)] rounded-lg focus-within:border-yellow-500 transition-colors">
+                  <input 
+                    type="text" required value={editingIdea.title} onChange={e => setEditingIdea({...editingIdea, title: e.target.value})}
+                    className="w-full bg-transparent px-4 py-2.5 text-white focus:outline-none"
+                  />
+                  <div className="pr-1">
+                    <VoiceRecordButton onTranscript={(t) => setEditingIdea(prev => prev ? {...prev, title: prev.title ? `${prev.title} ${t}` : t} : null)} />
+                  </div>
+                </div>
               </div>
               <div className="grid grid-cols-2 gap-4">
                 <div>

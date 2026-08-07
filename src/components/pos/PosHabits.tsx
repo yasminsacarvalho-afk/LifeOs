@@ -8,7 +8,7 @@ import {
   Plus, Trash2, CheckCircle2, Circle, Flame, Activity, TrendingUp, 
   Calendar as CalendarIcon, Clock, Target, Edit2, Sparkles, AlertCircle, BarChart3, Pause, Play, BookOpen, X, GraduationCap, CalendarDays
 } from "lucide-react";
-import { format } from "date-fns";
+import { format, startOfWeek, endOfWeek, subWeeks, addDays } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { cn } from "@/lib/utils";
 import { AreaChart, Area, XAxis, YAxis, Tooltip, ResponsiveContainer } from 'recharts';
@@ -104,19 +104,35 @@ export function PosHabits() {
 
   const renderHistory = (habit: any) => {
     const isExpanded = expandedHistory[habit.id] || false;
-    const daysCount = isExpanded ? 30 : 7;
-    const days = Array.from({length: daysCount}).map((_, i) => {
-      const d = new Date();
-      d.setDate(d.getDate() - (daysCount - 1 - i));
-      return format(d, 'yyyy-MM-dd');
-    });
+    
+    let startDate: Date;
+    let endDate: Date;
+    const now = new Date();
+
+    if (isExpanded) {
+      const startOfCurrentWeek = startOfWeek(now, { weekStartsOn: 0 }); // 0 = Domingo
+      startDate = subWeeks(startOfCurrentWeek, 4); // Últimas 4 semanas + semana atual
+      endDate = endOfWeek(now, { weekStartsOn: 0 });
+    } else {
+      startDate = startOfWeek(now, { weekStartsOn: 0 });
+      endDate = endOfWeek(now, { weekStartsOn: 0 });
+    }
+
+    const days = [];
+    let currentDay = startDate;
+    while (currentDay <= endDate) {
+      days.push(format(currentDay, 'yyyy-MM-dd'));
+      currentDay = addDays(currentDay, 1);
+    }
 
     const totalDone = logs.filter(l => l.habit_id === habit.id && l.status === 'concluido').length;
 
     return (
       <div className="mt-4 pt-4 border-t border-[rgba(255,255,255,0.04)]">
         <div className="flex justify-between items-center mb-3">
-           <span className="text-[10px] text-[#A1A1AA] uppercase tracking-widest font-bold">Últimos {daysCount} dias</span>
+           <span className="text-[10px] text-[#A1A1AA] uppercase tracking-widest font-bold">
+             {isExpanded ? "Últimas 5 Semanas" : "Semana Atual"}
+           </span>
            <div className="flex items-center gap-2">
              <span className="text-[10px] font-mono text-emerald-500 font-bold">{totalDone} execuções totais</span>
              <button 
@@ -127,23 +143,32 @@ export function PosHabits() {
              </button>
            </div>
         </div>
-        <div className="flex gap-1.5 flex-wrap">
+        <div className="grid grid-cols-7 gap-1.5 w-max">
           {days.map(d => {
             const isDone = logs.find(l => l.habit_id === habit.id && l.log_date === d && l.status === 'concluido');
             const isToday = d === today;
             const isScheduled = isHabitScheduledForDate(habit, d);
+            const isFuture = d > today;
             const isMissed = !isDone && isScheduled && d < today;
 
             return (
-               <div key={d} title={`${format(new Date(d), 'dd/MM/yyyy')}${isScheduled ? ' (Agendado)' : ' (Não agendado)'}`} className={cn(
-                 "w-full aspect-square max-w-[28px] sm:max-w-[32px] rounded-lg flex items-center justify-center text-[10px] font-bold border transition-colors",
-                 isDone ? "bg-emerald-500/20 text-emerald-500 border-emerald-500/30 shadow-[inset_0_0_10px_rgba(16,185,129,0.1)]" : 
-                 isMissed ? "bg-rose-500/10 text-rose-500 border-rose-500/30" :
-                 !isScheduled ? "border-dashed border-[rgba(255,255,255,0.05)] bg-transparent text-[#71717A]/50" :
-                 isToday ? "border-rose-500/50 text-rose-500 bg-rose-500/10" : "border-[rgba(255,255,255,0.05)] bg-[#1A1A1E] text-[#71717A]"
+               <button 
+                 key={d} 
+                 title={`${format(new Date(d), 'dd/MM/yyyy')} - ${format(new Date(d), 'EEEE', { locale: ptBR })}${isScheduled && !isFuture ? ' (Agendado)' : ''}`}
+                 onClick={(e) => { e.stopPropagation(); toggleHabitToday(habit.id, undefined, d); }}
+                 disabled={habit.goal_type !== 'conclusao' || isFuture}
+                 className={cn(
+                 "min-w-[32px] h-[42px] rounded-lg flex flex-col items-center justify-center border transition-colors",
+                 isFuture ? "opacity-20 cursor-not-allowed border-dashed border-[rgba(255,255,255,0.05)] bg-transparent" :
+                 isDone ? "bg-emerald-500/20 text-emerald-500 border-emerald-500/30 shadow-[inset_0_0_10px_rgba(16,185,129,0.1)] hover:bg-emerald-500/30" : 
+                 isMissed ? "bg-rose-500/10 text-rose-500 border-rose-500/30 hover:bg-rose-500/20" :
+                 !isScheduled ? "border-dashed border-[rgba(255,255,255,0.05)] bg-transparent text-[#71717A]/50 hover:bg-white/5" :
+                 isToday ? "border-rose-500/50 text-rose-500 bg-rose-500/10 hover:bg-rose-500/20" : "border-[rgba(255,255,255,0.05)] bg-[#1A1A1E] text-[#71717A] hover:bg-[#27272A]",
+                 habit.goal_type !== 'conclusao' && "opacity-60 cursor-not-allowed"
                )}>
-                 {format(new Date(d), 'dd')}
-               </div>
+                 <span className="text-[8px] uppercase font-bold opacity-70 mb-0.5 leading-none">{format(new Date(d), 'EE', { locale: ptBR }).charAt(0)}</span>
+                 <span className="text-[11px] font-bold leading-none">{format(new Date(d), 'dd')}</span>
+               </button>
             )
           })}
         </div>

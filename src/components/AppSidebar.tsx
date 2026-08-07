@@ -31,6 +31,8 @@ import {
   Gift,
   Gamepad2,
   BellRing,
+  ShoppingCart,
+  Briefcase,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useAuth } from "@/contexts/AuthContext";
@@ -46,7 +48,7 @@ const navSections = [
       { to: "/crm", label: "CRM & Funil", icon: Target, permission: "view_crm" },
     ],
   },
-  
+
   {
     label: "Gestão",
     items: [
@@ -54,6 +56,7 @@ const navSections = [
       { to: "/drivers", label: "Motoristas", icon: Car, permission: "view_admin" },
       { to: "/admin", label: "Gestão RH", icon: Users, permission: "view_admin" },
       { to: "/goals", label: "Metas & Ranking", icon: TrendingUp, permission: "view_goals" },
+      { to: "/personal-os", search: { tab: "profissional" }, label: "Docs (Drive)", icon: Briefcase, permission: "view_dashboard" },
       { to: "/info", label: "Contatos e Info", icon: BookOpen, permission: "view_info" },
       { to: "/access", label: "Acessos e Permissões", icon: Shield, permission: "view_access" },
       { to: "/help", label: "Ajuda & Manual", icon: HelpCircle, permission: "view_dashboard" },
@@ -89,6 +92,7 @@ const navSections = [
       { to: "/personal-os", search: { tab: "evolucao" }, label: "Evolução", icon: TrendingUp, permission: "view_dashboard" },
       { to: "/personal-os", search: { tab: "recompensas" }, label: "Recompensas", icon: Gift, permission: "view_dashboard" },
       { to: "/personal-os", search: { tab: "financeiro" }, label: "Financeiro", icon: DollarSign, permission: "view_dashboard" },
+      { to: "/personal-os", search: { tab: "compras" }, label: "Compras", icon: ShoppingCart, permission: "view_dashboard" },
       { to: "/personal-os", search: { tab: "estudos" }, label: "Estudos", icon: GraduationCap, permission: "view_dashboard" },
       { to: "/personal-os", search: { tab: "entretenimento" }, label: "Lazer", icon: Gamepad2, permission: "view_dashboard" },
       { to: "/personal-os", search: { tab: "alarmes" }, label: "Alarmes", icon: BellRing, permission: "view_dashboard" },
@@ -106,16 +110,22 @@ export function AppSidebar() {
   const [isPinned, setIsPinned] = useState(false);
 
   useEffect(() => {
-    if (pathname.startsWith('/personal-os') || pathname.startsWith('/academy')) {
+    if (pathname.startsWith('/academy')) {
       setActiveTab('pessoal');
+    } else if (pathname.startsWith('/personal-os')) {
+      if (searchParams?.tab === 'profissional') {
+        setActiveTab('profissional');
+      } else {
+        setActiveTab('pessoal');
+      }
     } else {
       setActiveTab('profissional');
     }
-  }, [pathname]);
+  }, [pathname, searchParams?.tab]);
 
   const profissionalSections = navSections.filter(s => s.label !== "Pessoal");
   const pessoalSections = navSections.filter(s => s.label === "Pessoal");
-  
+
   const currentSections = activeTab === 'profissional' ? profissionalSections : pessoalSections;
   const allItems = currentSections.flatMap(section => section.items);
 
@@ -130,7 +140,7 @@ export function AppSidebar() {
   return (
     <>
       {/* Trigger area para o dock no desktop */}
-      <div 
+      <div
         className="fixed bottom-0 left-0 right-0 h-6 z-30 hidden md:block"
         onMouseEnter={() => setIsHovered(true)}
       />
@@ -168,7 +178,7 @@ export function AppSidebar() {
       </div>
 
       {/* Dock (Desktop) / Menu Sheet (Mobile) */}
-      <div 
+      <div
         className={cn(
           "fixed z-40 transition-all duration-300 ease-out flex justify-center",
           "md:bottom-6 md:left-1/2 md:-translate-x-1/2 w-full md:max-w-4xl",
@@ -201,7 +211,7 @@ export function AppSidebar() {
                 Pessoal
               </button>
             </div>
-            <button 
+            <button
               onClick={() => { setIsPinned(false); setIsHovered(false); }}
               className="w-8 h-8 flex items-center justify-center rounded-full hover:bg-white/10 text-muted-foreground hover:text-white transition-colors"
             >
@@ -213,7 +223,7 @@ export function AppSidebar() {
               const Icon = item.icon;
               const isActivePath = pathname === item.to;
               let active = isActivePath;
-              
+
               if (isActivePath && item.search?.tab) {
                 const currentTab = searchParams.tab || 'geral';
                 active = currentTab === item.search.tab;

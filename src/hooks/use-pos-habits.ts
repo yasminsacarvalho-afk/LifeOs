@@ -123,9 +123,11 @@ export function usePosHabits() {
     }
   };
 
-  const toggleHabitToday = async (habitId: string, customValue?: number) => {
+  const toggleHabitToday = async (habitId: string, customValue?: number, dateOverride?: string) => {
     const today = format(new Date(), 'yyyy-MM-dd');
-    const existingLog = logs.find(log => log.habit_id === habitId && log.log_date === today);
+    const dateStr = dateOverride || today;
+    const existingLog = logs.find(log => log.habit_id === habitId && log.log_date === dateStr);
+    const isToday = dateStr === today;
 
     try {
       if (existingLog) {
@@ -135,16 +137,18 @@ export function usePosHabits() {
         setLogs(logs.filter(log => log.id !== existingLog.id));
         
         // Update streak
-        const habit = habits.find(h => h.id === habitId);
-        if (habit && habit.current_streak > 0) {
-           await supabase.from('pos_habits').update({ current_streak: habit.current_streak - 1 }).eq('id', habitId);
-           setHabits(habits.map(h => h.id === habitId ? { ...h, current_streak: h.current_streak - 1 } : h));
+        if (isToday) {
+          const habit = habits.find(h => h.id === habitId);
+          if (habit && habit.current_streak > 0) {
+             await supabase.from('pos_habits').update({ current_streak: habit.current_streak - 1 }).eq('id', habitId);
+             setHabits(habits.map(h => h.id === habitId ? { ...h, current_streak: h.current_streak - 1 } : h));
+          }
         }
       } else {
         // Adicionar check
         const { data, error } = await supabase
           .from('pos_habit_logs')
-          .insert([{ habit_id: habitId, log_date: today, status: 'concluido', value_achieved: customValue || null }])
+          .insert([{ habit_id: habitId, log_date: dateStr, status: 'concluido', value_achieved: customValue || null }])
           .select()
           .single();
 
@@ -152,12 +156,14 @@ export function usePosHabits() {
         if (data) setLogs([...logs, data]);
 
         // Update streak
-        const habit = habits.find(h => h.id === habitId);
-        if (habit) {
-           const newStreak = habit.current_streak + 1;
-           const newBest = newStreak > habit.best_streak ? newStreak : habit.best_streak;
-           await supabase.from('pos_habits').update({ current_streak: newStreak, best_streak: newBest }).eq('id', habitId);
-           setHabits(habits.map(h => h.id === habitId ? { ...h, current_streak: newStreak, best_streak: newBest } : h));
+        if (isToday) {
+          const habit = habits.find(h => h.id === habitId);
+          if (habit) {
+             const newStreak = habit.current_streak + 1;
+             const newBest = newStreak > habit.best_streak ? newStreak : habit.best_streak;
+             await supabase.from('pos_habits').update({ current_streak: newStreak, best_streak: newBest }).eq('id', habitId);
+             setHabits(habits.map(h => h.id === habitId ? { ...h, current_streak: newStreak, best_streak: newBest } : h));
+          }
         }
       }
     } catch (error: any) {

@@ -13,7 +13,7 @@ import {
   XAxis,
   YAxis,
 } from "recharts";
-import { ArrowRight, ArrowUpRight, Building2, Crown, Radar, TrendingUp, Trophy, X, Lock, Activity, Eye, EyeOff } from "lucide-react";
+import { ArrowRight, ArrowUpRight, Building2, Crown, Radar, TrendingUp, Trophy, X, Lock, Activity, Eye, EyeOff, Target } from "lucide-react";
 import { TopBar } from "@/components/TopBar";
 import { PartnerShowcase } from "@/components/PartnerShowcase";
 import { NextTripWidget } from "@/components/NextTripWidget";
@@ -23,6 +23,7 @@ import { usePartnersRealtime } from "@/hooks/use-partners-realtime";
 import { useTripsRealtime } from "@/hooks/use-trips-realtime";
 import { useSalesRealtime } from "@/hooks/use-sales-realtime";
 import { useCashClosingsRealtime } from "@/hooks/use-cash-closings-realtime";
+import { usePosGoals } from "@/hooks/use-pos-goals";
 import { cn } from "@/lib/utils";
 
 export function PosPrincipal() {
@@ -30,6 +31,7 @@ export function PosPrincipal() {
   const { trips, loading: loadingTrips } = useTripsRealtime();
   const { sales, loading: loadingSales } = useSalesRealtime();
   const { closings } = useCashClosingsRealtime();
+  const { goals } = usePosGoals();
 
   const [activeTrip, setActiveTrip] = useState<UiTrip | null>(null);
   const [checkinModalOpen, setCheckinModalOpen] = useState(false);
@@ -696,6 +698,63 @@ export function PosPrincipal() {
                 Abrir monitor em tempo real <ArrowRight className="size-3" />
               </div>
             </Link>
+
+            {/* Aquisições / Wishlist Widget */}
+            <div className="rounded-2xl border border-border bg-card/70 p-6 backdrop-blur-sm relative overflow-hidden group">
+              <div className="mb-4 flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <div className="p-2 rounded-lg bg-emerald-500/10 text-emerald-500">
+                    <Target className="size-4" />
+                  </div>
+                  <h2 className="text-base font-semibold tracking-tight">Metas de Compra</h2>
+                </div>
+                <Link to="/goals" className="text-[10px] uppercase font-bold text-muted-foreground hover:text-emerald-500 transition-colors">
+                  Ver Todas
+                </Link>
+              </div>
+              
+              <div className="space-y-4 max-h-[300px] overflow-y-auto pr-1 custom-scrollbar">
+                {goals.filter(g => g.type?.toLowerCase().includes('aquisição') || g.type?.toLowerCase().includes('aquisicao') || g.type?.toLowerCase().includes('compras')).length > 0 ? (
+                  goals.filter(g => g.type?.toLowerCase().includes('aquisição') || g.type?.toLowerCase().includes('aquisicao') || g.type?.toLowerCase().includes('compras')).map(goal => (
+                    <div key={goal.id} className="p-4 rounded-xl border border-border/50 bg-background/50 hover:bg-background/80 transition-colors">
+                      <div className="flex justify-between items-start mb-2">
+                        <h4 className="font-semibold text-sm">{goal.title}</h4>
+                        <span className="text-xs font-mono text-emerald-500">
+                          {isPrivacyMode ? "R$ •••••" : formatCurrency(goal.target_value || 0)}
+                        </span>
+                      </div>
+                      {goal.description && (
+                        <p className="text-[11px] text-muted-foreground mb-3 line-clamp-2">
+                          {goal.description}
+                        </p>
+                      )}
+                      
+                      <div className="space-y-1.5">
+                        <div className="flex justify-between text-[10px] font-bold uppercase tracking-wider text-muted-foreground">
+                          <span>Guardado</span>
+                          <span>{goal.progress_percentage}%</span>
+                        </div>
+                        <div className="h-1.5 w-full bg-muted overflow-hidden rounded-full">
+                          <div 
+                            className="h-full bg-emerald-500 rounded-full transition-all"
+                            style={{ width: `${goal.progress_percentage}%` }}
+                          />
+                        </div>
+                        <div className="text-right text-[10px] font-mono text-muted-foreground mt-1">
+                          Falta: {isPrivacyMode ? "R$ •••••" : formatCurrency((goal.target_value || 0) - ((goal.target_value || 0) * (goal.progress_percentage / 100)))}
+                        </div>
+                      </div>
+                    </div>
+                  ))
+                ) : (
+                  <div className="text-center py-6 text-sm text-muted-foreground italic border border-dashed border-border rounded-xl">
+                    Nenhuma meta de compra definida.
+                    <br/>
+                    <Link to="/goals" className="text-emerald-500 font-medium not-italic mt-2 inline-block">Adicionar Nova +</Link>
+                  </div>
+                )}
+              </div>
+            </div>
           </div>
         </section>
       </main>

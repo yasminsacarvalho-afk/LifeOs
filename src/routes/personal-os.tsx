@@ -4,7 +4,7 @@ import {
   GraduationCap, BookOpen, DollarSign, Lightbulb, Target, 
   Brain, Coffee, Timer, Book, LineChart, Plus, AlertCircle, 
   ChevronRight, ArrowRight, Sparkles, TrendingUp, TrendingDown, Clock, Home, Menu, X, CheckCircle2, XCircle,
-  Settings, Monitor, Smartphone, ShieldAlert, User, Download, Mic, MicOff, Volume2
+  Settings, Monitor, Smartphone, ShieldAlert, User, Download, Mic, MicOff, Volume2, ShoppingCart
 } from "lucide-react";
 import { useState, useEffect } from "react";
 import { cn } from "@/lib/utils";
@@ -18,6 +18,7 @@ import { PosGoals } from "@/components/pos/PosGoals";
 import { PosStudies } from "@/components/pos/PosStudies";
 import { PosFinance } from "@/components/pos/PosFinance";
 import { PosEntertainment } from "@/components/pos/PosEntertainment";
+import { PosAcquisitions } from "@/components/pos/PosAcquisitions";
 import { PosAlarms } from "@/components/pos/PosAlarms";
 import { usePosTasks } from "@/hooks/use-pos-tasks";
 import { usePosHabits } from "@/hooks/use-pos-habits";
@@ -28,6 +29,7 @@ import { usePosIdeas } from "@/hooks/use-pos-ideas";
 import { usePosFinance } from "@/hooks/use-pos-finance";
 import { useTreasuryRealtime } from "@/hooks/use-treasury-realtime";
 import { useCrmRealtime } from "@/hooks/use-crm-realtime";
+import { useTransactionsRealtime } from "@/hooks/use-transactions-realtime";
 import { format, isToday, parseISO, isThisMonth, isThisWeek } from "date-fns";
 import { PosPrincipal } from "@/components/pos/PosPrincipal";
 import { PosEvolution } from "@/components/pos/PosEvolution";
@@ -58,6 +60,7 @@ const modules = [
   { id: "estudos", name: "Estudos", icon: GraduationCap },
   { id: "leitura", name: "Leitura", icon: BookOpen },
   { id: "financeiro", name: "Financeiro", icon: DollarSign },
+  { id: "compras", name: "Compras (Wishlist)", icon: ShoppingCart },
   { id: "analytics", name: "Insights", icon: PieChart, path: "/analytics" },
   { id: "ideias", name: "Ideias", icon: Lightbulb },
   { id: "entretenimento", name: "Entretenimento", icon: Sparkles },
@@ -133,6 +136,7 @@ function DashboardGeral() {
   const { ideas } = usePosIdeas();
   const { expenses } = usePosFinance();
   const { accounts: treasuryAccounts } = useTreasuryRealtime();
+  const { transactions: financialRecords } = useTransactionsRealtime();
   const { leads } = useCrmRealtime();
 
   const [reservaMeta, setReservaMeta] = useState(() => {
@@ -224,9 +228,28 @@ function DashboardGeral() {
   };
 
   // Financial metrics
-  const totalPersonalCaixinhas = treasuryAccounts
-    .filter(a => a.account_context === 'personal')
-    .reduce((acc, a) => acc + (a.allocations || []).reduce((sum: number, al: any) => sum + Number(al.amount), 0), 0);
+  const caixinhasPessoalObj = Object.entries(
+    financialRecords
+      .filter(t => t.context === 'personal')
+      .filter(t => 
+        (t.category || "").toLowerCase().includes('caixinha') || 
+        (t.category || "").toLowerCase().includes('reserva') || 
+        (t.category || "").toLowerCase().includes('investimento')
+      )
+      .reduce((acc, t) => {
+        const val = t.type === 'expense' ? t.amount : -t.amount;
+        let caixinhaName = t.category || "Caixinha";
+        if (caixinhaName.toLowerCase().trim() === 'caixinha' || caixinhaName.toLowerCase().trim() === 'reserva' || caixinhaName.toLowerCase().trim() === 'investimento') {
+          caixinhaName = t.description && t.description.trim() !== '' ? t.description : caixinhaName;
+        }
+        
+        if (!acc[caixinhaName]) acc[caixinhaName] = 0;
+        acc[caixinhaName] += val;
+        return acc;
+      }, {} as Record<string, number>)
+  ).map(([name, amount]) => ({ name, amount })).filter(c => c.amount > 0);
+
+  const totalPersonalCaixinhas = caixinhasPessoalObj.reduce((a, b) => a + b.amount, 0);
   
   const comissaoReceber = leads
     .filter(l => l.status !== "venda")
@@ -240,7 +263,9 @@ function DashboardGeral() {
   
   const hoursFocused = Math.round(tasks.filter(t => t.status === 'concluida').reduce((acc, t) => acc + (t.actual_minutes || t.estimated_minutes || 0), 0) / 60);
   const pagesRead = books.reduce((acc, b) => acc + (b.pages_read || 0), 0);
+  const booksReading = books.filter(b => b.status === 'lendo').length;
   const hoursStudied = Math.round(courses.reduce((acc, c) => acc + (c.completed_hours || 0), 0));
+  const coursesInProgress = courses.filter(c => c.status === 'em_andamento').length;
   const ideasCount = ideas.length;
 
   const getSafeDate = (dateStr: string | null | undefined) => {
@@ -331,19 +356,33 @@ function DashboardGeral() {
             { label: "Tarefas Pendentes", value: (tasks.length - tasks.filter(t=>t.status==='concluida').length).toString(), icon: CheckSquare, color: "text-rose-500" },
             { label: "Horas Focadas", value: `${hoursFocused}h`, icon: Timer, color: "text-indigo-500" },
             { label: "Leitura (Págs)", value: pagesRead.toString(), icon: BookOpen, color: "text-rose-500" },
+            { label: "Livros Lendo", value: booksReading.toString(), icon: BookOpen, color: "text-rose-500" },
+            { label: "Estudos (Ativos)", value: coursesInProgress.toString(), icon: GraduationCap, color: "text-indigo-500" },
             { label: "Caixinhas (Pessoal)", value: formatCurrency(totalPersonalCaixinhas), icon: PiggyBank, color: "text-emerald-500" },
-            { label: "Comissão a Receber", value: formatCurrency(comissaoReceber), icon: Target, color: "text-cyan-500" },
             { label: "Gastos do Mês", value: formatCurrency(currentMonthExpenses), icon: DollarSign, color: "text-emerald-500" },
+            { label: "Compras (Wishlist)", value: "Acessar", icon: ShoppingCart, color: "text-emerald-500", to: "?tab=compras" },
           ].map((stat, i) => (
-            <div key={i} className="bg-[#111113] border border-[rgba(255,255,255,0.04)] rounded-2xl p-5 flex flex-col justify-between hover:bg-[#1A1A1E] transition-colors group cursor-default">
-              <div className="flex items-center justify-between mb-4">
-                <stat.icon className={cn("size-4", stat.color, "opacity-70 group-hover:opacity-100 transition-opacity")} />
+            stat.to ? (
+              <Link key={i} to="/personal-os" search={{ tab: stat.to.split('=')[1] }} className="bg-[#111113] border border-[rgba(255,255,255,0.04)] rounded-2xl p-5 flex flex-col justify-between hover:bg-[#1A1A1E] transition-colors group cursor-pointer border-emerald-500/20 hover:border-emerald-500/50">
+                <div className="flex items-center justify-between mb-4">
+                  <stat.icon className={cn("size-4", stat.color, "opacity-70 group-hover:opacity-100 transition-opacity")} />
+                </div>
+                <div>
+                  <div className="text-xl font-semibold tracking-tight text-white mb-1">{stat.value}</div>
+                  <div className="text-[11px] text-[#A1A1AA] uppercase tracking-wider font-medium">{stat.label}</div>
+                </div>
+              </Link>
+            ) : (
+              <div key={i} className="bg-[#111113] border border-[rgba(255,255,255,0.04)] rounded-2xl p-5 flex flex-col justify-between hover:bg-[#1A1A1E] transition-colors group cursor-default">
+                <div className="flex items-center justify-between mb-4">
+                  <stat.icon className={cn("size-4", stat.color, "opacity-70 group-hover:opacity-100 transition-opacity")} />
+                </div>
+                <div>
+                  <div className="text-2xl font-semibold tracking-tight text-white mb-1">{stat.value}</div>
+                  <div className="text-[11px] text-[#A1A1AA] uppercase tracking-wider font-medium">{stat.label}</div>
+                </div>
               </div>
-              <div>
-                <div className="text-2xl font-semibold tracking-tight text-white mb-1">{stat.value}</div>
-                <div className="text-[11px] text-[#A1A1AA] uppercase tracking-wider font-medium">{stat.label}</div>
-              </div>
-            </div>
+            )
           ))}
         </div>
       </div>
@@ -1248,6 +1287,34 @@ function PersonalOSPage() {
                     </div>
                   </div>
                 </div>
+
+                {/* Monitor de Frota - Topo */}
+                <div className="flex flex-col gap-2 pb-8">
+                  <h3 className="text-[11px] font-bold text-[#6F6F6F] uppercase tracking-widest flex items-center gap-2 mb-1">
+                    <BellRing className="size-3.5" /> Monitor de Frota
+                  </h3>
+                  <div className="bg-[#111113] p-4 rounded-xl border border-[rgba(255,255,255,0.06)] flex items-center justify-between">
+                    <div>
+                      <p className="text-sm font-bold text-white">Monitor no Cabeçalho</p>
+                      <p className="text-[11px] text-[#A1A1AA] mt-1 max-w-[200px]">Exibe o "Descendo" e "Subindo" no topo da tela e ativa notificações contínuas.</p>
+                    </div>
+                    <label className="relative inline-flex items-center cursor-pointer">
+                      <input 
+                        type="checkbox" 
+                        className="sr-only peer" 
+                        checked={localStorage.getItem('lifeos_native_trip_ticker') === 'true'} 
+                        onChange={(e) => {
+                          localStorage.setItem('lifeos_native_trip_ticker', String(e.target.checked));
+                          window.dispatchEvent(new Event('lifeos_ticker_pref_changed'));
+                          // Force a re-render to update the switch visually
+                          setTheme(theme); // hack to trigger re-render
+                        }} 
+                      />
+                      <div className="w-11 h-6 bg-[#27272A] peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-emerald-500"></div>
+                    </label>
+                  </div>
+                </div>
+
               </div>
             </div>
           </>
@@ -1277,6 +1344,8 @@ function PersonalOSPage() {
           <PosRewards />
         ) : activeModule === "financeiro" ? (
           <PosFinance />
+        ) : activeModule === "compras" ? (
+          <PosAcquisitions />
         ) : activeModule === "entretenimento" ? (
           <PosEntertainment />
         ) : activeModule === "alarmes" ? (

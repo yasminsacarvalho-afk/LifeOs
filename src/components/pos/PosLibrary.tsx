@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { createPortal } from "react-dom";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { PosLibraryGraph } from "./PosLibraryGraph";
@@ -1012,7 +1013,8 @@ Link original: ${book.buy_link || ''}`;
             format: f.origin === 'pdf' || f.name.toLowerCase().endsWith('.pdf') ? 'pdf' : 'epub',
             badges: [],
             status: "quero_ler",
-            knowledge_area: ""
+            knowledge_area: "",
+            is_classic: false
           });
           setIsCreating(true);
         }}
@@ -1021,8 +1023,8 @@ Link original: ${book.buy_link || ''}`;
       {/* Collections 3D Plot */}
       <PosLibraryCollections books={books} />
 
-      {isCreating && (
-        <div className="fixed inset-0 z-[100] flex items-end md:items-center justify-center bg-black/80 backdrop-blur-sm p-0 md:p-4 animate-in fade-in">
+      {isCreating && createPortal(
+        <div className="fixed inset-0 z-[9999] flex items-end md:items-center justify-center bg-black/80 backdrop-blur-sm p-0 md:p-4 animate-in fade-in">
           <div className="w-full md:max-w-4xl max-h-[90vh] bg-[#111113] border border-[rgba(255,255,255,0.06)] md:rounded-3xl rounded-t-3xl shadow-2xl overflow-hidden flex flex-col animate-in slide-in-from-bottom-8 md:zoom-in-95">
             <div className="p-5 md:p-6 border-b border-[rgba(255,255,255,0.06)] flex justify-between items-center bg-[#09090B]/80 backdrop-blur-md sticky top-0 z-10 shrink-0">
                <h3 className="text-xl font-bold text-white flex items-center gap-2">
@@ -1170,14 +1172,14 @@ Link original: ${book.buy_link || ''}`;
                     </select>
                   </div>
                   <div className="md:col-span-2">
-                    <label className="text-[11px] uppercase tracking-widest text-[#71717A] font-bold mb-2 block">Badges Especiais</label>
-                    <div className="flex flex-wrap gap-3">
+                    <label className="text-[11px] uppercase tracking-widest text-[#71717A] font-bold mb-2 flex items-center gap-2"><Sparkles className="size-3 text-amber-500" /> Badges & Classificação</label>
+                    <div className="flex flex-wrap gap-3 bg-[#111113] p-4 rounded-xl border border-[rgba(255,255,255,0.04)] shadow-inner">
                       {[
-                        { id: 'quero_comprar', label: 'Quero Comprar' },
-                        { id: 'emprestado', label: 'Tenho Emprestado' },
-                        { id: 'meta_ano', label: 'Meta para esse ano' }
+                        { id: 'quero_comprar', label: 'Quero Comprar', icon: '🛒' },
+                        { id: 'emprestado', label: 'Emprestado', icon: '🤝' },
+                        { id: 'meta_ano', label: 'Meta Anual', icon: '🎯' }
                       ].map(badge => (
-                        <label key={badge.id} className="flex items-center gap-2 cursor-pointer bg-[#1A1A1E] border border-[rgba(255,255,255,0.06)] px-3 py-2 rounded-xl text-sm text-white hover:border-amber-500/50 transition-colors">
+                        <label key={badge.id} className="flex items-center gap-2 cursor-pointer bg-[#1A1A1E] border border-[rgba(255,255,255,0.06)] px-3 py-2 rounded-xl text-sm text-white hover:border-amber-500/50 hover:bg-amber-500/5 transition-all">
                           <input 
                             type="checkbox" 
                             checked={newBook.badges.includes(badge.id)}
@@ -1190,9 +1192,18 @@ Link original: ${book.buy_link || ''}`;
                             }}
                             className="accent-amber-500 rounded border-white/20"
                           />
-                          {badge.label}
+                          <span>{badge.icon} {badge.label}</span>
                         </label>
                       ))}
+                      <label className="flex items-center gap-2 cursor-pointer bg-amber-500/10 border border-amber-500/30 px-3 py-2 rounded-xl text-sm text-amber-400 font-bold hover:border-amber-500/50 hover:bg-amber-500/20 transition-all shadow-[0_0_15px_rgba(245,158,11,0.1)]">
+                        <input 
+                          type="checkbox" 
+                          checked={newBook.is_classic || false}
+                          onChange={(e) => setNewBook({...newBook, is_classic: e.target.checked})}
+                          className="accent-amber-500 rounded border-white/20"
+                        />
+                        <span>📚 É um Clássico?</span>
+                      </label>
                     </div>
                   </div>
                   <div>
@@ -1305,10 +1316,10 @@ Link original: ${book.buy_link || ''}`;
             </div>
           </div>
         </div>
-      )}
+      , document.body)}
 
-      {editingBookId && editBookData && (
-        <div className="fixed inset-0 z-[100] flex items-end md:items-center justify-center bg-black/80 backdrop-blur-sm p-0 md:p-4 animate-in fade-in">
+      {editingBookId && editBookData && createPortal(
+        <div className="fixed inset-0 z-[9999] flex items-end md:items-center justify-center bg-black/80 backdrop-blur-sm p-0 md:p-4 animate-in fade-in">
           <div className="w-full md:max-w-4xl max-h-[90vh] bg-[#111113] border border-[rgba(255,255,255,0.06)] md:rounded-3xl rounded-t-3xl shadow-2xl overflow-hidden flex flex-col animate-in slide-in-from-bottom-8 md:zoom-in-95">
             <div className="p-5 md:p-6 border-b border-[rgba(255,255,255,0.06)] flex justify-between items-center bg-[#09090B]/80 backdrop-blur-md sticky top-0 z-10 shrink-0">
                <h3 className="text-xl font-bold text-white flex items-center gap-2">
@@ -1363,14 +1374,14 @@ Link original: ${book.buy_link || ''}`;
                     </select>
                   </div>
                   <div className="md:col-span-2">
-                    <label className="text-[11px] uppercase tracking-widest text-[#71717A] font-bold mb-2 block">Badges Especiais</label>
-                    <div className="flex flex-wrap gap-3">
+                    <label className="text-[11px] uppercase tracking-widest text-[#71717A] font-bold mb-2 flex items-center gap-2"><Sparkles className="size-3 text-amber-500" /> Badges & Classificação</label>
+                    <div className="flex flex-wrap gap-3 bg-[#111113] p-4 rounded-xl border border-[rgba(255,255,255,0.04)] shadow-inner">
                       {[
-                        { id: 'quero_comprar', label: 'Quero Comprar' },
-                        { id: 'emprestado', label: 'Tenho Emprestado' },
-                        { id: 'meta_ano', label: 'Meta para esse ano' }
+                        { id: 'quero_comprar', label: 'Quero Comprar', icon: '🛒' },
+                        { id: 'emprestado', label: 'Emprestado', icon: '🤝' },
+                        { id: 'meta_ano', label: 'Meta Anual', icon: '🎯' }
                       ].map(badge => (
-                        <label key={badge.id} className="flex items-center gap-2 cursor-pointer bg-[#1A1A1E] border border-[rgba(255,255,255,0.06)] px-3 py-2 rounded-xl text-sm text-white hover:border-amber-500/50 transition-colors">
+                        <label key={badge.id} className="flex items-center gap-2 cursor-pointer bg-[#1A1A1E] border border-[rgba(255,255,255,0.06)] px-3 py-2 rounded-xl text-sm text-white hover:border-amber-500/50 hover:bg-amber-500/5 transition-all">
                           <input 
                             type="checkbox" 
                             checked={(editBookData.badges || []).includes(badge.id)}
@@ -1384,9 +1395,18 @@ Link original: ${book.buy_link || ''}`;
                             }}
                             className="accent-amber-500 rounded border-white/20"
                           />
-                          {badge.label}
+                          <span>{badge.icon} {badge.label}</span>
                         </label>
                       ))}
+                      <label className="flex items-center gap-2 cursor-pointer bg-amber-500/10 border border-amber-500/30 px-3 py-2 rounded-xl text-sm text-amber-400 font-bold hover:border-amber-500/50 hover:bg-amber-500/20 transition-all shadow-[0_0_15px_rgba(245,158,11,0.1)]">
+                        <input 
+                          type="checkbox" 
+                          checked={editBookData.is_classic || false}
+                          onChange={(e) => setEditBookData({...editBookData, is_classic: e.target.checked})}
+                          className="accent-amber-500 rounded border-white/20"
+                        />
+                        <span>📚 É um Clássico?</span>
+                      </label>
                     </div>
                   </div>
                   <div>
@@ -1438,33 +1458,6 @@ Link original: ${book.buy_link || ''}`;
                   <div>
                     <label className="text-[11px] uppercase font-bold text-[#71717A] mb-1 block">Valor Total</label>
                     <input type="number" value={editBookData.total_pages || ''} onChange={e => setEditBookData({...editBookData, total_pages: Number(e.target.value)})} className="w-full bg-[#1A1A1E] border border-[rgba(255,255,255,0.06)] rounded-lg text-sm px-3 py-3 text-white focus:outline-none focus:border-rose-500" />
-                  </div>
-                  <div>
-                    <label className="text-[11px] uppercase font-bold text-[#71717A] mb-2 block">Badges Especiais</label>
-                    <div className="flex flex-wrap gap-2 mb-3">
-                      {[
-                        { id: 'quero_comprar', label: 'Quero Comprar' },
-                        { id: 'emprestado', label: 'Tenho Emprestado' },
-                        { id: 'meta_ano', label: 'Meta para esse ano' }
-                      ].map(badge => (
-                        <label key={badge.id} className="flex items-center gap-1.5 cursor-pointer bg-[#1A1A1E] border border-[rgba(255,255,255,0.06)] px-2 py-1.5 rounded-lg text-xs text-[#E4E4E7] hover:border-amber-500/50 transition-colors">
-                          <input 
-                            type="checkbox" 
-                            checked={editBookData.badges?.includes(badge.id) || false}
-                            onChange={(e) => {
-                              const checked = e.target.checked;
-                              const currentBadges = editBookData.badges || [];
-                              setEditBookData(prev => ({
-                                ...prev!,
-                                badges: checked ? [...currentBadges, badge.id] : currentBadges.filter(b => b !== badge.id)
-                              }));
-                            }}
-                            className="accent-amber-500 rounded border-white/20"
-                          />
-                          {badge.label}
-                        </label>
-                      ))}
-                    </div>
                   </div>
                   <div>
                     <label className="text-[11px] uppercase font-bold text-[#71717A] mb-1 block">Coleções (separado por vírgula)</label>
@@ -1540,7 +1533,7 @@ Link original: ${book.buy_link || ''}`;
             </div>
           </div>
         </div>
-      )}
+      , document.body)}
 
       {/* 3-COLUMN LAYOUT ON LARGE SCREENS */}
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 mt-8">
@@ -2394,6 +2387,14 @@ Continue Lendo
           onUpdate={updateBook}
           onDelete={(id) => { deleteBook(id); setViewingBookId(null); }}
           onAddSession={addReadingSession}
+          onEdit={() => {
+            const b = books.find(b => b.id === viewingBookId);
+            if (b) {
+              setViewingBookId(null);
+              setEditingBookId(b.id);
+              setEditBookData(b);
+            }
+          }}
         />
       )}
 

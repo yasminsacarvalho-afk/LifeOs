@@ -2,10 +2,18 @@ import { useState, useEffect } from "react";
 import { useTripsRealtime } from "@/hooks/use-trips-realtime";
 import { ArrowDown, ArrowUp, Clock } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { isPermissionGranted, requestPermission, sendNotification } from '@tauri-apps/plugin-notification';
 
 export function GlobalNextTripTicker() {
   const { trips } = useTripsRealtime();
   const [now, setNow] = useState(new Date());
+  const [isNativeEnabled, setIsNativeEnabled] = useState(() => localStorage.getItem('lifeos_native_trip_ticker') === 'true');
+
+  useEffect(() => {
+    const handlePref = () => setIsNativeEnabled(localStorage.getItem('lifeos_native_trip_ticker') === 'true');
+    window.addEventListener('lifeos_ticker_pref_changed', handlePref);
+    return () => window.removeEventListener('lifeos_ticker_pref_changed', handlePref);
+  }, []);
 
   useEffect(() => {
     const id = setInterval(() => setNow(new Date()), 1000);
@@ -27,8 +35,6 @@ export function GlobalNextTripTicker() {
     .filter(t => t.direction === "subindo")
     .sort((a, b) => new Date(a.raw_scheduled_departure!).getTime() - new Date(b.raw_scheduled_departure!).getTime())[0];
 
-  if (!nextDescendo && !nextSubindo) return null;
-
   const formatCountdown = (seconds: number) => {
     const sign = seconds < 0 ? "-" : "";
     const abs = Math.abs(seconds);
@@ -38,6 +44,48 @@ export function GlobalNextTripTicker() {
     if (h > 0) return `${sign}${String(h).padStart(2, "0")}:${String(m).padStart(2, "0")}:${String(s).padStart(2, "0")}`;
     return `${sign}${String(m).padStart(2, "0")}:${String(s).padStart(2, "0")}`;
   };
+
+  useEffect(() => {
+    if (!isNativeEnabled) return;
+    
+    const sendNotif = async () => {
+      let bodyStr = '';
+      if (nextDescendo) {
+         const diffD = Math.round((new Date(nextDescendo.raw_scheduled_departure!).getTime() - Date.now()) / 1000);
+         bodyStr += `Descendo: ${formatCountdown(diffD)}\n`;
+      }
+      if (nextSubindo) {
+         const diffS = Math.round((new Date(nextSubindo.raw_scheduled_departure!).getTime() - Date.now()) / 1000);
+         bodyStr += `Subindo: ${formatCountdown(diffS)}`;
+      }
+      
+      if (!bodyStr) return;
+      
+      try {
+        let perm = await isPermissionGranted();
+        if (!perm) perm = (await requestPermission()) === 'granted';
+        if (perm) {
+          sendNotification({ title: 'Monitor de Frota', body: bodyStr.trim() });
+        }
+      } catch(e) {
+        if ("Notification" in window && Notification.permission === "granted") {
+          new Notification('Monitor de Frota', { 
+             body: bodyStr.trim(), 
+             tag: 'fleet-monitor', 
+             silent: true, 
+             renotify: false 
+          });
+        }
+      }
+    };
+
+    sendNotif();
+    const id = setInterval(sendNotif, 60000); // 1 min
+    return () => clearInterval(id);
+  }, [isNativeEnabled, nextDescendo, nextSubindo]);
+
+  if (!isNativeEnabled) return null;
+  if (!nextDescendo && !nextSubindo) return null;
 
   const renderTickerItem = (trip: any, label: string, icon: any, colorClass: string, bgClass: string) => {
     if (!trip) return null;

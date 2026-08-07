@@ -896,6 +896,11 @@ export function FinanceDashboard({
   };
 
   const handleDelete = async (id: string) => {
+    if (id.startsWith('auto-')) {
+      alert('Este é um lançamento automático gerado por regra (ex: Pró-Labore ou Rendimento). Para removê-lo, desative a respectiva regra nas Configurações.');
+      return;
+    }
+    
     if (confirm('Tem certeza que deseja excluir este registro?')) {
       if (isSimulatorActive) {
         setSimulatedTransactions(simulatedTransactions.filter(t => t.id !== id));
@@ -910,6 +915,13 @@ export function FinanceDashboard({
 
   const handleBulkDelete = async () => {
     if (selectedIds.length === 0) return;
+    
+    const hasAuto = selectedIds.some(id => id.startsWith('auto-'));
+    if (hasAuto) {
+      alert('Um ou mais lançamentos selecionados são automáticos (ex: Pró-Labore) e não podem ser excluídos em lote. Desative a regra nas configurações.');
+      return;
+    }
+
     if (confirm(`Tem certeza que deseja excluir ${selectedIds.length} registro(s)?`)) {
       if (isSimulatorActive) {
         setSimulatedTransactions(simulatedTransactions.filter(t => !selectedIds.includes(t.id)));
@@ -1551,6 +1563,14 @@ export function FinanceDashboard({
                 className="flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-bold border border-[#EBB52C]/30 bg-[#EBB52C]/10 text-[#EBB52C] hover:bg-[#EBB52C]/20 transition-all shadow-lg"
               >
                 <PiggyBank className="size-3.5 shrink-0" /> Caixinha
+              </button>
+              
+              <button 
+                onClick={() => setIsProLaboreModalOpen(true)}
+                title="Configurar Regras de Caixa e Pró-Labore Automático"
+                className="flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-bold border border-white/10 bg-white/5 text-[#aaa] hover:bg-white/10 hover:text-white transition-all shadow-lg"
+              >
+                <Settings className="size-3.5 shrink-0" /> Regras (Pró-Labore)
               </button>
               
               <button 

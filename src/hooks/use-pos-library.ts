@@ -34,6 +34,7 @@ export interface PosBook {
   tags?: string[] | null;
   collections?: string[] | null;
   storage_location?: string | null;
+  is_classic?: boolean | null;
   created_at?: string;
 }
 
@@ -93,13 +94,14 @@ export function usePosLibrary() {
         const metadata = storedMeta ? JSON.parse(storedMeta) : {};
         
         const processedBooks = booksData.map(b => {
-          const meta = metadata[b.id] || { tags: [], collections: [], badges: [], storage_location: null };
+          const meta = metadata[b.id] || { tags: [], collections: [], badges: [], storage_location: null, is_classic: false };
           return { 
             ...b, 
             tags: meta.tags || [], 
             collections: meta.collections || [],
             badges: meta.badges || [],
-            storage_location: meta.storage_location || null
+            storage_location: meta.storage_location || null,
+            is_classic: meta.is_classic || false
           };
         });
         setBooks(processedBooks);
@@ -124,11 +126,13 @@ export function usePosLibrary() {
       const collectionsToSave = payload.collections || [];
       const badgesToSave = payload.badges || [];
       const storageLocationToSave = payload.storage_location || null;
+      const isClassicToSave = payload.is_classic || false;
       
       delete payload.tags;
       delete payload.collections;
       delete payload.badges;
       delete payload.storage_location;
+      delete payload.is_classic;
 
       const { data, error } = await supabase
         .from('pos_library')
@@ -140,10 +144,10 @@ export function usePosLibrary() {
       if (data) {
         const storedMeta = localStorage.getItem('lifeos_pos_metadata');
         const metadata = storedMeta ? JSON.parse(storedMeta) : {};
-        metadata[data.id] = { tags: tagsToSave, collections: collectionsToSave, badges: badgesToSave, storage_location: storageLocationToSave };
+        metadata[data.id] = { tags: tagsToSave, collections: collectionsToSave, badges: badgesToSave, storage_location: storageLocationToSave, is_classic: isClassicToSave };
         localStorage.setItem('lifeos_pos_metadata', JSON.stringify(metadata));
 
-        const newBooks = [{ ...data, tags: tagsToSave, collections: collectionsToSave, badges: badgesToSave, storage_location: storageLocationToSave }, ...books];
+        const newBooks = [{ ...data, tags: tagsToSave, collections: collectionsToSave, badges: badgesToSave, storage_location: storageLocationToSave, is_classic: isClassicToSave }, ...books];
         setBooks(newBooks);
         localStorage.setItem('pos_library_cache', JSON.stringify(newBooks));
       }
@@ -161,17 +165,19 @@ export function usePosLibrary() {
       
       const storedMeta = localStorage.getItem('lifeos_pos_metadata');
       const metadata = storedMeta ? JSON.parse(storedMeta) : {};
-      const currentMeta = metadata[id] || { tags: [], collections: [], badges: [], storage_location: null };
+      const currentMeta = metadata[id] || { tags: [], collections: [], badges: [], storage_location: null, is_classic: false };
       
       const tagsToSave = payload.tags !== undefined ? payload.tags : currentMeta.tags;
       const collectionsToSave = payload.collections !== undefined ? payload.collections : currentMeta.collections;
       const badgesToSave = payload.badges !== undefined ? payload.badges : currentMeta.badges;
       const storageLocationToSave = payload.storage_location !== undefined ? payload.storage_location : currentMeta.storage_location;
+      const isClassicToSave = payload.is_classic !== undefined ? payload.is_classic : currentMeta.is_classic;
       
       delete payload.tags;
       delete payload.collections;
       delete payload.badges;
       delete payload.storage_location;
+      delete payload.is_classic;
 
       const { data, error } = await supabase
         .from('pos_library')
@@ -182,11 +188,11 @@ export function usePosLibrary() {
 
       if (error) throw error;
       if (data) {
-        metadata[id] = { tags: tagsToSave, collections: collectionsToSave, badges: badgesToSave, storage_location: storageLocationToSave };
+        metadata[id] = { tags: tagsToSave, collections: collectionsToSave, badges: badgesToSave, storage_location: storageLocationToSave, is_classic: isClassicToSave };
         localStorage.setItem('lifeos_pos_metadata', JSON.stringify(metadata));
 
         setBooks(prev => {
-          const updatedBooks = prev.map(b => b.id === id ? { ...data, tags: tagsToSave, collections: collectionsToSave, badges: badgesToSave, storage_location: storageLocationToSave } : b);
+          const updatedBooks = prev.map(b => b.id === id ? { ...data, tags: tagsToSave, collections: collectionsToSave, badges: badgesToSave, storage_location: storageLocationToSave, is_classic: isClassicToSave } : b);
           localStorage.setItem('pos_library_cache', JSON.stringify(updatedBooks));
           return updatedBooks;
         });
