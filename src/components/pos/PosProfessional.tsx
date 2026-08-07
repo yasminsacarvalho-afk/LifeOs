@@ -20,6 +20,9 @@ export function PosProfessional() {
   const [isUploading, setIsUploading] = useState(false);
   const [folderStack, setFolderStack] = useState<{id: string, name: string}[]>([]);
 
+  // Selected File Preview State
+  const [selectedFile, setSelectedFile] = useState<MediaItem | null>(null);
+
   // CRUD Modals State
   const [modalState, setModalState] = useState<{
     type: 'createFolder' | 'rename' | 'delete' | null;
@@ -73,41 +76,63 @@ export function PosProfessional() {
 
     const input = document.createElement("input");
     input.type = "file";
+    input.multiple = true;
     input.accept = "image/*,application/pdf,.doc,.docx,.xls,.xlsx";
     input.onchange = async (e: any) => {
-      const file = e.target.files?.[0];
-      if (!file) return;
+      const files = e.target.files;
+      if (!files || files.length === 0) return;
 
-      const reader = new FileReader();
-      reader.onload = async (ev) => {
-        const base64Full = ev.target?.result as string;
-        const base64Data = base64Full.split(",")[1];
+      setIsUploading(true);
+      let hasError = false;
+      let uploadedCount = 0;
+
+      for (let i = 0; i < files.length; i++) {
+        const file = files[i];
         
-        setIsUploading(true);
-        try {
-          const response = await fetch(scriptUrl, {
-            method: 'POST',
-            body: JSON.stringify({
-              action: 'upload',
-              folderId: currentFolderId,
-              base64: base64Data,
-              name: file.name,
-              mimeType: file.type
-            })
-          });
-          const result = await response.json();
-          if (result.success) {
-            fetchMedia();
-          } else {
-            alert("Erro: " + result.error);
-          }
-        } catch (err) {
-          alert("Erro no upload. Verifique as permissões do script.");
-        } finally {
-          setIsUploading(false);
-        }
-      };
-      reader.readAsDataURL(file);
+        await new Promise<void>((resolve) => {
+          const reader = new FileReader();
+          reader.onload = async (ev) => {
+            try {
+              const base64Full = ev.target?.result as string;
+              const base64Data = base64Full.split(",")[1];
+              
+              const response = await fetch(scriptUrl, {
+                method: 'POST',
+                body: JSON.stringify({
+                  action: 'upload',
+                  folderId: currentFolderId,
+                  base64: base64Data,
+                  name: file.name,
+                  mimeType: file.type
+                })
+              });
+              const result = await response.json();
+              if (result.success) {
+                uploadedCount++;
+              } else {
+                hasError = true;
+                console.error("Upload error for file", file.name, result.error);
+              }
+            } catch (err) {
+              hasError = true;
+              console.error("Upload request failed for file", file.name, err);
+            } finally {
+              resolve();
+            }
+          };
+          reader.readAsDataURL(file);
+        });
+      }
+
+      setIsUploading(false);
+      
+      if (hasError) {
+        alert(`Upload finalizado com alertas. ${uploadedCount} de ${files.length} arquivos foram enviados.`);
+      }
+      
+      if (uploadedCount > 0) {
+        fetchMedia();
+      }
     };
     input.click();
   };
@@ -372,7 +397,7 @@ function doPost(e) {
                   <div key={folder.id} className="group relative bg-[#111113]/80 backdrop-blur-sm border border-[rgba(255,255,255,0.06)] hover:border-blue-500/40 rounded-3xl p-6 flex flex-col items-center justify-center text-center transition-all duration-300 hover:-translate-y-1.5 hover:shadow-[0_15px_30px_rgba(37,99,235,0.1)] aspect-square overflow-hidden cursor-pointer" onClick={() => setFolderStack([...folderStack, {id: folder.id, name: folder.name}])}>
                     
                     {/* Ações CRUD */}
-                    <div className="absolute top-2 right-2 flex flex-col gap-1 opacity-0 group-hover:opacity-100 transition-opacity z-20" onClick={e => e.stopPropagation()}>
+                    <div className="absolute top-2 right-2 flex flex-col gap-1 opacity-100 md:opacity-0 md:group-hover:opacity-100 transition-opacity z-20" onClick={e => e.stopPropagation()}>
                       <button onClick={() => setModalState({ type: 'rename', item: folder, inputValue: folder.name })} className="p-2 bg-black/50 hover:bg-blue-600 rounded-full text-white transition-colors">
                         <Edit2 className="size-3" />
                       </button>
@@ -400,10 +425,10 @@ function doPost(e) {
               </h3>
               <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-4">
                 {files.map(file => (
-                  <div key={file.id} className="group bg-[#0A0A0C] border border-[rgba(255,255,255,0.06)] rounded-3xl overflow-hidden relative aspect-square transition-all duration-500 hover:shadow-[0_20px_40px_rgba(0,0,0,0.8)] hover:border-white/20 hover:-translate-y-1 flex items-center justify-center">
+                  <div key={file.id} onClick={() => setSelectedFile(file)} className="group bg-[#0A0A0C] border border-[rgba(255,255,255,0.06)] rounded-3xl overflow-hidden relative aspect-square transition-all duration-500 hover:shadow-[0_20px_40px_rgba(0,0,0,0.8)] hover:border-white/20 hover:-translate-y-1 flex items-center justify-center cursor-pointer">
                     
                     {/* Ações CRUD */}
-                    <div className="absolute top-3 right-3 flex gap-2 opacity-0 group-hover:opacity-100 transition-opacity z-40">
+                    <div className="absolute top-3 right-3 flex gap-2 opacity-100 md:opacity-0 md:group-hover:opacity-100 transition-opacity z-40">
                       <button onClick={(e) => { e.stopPropagation(); setModalState({ type: 'rename', item: file, inputValue: file.name }); }} className="p-2 bg-black/60 backdrop-blur-md hover:bg-blue-600 rounded-full text-white transition-colors">
                         <Edit2 className="size-4" />
                       </button>
@@ -453,7 +478,7 @@ function doPost(e) {
                       </p>
                       
                       {/* Botão Download */}
-                      <div className="h-0 opacity-0 overflow-hidden group-hover:h-10 group-hover:opacity-100 transition-all duration-300">
+                      <div className="h-10 opacity-100 md:h-0 md:opacity-0 overflow-hidden md:group-hover:h-10 md:group-hover:opacity-100 transition-all duration-300">
                         <button 
                           onClick={(e) => { e.stopPropagation(); handleDownload(file); }} 
                           className="h-10 w-10 flex items-center justify-center bg-blue-600 hover:bg-blue-500 text-white rounded-full hover:scale-110 transition-transform shadow-[0_0_20px_rgba(37,99,235,0.4)]"
@@ -552,6 +577,84 @@ function doPost(e) {
                 {isProcessing ? <RefreshCw className="size-4 animate-spin" /> : <Check className="size-4" />}
                 {modalState.type === 'delete' ? 'Sim, Excluir' : 'Confirmar'}
               </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Modal de Pré-visualização de Arquivo */}
+      {selectedFile && (
+        <div className="fixed inset-0 z-[65] flex items-center justify-center p-4 sm:p-6 bg-black/90 backdrop-blur-xl animate-in fade-in zoom-in-95 duration-300" onClick={() => setSelectedFile(null)}>
+          <div className="relative w-full max-w-4xl max-h-[90vh] flex flex-col items-center justify-center" onClick={e => e.stopPropagation()}>
+            {/* Fechar */}
+            <button 
+              onClick={() => setSelectedFile(null)} 
+              className="absolute -top-12 right-0 sm:-right-12 p-3 bg-white/10 hover:bg-white/20 text-white rounded-full backdrop-blur-md transition-all hover:scale-110 active:scale-95 z-50"
+            >
+              <X className="size-6" />
+            </button>
+            
+            {/* Visualização */}
+            <div className="relative w-full flex-1 min-h-[40vh] max-h-[70vh] flex items-center justify-center rounded-[2rem] overflow-hidden bg-[#0A0A0C] border border-[rgba(255,255,255,0.08)] shadow-2xl group">
+              <div className="absolute inset-0 flex flex-col items-center justify-center bg-[#111113]">
+                 <ImageIcon className="size-16 text-[#71717A] mb-4 opacity-50" />
+                 <span className="text-[#A1A1AA] text-sm font-medium">Visualização não disponível</span>
+              </div>
+              <img 
+                src={`https://lh3.googleusercontent.com/d/${selectedFile.id}`} 
+                alt={selectedFile.name} 
+                className="w-full h-full object-contain relative z-10" 
+                onError={(e) => {
+                  const target = e.target as HTMLImageElement;
+                  const fallback1 = `https://drive.google.com/uc?export=view&id=${selectedFile.id}`;
+                  const fallback2 = selectedFile.thumbnail || "";
+                  
+                  if (target.src.includes('lh3.googleusercontent.com')) {
+                    target.src = fallback1;
+                  } else if (target.src.includes('drive.google.com/uc')) {
+                    if (fallback2) target.src = fallback2;
+                    else target.style.display = 'none';
+                  } else {
+                    target.style.display = 'none';
+                  }
+                }}
+              />
+            </div>
+            
+            {/* Painel Inferior de Informações e Ações */}
+            <div className="w-full mt-6 bg-[#111113]/80 backdrop-blur-md border border-[rgba(255,255,255,0.06)] rounded-3xl p-5 flex flex-col sm:flex-row items-center justify-between gap-4">
+              <div className="flex-1 min-w-0 text-center sm:text-left">
+                <h3 className="text-white font-bold text-lg truncate w-full px-2 sm:px-0">
+                  {selectedFile.name}
+                </h3>
+                <p className="text-[#71717A] text-xs mt-1 uppercase tracking-wider font-bold">
+                  Documento Google Drive
+                </p>
+              </div>
+              
+              <div className="flex items-center justify-center sm:justify-end gap-3 shrink-0">
+                <button 
+                  onClick={() => { setSelectedFile(null); setModalState({ type: 'rename', item: selectedFile, inputValue: selectedFile.name }); }} 
+                  className="p-3 bg-white/5 hover:bg-blue-600/20 text-[#A1A1AA] hover:text-blue-400 rounded-xl transition-all border border-transparent hover:border-blue-500/30"
+                  title="Renomear"
+                >
+                  <Edit2 className="size-5" />
+                </button>
+                <button 
+                  onClick={() => { setSelectedFile(null); setModalState({ type: 'delete', item: selectedFile }); }} 
+                  className="p-3 bg-white/5 hover:bg-red-600/20 text-[#A1A1AA] hover:text-red-400 rounded-xl transition-all border border-transparent hover:border-red-500/30"
+                  title="Excluir"
+                >
+                  <Trash2 className="size-5" />
+                </button>
+                <button 
+                  onClick={() => handleDownload(selectedFile)} 
+                  className="px-6 py-3 bg-blue-600 hover:bg-blue-500 text-white text-sm font-bold rounded-xl flex items-center gap-2 transition-transform hover:scale-105 shadow-[0_0_20px_rgba(37,99,235,0.3)]"
+                >
+                  <Download className="size-5" />
+                  <span className="hidden sm:inline">Baixar/Abrir</span>
+                </button>
+              </div>
             </div>
           </div>
         </div>
