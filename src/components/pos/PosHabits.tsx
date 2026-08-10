@@ -621,10 +621,14 @@ export function PosHabits() {
 
               return (
                 <div key={habit.id} className={cn(
-                  "bg-[#111113] border rounded-2xl p-6 flex flex-col justify-between group transition-all relative overflow-hidden",
+                  "bg-gradient-to-br from-[#111113] to-[#09090B] border rounded-3xl p-6 flex flex-col justify-between group transition-all duration-500 relative overflow-hidden",
                   isPaused ? "opacity-50 grayscale border-[rgba(255,255,255,0.02)]" : 
-                  isCompleted ? "border-emerald-500/20 bg-emerald-500/5 shadow-[0_0_20px_rgba(16,185,129,0.05)]" : "border-[rgba(255,255,255,0.06)] hover:border-rose-500/30"
+                  isCompleted ? "border-emerald-500/30 bg-gradient-to-br from-[#111113] to-emerald-900/10 shadow-[0_8px_30px_rgba(16,185,129,0.08)] -translate-y-1" : "border-[rgba(255,255,255,0.03)] hover:border-rose-500/30 hover:shadow-[0_8px_30px_rgba(225,29,72,0.05)] hover:-translate-y-1"
                 )}>
+                  {/* Subtle hover gradient for uncompleted active habits */}
+                  {!isPaused && !isCompleted && (
+                    <div className="absolute inset-0 bg-gradient-to-r from-rose-500/0 via-rose-500/0 to-rose-500/0 group-hover:to-rose-500/5 transition-colors duration-700 pointer-events-none" />
+                  )}
                   {/* Status & Actions */}
                   <div className="flex justify-between items-start mb-6">
                     <div className="flex flex-wrap gap-2">
@@ -684,12 +688,12 @@ export function PosHabits() {
                   <button 
                     onClick={() => !isPaused && habit.goal_type === 'conclusao' && toggleHabitToday(habit.id)} 
                     disabled={isPaused || habit.goal_type !== 'conclusao'}
-                    className={cn("flex flex-col text-left focus:outline-none flex-1", (isPaused || habit.goal_type !== 'conclusao') && "cursor-default")}
+                    className={cn("flex flex-col text-left focus:outline-none flex-1 relative z-10", (isPaused || habit.goal_type !== 'conclusao') && "cursor-default")}
                   >
                     <div className="flex items-center gap-4 mb-2">
                       {habit.goal_type === 'conclusao' && (
-                        <div className={cn("shrink-0 transition-transform", isCompleted && "scale-110")}>
-                          {isCompleted ? <CheckCircle2 className="size-8 text-emerald-500 drop-shadow-md" /> : <Circle className="size-8 text-[#71717A]" />}
+                        <div className={cn("shrink-0 transition-all duration-500 transform", isCompleted ? "scale-110" : "group-hover:scale-110")}>
+                          {isCompleted ? <CheckCircle2 className="size-8 text-emerald-500 drop-shadow-[0_0_12px_rgba(16,185,129,0.5)]" /> : <Circle className="size-8 text-[#333] group-hover:text-rose-500/50 transition-colors duration-300" />}
                         </div>
                       )}
                       <div>
@@ -703,30 +707,34 @@ export function PosHabits() {
                     </div>
                   </button>
 
-                  {habit.goal_id && (
-                     <div className="mb-4 bg-indigo-500/10 border border-indigo-500/20 px-3 py-1.5 rounded-lg flex items-center gap-2">
-                       <Target className="size-3 text-indigo-400" />
-                       <span className="text-[10px] uppercase font-bold text-indigo-400 tracking-widest truncate">Meta: {goals.find(g => g.id === habit.goal_id)?.title || 'Desconhecida'}</span>
-                     </div>
-                  )}
-
-                  {habit.book_id && (
-                     <div className="mb-4 bg-emerald-500/10 border border-emerald-500/20 px-3 py-1.5 rounded-lg flex items-center gap-2">
-                       <BookOpen className="size-3 text-emerald-400" />
-                       <span className="text-[10px] uppercase font-bold text-emerald-400 tracking-widest truncate">Leitura: {books.find(b => b.id === habit.book_id)?.title || 'Desconhecida'}</span>
-                     </div>
-                  )}
-                  {habit.course_id && (
-                     <div className="mb-4 bg-cyan-500/10 border border-cyan-500/20 px-3 py-1.5 rounded-lg flex items-center gap-2">
-                       <GraduationCap className="size-3 text-cyan-400" />
-                       <span className="text-[10px] uppercase font-bold text-cyan-400 tracking-widest truncate">Curso: {courses.find(c => c.id === habit.course_id)?.title || 'Desconhecido'}</span>
-                     </div>
-                  )}
-                  {habit.event_id && (
-                     <div className="mb-4 bg-indigo-500/10 border border-indigo-500/20 px-3 py-1.5 rounded-lg flex items-center gap-2">
-                       <CalendarIcon className="size-3 text-indigo-400" />
-                       <span className="text-[10px] uppercase font-bold text-indigo-400 tracking-widest truncate">Agenda: {events.find(e => e.id === habit.event_id)?.title || 'Desconhecido'}</span>
-                     </div>
+                  {/* Linked Contexts */}
+                  {(habit.goal_id || habit.book_id || habit.course_id || habit.event_id) && (
+                    <div className="flex flex-wrap gap-2 mt-4 relative z-10">
+                      {habit.goal_id && (
+                        <div className="bg-indigo-500/10 border border-indigo-500/20 px-2 py-1 rounded-md flex items-center gap-1.5" title={`Meta: ${goals.find(g => g.id === habit.goal_id)?.title || 'Desconhecida'}`}>
+                          <Target className="size-3 text-indigo-400" />
+                          <span className="text-[9px] uppercase font-bold text-indigo-400 tracking-widest truncate max-w-[120px]">{goals.find(g => g.id === habit.goal_id)?.title || 'Meta'}</span>
+                        </div>
+                      )}
+                      {habit.book_id && (
+                        <div className="bg-emerald-500/10 border border-emerald-500/20 px-2 py-1 rounded-md flex items-center gap-1.5" title={`Leitura: ${books.find(b => b.id === habit.book_id)?.title || 'Desconhecida'}`}>
+                          <BookOpen className="size-3 text-emerald-400" />
+                          <span className="text-[9px] uppercase font-bold text-emerald-400 tracking-widest truncate max-w-[120px]">{books.find(b => b.id === habit.book_id)?.title || 'Livro'}</span>
+                        </div>
+                      )}
+                      {habit.course_id && (
+                        <div className="bg-cyan-500/10 border border-cyan-500/20 px-2 py-1 rounded-md flex items-center gap-1.5" title={`Curso: ${courses.find(c => c.id === habit.course_id)?.title || 'Desconhecido'}`}>
+                          <GraduationCap className="size-3 text-cyan-400" />
+                          <span className="text-[9px] uppercase font-bold text-cyan-400 tracking-widest truncate max-w-[120px]">{courses.find(c => c.id === habit.course_id)?.title || 'Curso'}</span>
+                        </div>
+                      )}
+                      {habit.event_id && (
+                        <div className="bg-rose-500/10 border border-rose-500/20 px-2 py-1 rounded-md flex items-center gap-1.5" title={`Agenda: ${events.find(e => e.id === habit.event_id)?.title || 'Desconhecido'}`}>
+                          <CalendarIcon className="size-3 text-rose-400" />
+                          <span className="text-[9px] uppercase font-bold text-rose-400 tracking-widest truncate max-w-[120px]">{events.find(e => e.id === habit.event_id)?.title || 'Agenda'}</span>
+                        </div>
+                      )}
+                    </div>
                   )}
 
                   {/* Input Quantidade / Tempo (Progressivo) */}

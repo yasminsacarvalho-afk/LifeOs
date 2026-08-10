@@ -4,6 +4,7 @@ import { usePosHabits } from '@/hooks/use-pos-habits';
 import { usePosLibrary } from '@/hooks/use-pos-library';
 import { usePosStudies } from '@/hooks/use-pos-studies';
 import { useTreasuryRealtime } from '@/hooks/use-treasury-realtime';
+import { usePosHealth } from '@/hooks/use-pos-health';
 
 export function usePosXP() {
   const { tasks } = usePosTasks();
@@ -11,6 +12,7 @@ export function usePosXP() {
   const { books, sessions: readingSessions } = usePosLibrary();
   const { courses, sessions: studySessions } = usePosStudies();
   const { accounts: treasuryAccounts } = useTreasuryRealtime();
+  const { logs: healthLogs } = usePosHealth();
 
   const [xpConfig, setXpConfig] = useState({
     tasks: 10,
@@ -48,7 +50,15 @@ export function usePosXP() {
   const studiesXP = courses.reduce((acc, c) => acc + (c.xp_awarded || 0), 0) + studySessions.reduce((acc, s) => acc + (s.xp_earned || 0), 0);
   const financeXP = Math.floor((totalPersonalCaixinhas / 100) * (xpConfig.finance || 10));
 
-  const totalXPEarned = tasksXP + habitsXP + readingXP + studiesXP + financeXP;
+  const healthXP = Object.values(healthLogs).reduce((acc, log) => {
+    let pts = 0;
+    if (log.workoutDone) pts += 10;
+    if (log.waterGlasses) pts += log.waterGlasses;
+    if (log.sleepHours >= 7 && (log.sleepQuality === 'bom' || log.sleepQuality === 'excelente')) pts += 5;
+    return acc + pts;
+  }, 0);
+
+  const totalXPEarned = tasksXP + habitsXP + readingXP + studiesXP + financeXP + healthXP;
   const currentXP = totalXPEarned - spentXP;
 
   const spendXP = (amount: number) => {
@@ -74,6 +84,7 @@ export function usePosXP() {
     readingXP,
     studiesXP,
     financeXP,
+    healthXP,
     spendXP,
     refundXP
   };

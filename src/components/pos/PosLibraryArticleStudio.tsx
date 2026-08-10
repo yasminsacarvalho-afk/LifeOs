@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
-import { X, Edit3, Plus, Trash2, FileText, Youtube, BookOpen, AlignLeft, Target, GitMerge, DownloadCloud, PlayCircle, Network, HardDrive, Type } from 'lucide-react';
+import { createPortal } from 'react-dom';
+import { X, Edit3, Plus, Trash2, FileText, Youtube, BookOpen, AlignLeft, Target, GitMerge, DownloadCloud, PlayCircle, Network, HardDrive, Type, Quote } from 'lucide-react';
 import { PosBook } from '@/hooks/use-pos-library';
 import { RichTextEditor } from './RichTextEditor';
 import { toast } from 'sonner';
@@ -55,10 +56,18 @@ const htmlToPlainText = (html: string) => {
   return txt.value.trim().replace(/\n{3,}/g, '\n\n');
 };
 
+const getYoutubeVideoId = (url: string) => {
+  if (!url) return null;
+  const regExp = /^.*(youtu.be\/|v\/|u\/\w\/|embed\/|watch\?v=|&v=)([^#&?]*).*/;
+  const match = url.match(regExp);
+  return (match && match[2].length === 11) ? match[2] : null;
+};
+
 export function PosLibraryArticleStudio({ isOpen, onClose, books, sessions }: PosLibraryArticleStudioProps) {
   const [articles, setArticles] = useState<Article[]>([]);
   const [activeArticleId, setActiveArticleId] = useState<string | null>(null);
   const [editorTab, setEditorTab] = useState<'write' | 'board'>('write');
+  const [citationSelectorData, setCitationSelectorData] = useState<{id: string, text: string, author: string, selected: boolean}[] | null>(null);
   
   useEffect(() => {
     const stored = localStorage.getItem('lifeos_articles');
@@ -140,36 +149,60 @@ export function PosLibraryArticleStudio({ isOpen, onClose, books, sessions }: Po
     updateActiveArticle({ bookIds: activeArticle.bookIds.filter(id => id !== bookId) });
   };
 
-  const pullCitationsFromBooks = () => {
-    if (!activeArticle || activeArticle.bookIds.length === 0) {
-      toast.error("Selecione ao menos um livro para puxar citações.");
+  const openCitationSelector = () => {
+    if (!activeArticle) return;
+    
+    if (activeArticle.bookIds.length === 0 && activeArticle.videos.length === 0) {
+      toast.error("Adicione obras ou vídeos para puxar anotações.");
       return;
     }
     
     const relevantSessions = sessions.filter(s => activeArticle.bookIds.includes(s.book_id) && s.notes && s.notes.trim().length > 0);
+    const validVideos = activeArticle.videos.filter(v => v.description && v.description.trim().length > 0);
     
-    if (relevantSessions.length === 0) {
-      toast.info("Nenhuma anotação encontrada nas sessões de leitura dos livros selecionados.");
+    if (relevantSessions.length === 0 && validVideos.length === 0) {
+      toast.info("Nenhuma anotação encontrada nas sessões de leitura ou nos vídeos vinculados.");
       return;
     }
 
-    const newCitations: ArticleCitation[] = [];
+    const available: {id: string, text: string, author: string, selected: boolean}[] = [];
     
     activeArticle.bookIds.forEach(bookId => {
       const book = books.find(b => b.id === bookId);
       const bookSessions = relevantSessions.filter(s => s.book_id === bookId);
       
       bookSessions.forEach(s => {
-        newCitations.push({
+        available.push({
           id: Math.random().toString(36).substring(7),
-          text: s.notes,
-          author: book?.title || 'Autor Desconhecido'
+          text: s.notes!,
+          author: book?.title || 'Autor Desconhecido',
+          selected: false
         });
       });
     });
 
-    updateActiveArticle({ citationsList: [...activeArticle.citationsList, ...newCitations] });
-    toast.success(`${newCitations.length} anotações importadas com sucesso!`);
+    validVideos.forEach(v => {
+      available.push({
+        id: Math.random().toString(36).substring(7),
+        text: v.description,
+        author: v.title || 'Vídeo YouTube',
+        selected: false
+      });
+    });
+
+    setCitationSelectorData(available);
+  };
+
+  const confirmCitationsSelection = () => {
+    if (!citationSelectorData) return;
+    const selected = citationSelectorData.filter(c => c.selected).map(({ id, text, author }) => ({ id, text, author }));
+    if (selected.length === 0) {
+      toast.error("Selecione ao menos uma citação.");
+      return;
+    }
+    updateActiveArticle({ citationsList: [...(activeArticle?.citationsList || []), ...selected] });
+    setCitationSelectorData(null);
+    toast.success(`${selected.length} anotações importadas com sucesso!`);
   };
 
   const handleAddVideo = () => {
@@ -272,8 +305,9 @@ export function PosLibraryArticleStudio({ isOpen, onClose, books, sessions }: Po
 
   if (!isOpen) return null;
 
-  return (
-    <div className="fixed inset-0 z-[200] flex items-center justify-center bg-black/90 backdrop-blur-xl animate-in fade-in duration-300">
+  return createPortal(
+    <>
+      <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/90 backdrop-blur-xl animate-in fade-in duration-300">
       <div className="w-full h-full md:w-[98vw] md:h-[96vh] md:rounded-3xl border border-[rgba(255,255,255,0.06)] bg-[#050505] flex flex-col md:flex-row overflow-hidden shadow-2xl relative">
         
         <div className="absolute top-0 right-0 w-[500px] h-[500px] bg-indigo-500/5 blur-[120px] rounded-full pointer-events-none"></div>
@@ -393,83 +427,135 @@ export function PosLibraryArticleStudio({ isOpen, onClose, books, sessions }: Po
                           </label>
                           {activeArticle.bookIds.length > 0 && (
                             <button 
-                              onClick={pullCitationsFromBooks}
+                              onClick={openCitationSelector}
                               className="flex items-center gap-1.5 text-[10px] font-bold text-emerald-400 bg-emerald-500/10 hover:bg-emerald-500/20 border border-emerald-500/20 px-3 py-1.5 rounded-lg transition-colors"
                             >
                               <DownloadCloud className="size-3" /> Puxar Anotações & Citações
                             </button>
                           )}
                         </div>
-                        <div className="flex flex-wrap gap-2 items-center">
+                        <div className="flex overflow-x-auto custom-scrollbar pb-4 gap-4 mt-2 snap-x">
                           {activeArticle.bookIds.map(id => {
                             const book = books.find(b => b.id === id);
+                            if (!book) return null;
                             return (
-                              <div key={id} className="flex items-center gap-2 bg-[#1A1A1E] border border-[rgba(255,255,255,0.1)] px-3 py-1.5 rounded-lg text-sm text-white">
-                                <span className="truncate max-w-[200px]">{book?.title || 'Desconhecido'}</span>
-                                <button onClick={() => handleRemoveBook(id)} className="text-[#71717A] hover:text-rose-500"><X className="size-3" /></button>
+                              <div key={id} className="w-[300px] xl:w-[20%] shrink-0 snap-start flex flex-col gap-3 bg-[#131316] border border-[rgba(255,255,255,0.04)] p-4 rounded-xl relative group shadow-inner">
+                                <button onClick={() => handleRemoveBook(id)} className="absolute -top-2 -right-2 bg-rose-500 text-white p-1 rounded-full opacity-0 group-hover:opacity-100 transition-opacity shadow-lg z-10">
+                                  <X className="size-3" />
+                                </button>
+                                
+                                <div className="flex flex-col md:flex-row gap-4 items-center md:items-start">
+                                  {book.cover_url ? (
+                                    <div className="w-24 h-36 shrink-0 rounded-lg overflow-hidden border border-[rgba(255,255,255,0.1)] bg-[#0A0A0C]">
+                                      <img src={book.cover_url} alt="Capa" className="w-full h-full object-cover" />
+                                    </div>
+                                  ) : (
+                                    <div className="w-24 h-36 shrink-0 rounded-lg border border-[rgba(255,255,255,0.1)] bg-[#0A0A0C] flex flex-col items-center justify-center p-2 text-center">
+                                      <BookOpen className="size-6 text-[#3F3F46] mb-2" />
+                                      <span className="text-[9px] font-bold text-[#71717A] uppercase">Sem Capa</span>
+                                    </div>
+                                  )}
+                                  <div className="flex-1 flex flex-col w-full md:w-auto">
+                                    <div className="flex items-center gap-2 mb-1">
+                                      <BookOpen className="size-4 text-emerald-500" />
+                                      <h4 className="text-white font-bold text-base line-clamp-2">{book.title}</h4>
+                                    </div>
+                                    <p className="text-[#A1A1AA] text-sm mb-4">{book.author || 'Autor Desconhecido'}</p>
+                                    
+                                    <div className="text-[10px] bg-emerald-500/10 text-emerald-400 font-bold px-3 py-1.5 rounded-lg inline-block w-fit uppercase tracking-widest">
+                                      Obra Vinculada ao Acervo
+                                    </div>
+                                  </div>
+                                </div>
                               </div>
                             );
                           })}
-                          <select 
-                            onChange={handleAddBook}
-                            className="bg-transparent text-emerald-500 text-sm font-bold border border-dashed border-emerald-500/30 rounded-lg px-3 py-1.5 focus:outline-none hover:border-emerald-500/60 transition-colors cursor-pointer"
-                          >
-                            <option value="" className="bg-[#111113]">+ Adicionar Livro</option>
-                            {books.filter(b => !activeArticle.bookIds.includes(b.id)).map(b => (
-                              <option key={b.id} value={b.id} className="bg-[#111113]">{b.title}</option>
-                            ))}
-                          </select>
+                          
                         </div>
+                        <select 
+                          onChange={handleAddBook}
+                          className="w-full bg-transparent text-emerald-500 text-sm font-bold border border-dashed border-emerald-500/30 rounded-lg px-3 py-3 focus:outline-none hover:border-emerald-500/60 hover:bg-emerald-500/5 transition-colors cursor-pointer text-center mt-2"
+                        >
+                          <option value="" className="bg-[#111113]">+ Vincular Nova Obra ao Estúdio</option>
+                          {books.filter(b => !activeArticle.bookIds.includes(b.id)).map(b => (
+                            <option key={b.id} value={b.id} className="bg-[#111113]">{b.title}</option>
+                          ))}
+                        </select>
                       </div>
 
                       <div className="h-px w-full bg-[rgba(255,255,255,0.04)]"></div>
                       
                       {/* Vídeos e Links */}
                       <div className="flex flex-col gap-3">
-                        <div className="flex items-center justify-between">
+                        <div className="flex items-center justify-between mb-2">
                           <label className="text-xs uppercase font-bold text-[#A1A1AA] tracking-widest flex items-center gap-2">
                             <Youtube className="size-4 text-rose-500" /> Referências em Vídeo (YouTube)
                           </label>
-                          <button 
-                            onClick={handleAddVideo}
-                            className="flex items-center gap-1.5 text-[10px] font-bold text-rose-400 bg-rose-500/10 hover:bg-rose-500/20 border border-rose-500/20 px-3 py-1.5 rounded-lg transition-colors"
-                          >
-                            <Plus className="size-3" /> Adicionar Link
-                          </button>
+                          <div className="flex gap-2">
+                            {(activeArticle.bookIds.length > 0 || activeArticle.videos.length > 0) && (
+                              <button 
+                                onClick={openCitationSelector}
+                                className="flex items-center gap-1.5 text-[10px] font-bold text-rose-400 bg-rose-500/10 hover:bg-rose-500/20 border border-rose-500/20 px-3 py-1.5 rounded-lg transition-colors"
+                              >
+                                <DownloadCloud className="size-3" /> Puxar Anotações
+                              </button>
+                            )}
+                            <button 
+                              onClick={handleAddVideo}
+                              className="flex items-center gap-1.5 text-[10px] font-bold text-rose-400 bg-rose-500/10 hover:bg-rose-500/20 border border-rose-500/20 px-3 py-1.5 rounded-lg transition-colors"
+                            >
+                              <Plus className="size-3" /> Adicionar Link
+                            </button>
+                          </div>
                         </div>
                         
                         <div className="flex flex-col gap-4">
-                          {activeArticle.videos.map((vid, idx) => (
-                            <div key={vid.id} className="flex flex-col gap-3 bg-[#131316] border border-[rgba(255,255,255,0.04)] p-4 rounded-xl relative group">
-                              <button onClick={() => handleRemoveVideo(vid.id)} className="absolute -top-2 -right-2 bg-rose-500 text-white p-1 rounded-full opacity-0 group-hover:opacity-100 transition-opacity shadow-lg z-10">
-                                <X className="size-3" />
-                              </button>
-                              
-                              <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                                <div className="flex items-center gap-2 bg-[#0A0A0C] border border-[rgba(255,255,255,0.02)] rounded-lg p-2">
-                                  <Type className="size-4 text-rose-500 shrink-0" />
-                                  <input 
-                                    type="text" value={vid.title} onChange={e => handleUpdateVideo(vid.id, { title: e.target.value })}
-                                    placeholder="Nome ou Título do Vídeo..."
-                                    className="w-full bg-transparent text-sm text-white focus:outline-none placeholder:text-[#3F3F46]"
-                                  />
+                          {activeArticle.videos.map((vid, idx) => {
+                            const videoId = getYoutubeVideoId(vid.url);
+                            const thumbnailUrl = videoId ? `https://img.youtube.com/vi/${videoId}/hqdefault.jpg` : null;
+                            
+                            return (
+                              <div key={vid.id} className="flex flex-col gap-3 bg-[#131316] border border-[rgba(255,255,255,0.04)] p-4 rounded-xl relative group shadow-inner">
+                                <button onClick={() => handleRemoveVideo(vid.id)} className="absolute -top-2 -right-2 bg-rose-500 text-white p-1 rounded-full opacity-0 group-hover:opacity-100 transition-opacity shadow-lg z-10">
+                                  <X className="size-3" />
+                                </button>
+                                
+                                <div className="flex flex-col md:flex-row gap-4">
+                                  {thumbnailUrl && (
+                                    <a href={vid.url} target="_blank" rel="noopener noreferrer" className="w-full md:w-40 h-24 rounded-lg overflow-hidden shrink-0 border border-[rgba(255,255,255,0.1)] relative group-hover:border-rose-500/50 transition-colors block">
+                                      <img src={thumbnailUrl} alt="Thumbnail" className="w-full h-full object-cover" />
+                                      <div className="absolute inset-0 bg-black/40 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
+                                        <PlayCircle className="size-8 text-white drop-shadow-lg" />
+                                      </div>
+                                    </a>
+                                  )}
+                                  <div className="flex-1 flex flex-col gap-3">
+                                    <div className="flex items-center gap-2 bg-[#0A0A0C] border border-[rgba(255,255,255,0.02)] rounded-lg p-2 focus-within:border-rose-500/50 transition-colors">
+                                      <Type className="size-4 text-rose-500 shrink-0" />
+                                      <input 
+                                        type="text" value={vid.title} onChange={e => handleUpdateVideo(vid.id, { title: e.target.value })}
+                                        placeholder="Nome ou Título do Vídeo..."
+                                        className="w-full bg-transparent text-sm text-white font-bold focus:outline-none placeholder:text-[#3F3F46]"
+                                      />
+                                    </div>
+                                    <div className="flex items-center gap-2 bg-[#0A0A0C] border border-[rgba(255,255,255,0.02)] rounded-lg p-2 focus-within:border-rose-500/50 transition-colors">
+                                      <PlayCircle className="size-4 text-rose-500 shrink-0" />
+                                      <input 
+                                        type="text" value={vid.url} onChange={e => handleUpdateVideo(vid.id, { url: e.target.value })}
+                                        placeholder="Link do vídeo do YouTube..."
+                                        className="w-full bg-transparent text-sm text-[#A1A1AA] focus:outline-none placeholder:text-[#3F3F46]"
+                                      />
+                                    </div>
+                                  </div>
                                 </div>
-                                <div className="flex items-center gap-2 bg-[#0A0A0C] border border-[rgba(255,255,255,0.02)] rounded-lg p-2">
-                                  <PlayCircle className="size-4 text-rose-500 shrink-0" />
-                                  <input 
-                                    type="text" value={vid.url} onChange={e => handleUpdateVideo(vid.id, { url: e.target.value })}
-                                    placeholder="Link do vídeo (ex: ou link do minuto)..."
-                                    className="w-full bg-transparent text-sm text-[#A1A1AA] focus:outline-none placeholder:text-[#3F3F46]"
-                                  />
-                                </div>
+                                <textarea 
+                                  value={vid.description} onChange={e => handleUpdateVideo(vid.id, { description: e.target.value })}
+                                  placeholder="Descrição, citações e detalhamento do argumento deste vídeo..."
+                                  className="w-full bg-[#0A0A0C] border border-[rgba(255,255,255,0.02)] rounded-lg p-3 text-sm text-[#D4D4D8] focus:outline-none resize-none h-24 custom-scrollbar placeholder:text-[#3F3F46] focus-within:border-rose-500/50 transition-colors"
+                                />
                               </div>
-                              <textarea 
-                                value={vid.description} onChange={e => handleUpdateVideo(vid.id, { description: e.target.value })}
-                                placeholder="Descrição, citações e detalhamento do argumento deste vídeo..."
-                                className="w-full bg-[#0A0A0C] border border-[rgba(255,255,255,0.02)] rounded-lg p-3 text-xs text-[#D4D4D8] focus:outline-none resize-none h-20 custom-scrollbar placeholder:text-[#3F3F46]"
-                              />
-                            </div>
-                          ))}
+                            );
+                          })}
                           {activeArticle.videos.length === 0 && (
                             <div className="text-xs text-[#71717A] italic">Nenhum vídeo vinculado.</div>
                           )}
@@ -621,5 +707,46 @@ export function PosLibraryArticleStudio({ isOpen, onClose, books, sessions }: Po
         </div>
       </div>
     </div>
+      
+    {citationSelectorData && (
+        <div className="fixed inset-0 z-[10000] flex items-center justify-center bg-black/80 backdrop-blur-sm p-4 animate-in fade-in">
+          <div className="w-full max-w-2xl bg-[#111113] border border-[rgba(255,255,255,0.06)] rounded-2xl shadow-2xl flex flex-col max-h-[80vh] overflow-hidden">
+            <div className="p-5 border-b border-[rgba(255,255,255,0.06)] flex items-center justify-between bg-[#09090B]">
+              <h3 className="text-lg font-bold text-white flex items-center gap-2">
+                <FileText className="size-5 text-emerald-400" /> Selecionar Anotações
+              </h3>
+              <button onClick={() => setCitationSelectorData(null)} className="text-[#A1A1AA] hover:text-white">
+                <X className="size-5" />
+              </button>
+            </div>
+            <div className="flex-1 overflow-y-auto p-5 space-y-3 custom-scrollbar bg-[#09090B]/50">
+              {citationSelectorData.map((cit, idx) => (
+                <label key={cit.id} className={`flex items-start gap-3 p-4 rounded-xl border cursor-pointer transition-all ${cit.selected ? 'bg-emerald-500/10 border-emerald-500/30' : 'bg-[#1A1A1E] border-[rgba(255,255,255,0.04)] hover:border-[rgba(255,255,255,0.1)]'}`}>
+                  <input type="checkbox" checked={cit.selected} onChange={e => {
+                    const newData = [...citationSelectorData];
+                    newData[idx].selected = e.target.checked;
+                    setCitationSelectorData(newData);
+                  }} className="mt-1 accent-emerald-500" />
+                  <div className="flex-1">
+                    <div className="text-[10px] uppercase text-emerald-400 font-bold mb-1">{cit.author}</div>
+                    <div className="text-sm text-[#D4D4D8] whitespace-pre-wrap font-serif italic line-clamp-4 hover:line-clamp-none">{cit.text}</div>
+                  </div>
+                </label>
+              ))}
+              {citationSelectorData.length === 0 && (
+                 <div className="text-center p-6 text-[#A1A1AA] text-sm">Nenhuma anotação encontrada.</div>
+              )}
+            </div>
+            <div className="p-5 border-t border-[rgba(255,255,255,0.06)] bg-[#09090B] flex justify-end gap-3">
+              <button onClick={() => setCitationSelectorData(null)} className="px-4 py-2 rounded-xl text-sm font-bold text-[#A1A1AA] hover:text-white transition-colors">Cancelar</button>
+              <button onClick={confirmCitationsSelection} className="px-4 py-2 rounded-xl text-sm font-bold bg-emerald-600 hover:bg-emerald-500 text-white shadow-[0_0_15px_rgba(16,185,129,0.2)] transition-colors">
+                Importar Selecionadas ({citationSelectorData.filter(c => c.selected).length})
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+    </>,
+    document.body
   );
 }

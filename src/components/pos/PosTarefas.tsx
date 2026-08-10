@@ -118,27 +118,33 @@ export function PosTarefas() {
   });
 
   const renderTaskCard = (task: any, isGrid: boolean = false) => (
-    <div key={task.id} className={cn("group flex bg-[#111113] border border-[rgba(255,255,255,0.06)] rounded-xl hover:border-rose-500/30 transition-colors gap-4", isGrid ? "flex-col p-5" : "flex-col sm:flex-row sm:items-center justify-between p-5")}>
-      <div className={cn("flex items-start gap-4", isGrid ? "w-full" : "w-full sm:w-auto")}>
-        <button onClick={() => updateTask(task.id, { status: task.status === 'concluida' ? 'pendente' : 'concluida' })} className="mt-1 text-[#4A4A4A] hover:text-emerald-500 transition-colors shrink-0">
-          <CheckCircle2 className={cn("size-6", task.status === 'concluida' && "text-emerald-500")} />
+    <div key={task.id} className={cn(
+      "group flex relative bg-gradient-to-br from-[#111113] to-[#09090B] border border-[rgba(255,255,255,0.03)] hover:border-rose-500/30 rounded-2xl hover:shadow-[0_8px_30px_rgb(225,29,72,0.05)] transition-all duration-500 overflow-hidden gap-4",
+      isGrid ? "flex-col p-6" : "flex-col sm:flex-row sm:items-center justify-between p-5"
+    )}>
+      {/* Elegance subtle gradient glow */}
+      <div className="absolute inset-0 bg-gradient-to-r from-rose-500/0 via-rose-500/0 to-rose-500/0 group-hover:to-rose-500/5 transition-colors duration-700 pointer-events-none" />
+      
+      <div className={cn("flex items-start gap-4 relative z-10", isGrid ? "w-full" : "w-full sm:w-auto")}>
+        <button onClick={() => updateTask(task.id, { status: task.status === 'concluida' ? 'pendente' : 'concluida' })} className="mt-1 text-[#333] hover:text-emerald-500 transition-all duration-300 transform group-hover:scale-105 shrink-0">
+          <CheckCircle2 className={cn("size-6 transition-all duration-500", task.status === 'concluida' && "text-emerald-500 drop-shadow-[0_0_8px_rgba(16,185,129,0.5)]")} />
         </button>
         <div className="flex-1">
           <h4 className={cn("text-base font-medium transition-colors", task.status === 'concluida' ? "line-through text-[#6F6F6F]" : "text-white")}>{task.title}</h4>
           {task.description && (
              <p className="text-xs text-[#A1A1AA] mt-2 whitespace-pre-wrap line-clamp-4 leading-relaxed">{task.description}</p>
           )}
-          <div className="flex flex-wrap items-center gap-2 text-[11px] font-medium text-[#6F6F6F] mt-3 tracking-wide">
-             {task.deadline && <span className={cn(getSafeDate(task.deadline)! < new Date() && !isToday(getSafeDate(task.deadline)!) && task.status !== 'concluida' ? "text-rose-500 bg-rose-500/10 px-2 py-0.5 rounded" : "bg-[#1A1A1E] px-2 py-0.5 rounded")}>{format(getSafeDate(task.deadline)!, "dd MMM yyyy", {locale: ptBR})} {task.due_time && `às ${task.due_time.substring(0,5)}`}</span>}
-             {task.priority && <span className={cn("px-2 py-0.5 rounded uppercase font-bold", task.priority === 'alta' ? 'bg-amber-500/10 text-amber-500' : task.priority === 'critica' ? 'bg-rose-500/10 text-rose-500' : 'bg-[#1A1A1E]')}>{task.priority}</span>}
-             {task.category && <span className="bg-[#1A1A1E] px-2 py-0.5 rounded">{task.category}</span>}
-             {task.responsible && <span className="bg-[#1A1A1E] px-2 py-0.5 rounded">@{task.responsible}</span>}
+          <div className="flex flex-wrap items-center gap-2 text-[10px] uppercase font-bold text-[#6F6F6F] mt-3 tracking-widest relative z-10">
+             {task.deadline && <span className={cn(getSafeDate(task.deadline)! < new Date() && !isToday(getSafeDate(task.deadline)!) && task.status !== 'concluida' ? "text-rose-400 bg-rose-500/10 border border-rose-500/20 px-2 py-0.5 rounded-md" : "bg-[rgba(255,255,255,0.03)] border border-[rgba(255,255,255,0.05)] text-[#A1A1AA] px-2 py-0.5 rounded-md")}>{format(getSafeDate(task.deadline)!, "dd MMM", {locale: ptBR})} {task.due_time && `às ${task.due_time.substring(0,5)}`}</span>}
+             {task.priority && <span className={cn("px-2 py-0.5 rounded-md border", task.priority === 'alta' ? 'bg-amber-500/10 text-amber-500 border-amber-500/20' : task.priority === 'critica' ? 'bg-rose-500/10 text-rose-500 border-rose-500/20' : 'bg-[rgba(255,255,255,0.03)] text-[#A1A1AA] border-[rgba(255,255,255,0.05)]')}>{task.priority}</span>}
+             {task.category && <span className="bg-[rgba(255,255,255,0.03)] border border-[rgba(255,255,255,0.05)] text-[#A1A1AA] px-2 py-0.5 rounded-md">{task.category}</span>}
+             {task.responsible && <span className="bg-indigo-500/10 border border-indigo-500/20 text-indigo-400 px-2 py-0.5 rounded-md">@{task.responsible}</span>}
           </div>
         </div>
       </div>
-      <div className={cn("flex items-center gap-2 transition-opacity", isGrid ? "justify-end w-full mt-2" : "justify-end opacity-100 sm:opacity-0 sm:group-hover:opacity-100")}>
-        <button onClick={() => handleOpenModal(task)} className="p-2 text-[#6F6F6F] hover:text-white bg-[#1A1A1E] hover:bg-[#27272A] rounded-lg transition-colors"><Edit2 className="size-4" /></button>
-        <button onClick={() => handleDelete(task.id)} className="p-2 text-[#6F6F6F] hover:text-rose-500 bg-[#1A1A1E] hover:bg-[#27272A] rounded-lg transition-colors"><Trash2 className="size-4" /></button>
+      <div className={cn("flex items-center gap-2 transition-all duration-300 relative z-10", isGrid ? "justify-end w-full mt-2" : "justify-end opacity-100 sm:opacity-0 sm:group-hover:opacity-100")}>
+        <button onClick={() => handleOpenModal(task)} className="p-2 text-[#6F6F6F] hover:text-white bg-[rgba(255,255,255,0.02)] hover:bg-[rgba(255,255,255,0.06)] rounded-lg transition-colors backdrop-blur-md"><Edit2 className="size-4" /></button>
+        <button onClick={() => handleDelete(task.id)} className="p-2 text-[#6F6F6F] hover:text-rose-500 bg-[rgba(255,255,255,0.02)] hover:bg-rose-500/10 rounded-lg transition-colors backdrop-blur-md"><Trash2 className="size-4" /></button>
       </div>
     </div>
   );

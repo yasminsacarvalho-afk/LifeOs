@@ -278,6 +278,29 @@ export function PosLibraryInvestigationBoard({
         )}
       </div>
 
+      <style>{`
+        .react-flow__controls-button {
+          background-color: #111113 !important;
+          border: 1px solid rgba(255, 255, 255, 0.06) !important;
+          border-bottom: none !important;
+          color: #A1A1AA !important;
+          fill: #A1A1AA !important;
+        }
+        .react-flow__controls-button:hover {
+          background-color: #27272A !important;
+          fill: white !important;
+        }
+        .react-flow__controls-button:last-child {
+          border-bottom: 1px solid rgba(255, 255, 255, 0.06) !important;
+        }
+        .react-flow__minimap {
+          background-color: #0A0A0C !important;
+          border: 1px solid rgba(255, 255, 255, 0.06) !important;
+          border-radius: 12px;
+          overflow: hidden;
+        }
+      `}</style>
+
       <ReactFlow
         nodes={nodes}
         edges={edges}
@@ -289,7 +312,7 @@ export function PosLibraryInvestigationBoard({
         className="bg-[#050505]"
       >
         <Background color="#333" gap={16} />
-        <Controls className="bg-[#111113] border-[rgba(255,255,255,0.06)] fill-white" />
+        <Controls />
         <MiniMap 
           nodeColor={(node: any) => {
             if (node.type === 'book') return '#6366f1';
@@ -301,7 +324,7 @@ export function PosLibraryInvestigationBoard({
               default: return '#94a3b8';
             }
           }}
-          className="bg-[#111113] border-[rgba(255,255,255,0.06)]"
+          maskColor="rgba(0, 0, 0, 0.7)"
         />
       </ReactFlow>
     </div>

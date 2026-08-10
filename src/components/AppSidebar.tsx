@@ -33,6 +33,7 @@ import {
   BellRing,
   ShoppingCart,
   Briefcase,
+  PlaySquare,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useAuth } from "@/contexts/AuthContext";
@@ -95,6 +96,7 @@ const navSections = [
       { to: "/personal-os", search: { tab: "compras" }, label: "Compras", icon: ShoppingCart, permission: "view_dashboard" },
       { to: "/personal-os", search: { tab: "estudos" }, label: "Estudos", icon: GraduationCap, permission: "view_dashboard" },
       { to: "/personal-os", search: { tab: "entretenimento" }, label: "Lazer", icon: Gamepad2, permission: "view_dashboard" },
+      { to: "/personal-os", search: { tab: "conteudo" }, label: "Conteúdo", icon: PlaySquare, permission: "view_dashboard" },
       { to: "/personal-os", search: { tab: "alarmes" }, label: "Alarmes", icon: BellRing, permission: "view_dashboard" },
       { to: "/academy", label: "Academy", icon: GraduationCap, permission: "view_dashboard" },
     ],
@@ -165,7 +167,11 @@ export function AppSidebar() {
         </div>
 
         {/* Right side icons */}
-        <div className="flex gap-7">
+        <div className="flex gap-5 md:gap-7">
+          <Link to="/personal-os" search={{ tab: 'conteudo' }} className={cn("flex flex-col items-center gap-1 transition-colors", pathname === '/personal-os' && searchParams.tab === 'conteudo' ? "text-rose-500" : "text-[#71717A] hover:text-white")}>
+            <PlaySquare className={cn("size-5", pathname === '/personal-os' && searchParams.tab === 'conteudo' && "fill-rose-500/20")} />
+            <span className="text-[9px] font-bold uppercase tracking-widest">Conteúdo</span>
+          </Link>
           <Link to="/personal-os" search={{ tab: 'leitura' }} className={cn("flex flex-col items-center gap-1 transition-colors", pathname === '/personal-os' && searchParams.tab === 'leitura' ? "text-rose-500" : "text-[#71717A] hover:text-white")}>
             <BookOpen className={cn("size-5", pathname === '/personal-os' && searchParams.tab === 'leitura' && "fill-rose-500/20")} />
             <span className="text-[9px] font-bold uppercase tracking-widest">Leitura</span>

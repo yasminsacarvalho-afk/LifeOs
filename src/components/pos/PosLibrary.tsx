@@ -602,7 +602,7 @@ export function PosLibrary() {
       notes: "",
       chapters_read: "",
       pages_read: "",
-      location: "Buscando localização...",
+      location: "",
       device: mapFormatToDevice(book.format),
       difficulty: "Fácil",
       concentration_level: 8
@@ -620,7 +620,10 @@ export function PosLibrary() {
           const currentStr = localStorage.getItem('lifeos_active_sessions');
           if (currentStr) {
             const current = JSON.parse(currentStr);
-            saveActiveSessions(current.map((s: any) => s.id === sessionId ? { ...s, location: city } : s));
+            const activeSession = current.find((s: any) => s.id === sessionId);
+            if (activeSession && (!activeSession.location || activeSession.location === "")) {
+              saveActiveSessions(current.map((s: any) => s.id === sessionId ? { ...s, location: city } : s));
+            }
           }
         } catch (e) {
           console.warn("GPS reverse geocoding failed", e);
@@ -936,20 +939,6 @@ Link original: ${book.buy_link || ''}`;
             <p className="text-[#A1A1AA] text-sm md:text-base mt-3 max-w-2xl font-medium tracking-wide">Rastreabilidade completa, sabedoria em órbita, resumos de absorção e conexões profundas do seu universo intelectual.</p>
           </div>
           <div className="flex flex-wrap items-center gap-3 animate-in fade-in slide-in-from-right-8 duration-1000">
-            <label className="flex items-center gap-2 bg-[#1A1A1E]/80 backdrop-blur-md text-emerald-400 border border-emerald-500/20 hover:border-emerald-500/50 px-5 py-3 rounded-xl text-sm font-bold hover:bg-[#27272A]/80 transition-all shadow-[0_0_15px_rgba(16,185,129,0.15)] cursor-pointer relative overflow-hidden">
-              {isUploadingResource ? (
-                <><Loader2 className="animate-spin size-4" /> Subindo...</>
-              ) : (
-                <><Upload className="size-4" /> Subir Livro</>
-              )}
-              <input 
-                type="file" 
-                accept=".pdf,.epub,.mobi" 
-                className="hidden" 
-                onChange={handleQuickUpload} 
-                disabled={isUploadingResource} 
-              />
-            </label>
             <button 
               onClick={() => setShowArticleStudio(true)}
               className="flex items-center gap-2 bg-[#1A1A1E]/80 backdrop-blur-md text-white border border-indigo-500/20 hover:border-indigo-500/50 px-5 py-3 rounded-xl text-sm font-bold hover:bg-[#27272A]/80 transition-all shadow-[0_0_15px_rgba(99,102,241,0.15)]"
@@ -1658,11 +1647,19 @@ Link original: ${book.buy_link || ''}`;
 
               <div className="flex justify-between items-center relative z-10">
                  <h3 className="text-white font-bold flex items-center gap-2 text-lg">
-Continue Lendo                
- </h3>
-                 <span className="bg-rose-500/10 text-rose-400 px-3 py-1 rounded-full text-xs font-bold border border-rose-500/20 shadow-glow-sm">
-                   {cbPercent}%
-                 </span>
+                   Continue Lendo                
+                 </h3>
+                 <div className="flex gap-2 items-center">
+                   <button 
+                     onClick={() => setViewingBookId(currentBook.id)}
+                     className="px-3 py-1 rounded-full text-[10px] uppercase tracking-widest font-bold text-white bg-white/10 hover:bg-white/20 transition-colors border border-white/10 shadow-sm"
+                   >
+                     Abrir Livro
+                   </button>
+                   <span className="bg-rose-500/10 text-rose-400 px-3 py-1 rounded-full text-xs font-bold border border-rose-500/20 shadow-glow-sm">
+                     {cbPercent}%
+                   </span>
+                 </div>
               </div>
               
               <div className="flex gap-4 md:gap-5 relative z-10">
@@ -1881,7 +1878,8 @@ Continue Lendo
                                <label className="text-[10px] uppercase tracking-widest text-[#71717A] font-bold mb-2 block">Onde Li?</label>
                                <input 
                                  type="text" 
-                                 value={session.location || "Casa"}
+                                 value={session.location || ""}
+                                 placeholder="Automático (GPS) ou digite..."
                                  onChange={(e) => saveActiveSessions(activeSessions.map(s => s.id === session.id ? { ...s, location: e.target.value } : s))}
                                  className="w-full bg-[#1A1A1E] border border-[rgba(255,255,255,0.06)] rounded-xl px-4 py-3 text-sm text-white focus:border-rose-500 focus:outline-none transition-colors"
                                />

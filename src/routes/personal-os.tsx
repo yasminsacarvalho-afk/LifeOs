@@ -4,22 +4,24 @@ import {
   GraduationCap, BookOpen, DollarSign, Lightbulb, Target, 
   Brain, Coffee, Timer, Book, LineChart, Plus, AlertCircle, 
   ChevronRight, ArrowRight, Sparkles, TrendingUp, TrendingDown, Clock, Home, Menu, X, CheckCircle2, XCircle,
-  Settings, Monitor, Smartphone, ShieldAlert, User, Download, Mic, MicOff, Volume2, ShoppingCart
+  Settings, Monitor, Smartphone, ShieldAlert, User, Download, Mic, MicOff, Volume2, ShoppingCart, Heart, PlaySquare
 } from "lucide-react";
-import { useState, useEffect } from "react";
+import { useState, useEffect, lazy, Suspense } from "react";
 import { cn } from "@/lib/utils";
 import { isPermissionGranted, requestPermission, sendNotification } from '@tauri-apps/plugin-notification';
-import { PosAgenda } from "@/components/pos/PosAgenda";
-import { PosTarefas } from "@/components/pos/PosTarefas";
-import { PosHabits } from "@/components/pos/PosHabits";
-import { PosLibrary } from "@/components/pos/PosLibrary";
-import { PosIdeas } from "@/components/pos/PosIdeas";
-import { PosGoals } from "@/components/pos/PosGoals";
-import { PosStudies } from "@/components/pos/PosStudies";
-import { PosFinance } from "@/components/pos/PosFinance";
-import { PosEntertainment } from "@/components/pos/PosEntertainment";
-import { PosAcquisitions } from "@/components/pos/PosAcquisitions";
-import { PosAlarms } from "@/components/pos/PosAlarms";
+const PosAgenda = lazy(() => import("@/components/pos/PosAgenda").then(m => ({ default: m.PosAgenda })));
+const PosTarefas = lazy(() => import("@/components/pos/PosTarefas").then(m => ({ default: m.PosTarefas })));
+const PosHabits = lazy(() => import("@/components/pos/PosHabits").then(m => ({ default: m.PosHabits })));
+const PosLibrary = lazy(() => import("@/components/pos/PosLibrary").then(m => ({ default: m.PosLibrary })));
+const PosIdeas = lazy(() => import("@/components/pos/PosIdeas").then(m => ({ default: m.PosIdeas })));
+const PosGoals = lazy(() => import("@/components/pos/PosGoals").then(m => ({ default: m.PosGoals })));
+const PosStudies = lazy(() => import("@/components/pos/PosStudies").then(m => ({ default: m.PosStudies })));
+const PosFinance = lazy(() => import("@/components/pos/PosFinance").then(m => ({ default: m.PosFinance })));
+const PosEntertainment = lazy(() => import("@/components/pos/PosEntertainment").then(m => ({ default: m.PosEntertainment })));
+const PosAcquisitions = lazy(() => import("@/components/pos/PosAcquisitions").then(m => ({ default: m.PosAcquisitions })));
+const PosAlarms = lazy(() => import("@/components/pos/PosAlarms").then(m => ({ default: m.PosAlarms })));
+const PosHealth = lazy(() => import("@/components/pos/PosHealth").then(m => ({ default: m.PosHealth })));
+const PosContent = lazy(() => import("@/components/pos/PosContent").then(m => ({ default: m.PosContent })));
 import { usePosTasks } from "@/hooks/use-pos-tasks";
 import { usePosHabits } from "@/hooks/use-pos-habits";
 import { usePosAgenda } from "@/hooks/use-pos-agenda";
@@ -31,10 +33,10 @@ import { useTreasuryRealtime } from "@/hooks/use-treasury-realtime";
 import { useCrmRealtime } from "@/hooks/use-crm-realtime";
 import { useTransactionsRealtime } from "@/hooks/use-transactions-realtime";
 import { format, isToday, parseISO, isThisMonth, isThisWeek } from "date-fns";
-import { PosPrincipal } from "@/components/pos/PosPrincipal";
-import { PosEvolution } from "@/components/pos/PosEvolution";
-import { PosRewards } from "@/components/pos/PosRewards";
-import { PosProfessional } from "@/components/pos/PosProfessional";
+const PosPrincipal = lazy(() => import("@/components/pos/PosPrincipal").then(m => ({ default: m.PosPrincipal })));
+const PosEvolution = lazy(() => import("@/components/pos/PosEvolution").then(m => ({ default: m.PosEvolution })));
+const PosRewards = lazy(() => import("@/components/pos/PosRewards").then(m => ({ default: m.PosRewards })));
+const PosProfessional = lazy(() => import("@/components/pos/PosProfessional").then(m => ({ default: m.PosProfessional })));
 import { GlobalNextTripTicker } from "@/components/pos/GlobalNextTripTicker";
 import { PieChart, PiggyBank, Gift, BellRing } from "lucide-react";
 import { AlarmsProvider } from "@/contexts/AlarmsContext";
@@ -59,8 +61,10 @@ const modules = [
   { id: "evolucao", name: "Evolução", icon: TrendingUp },
   { id: "estudos", name: "Estudos", icon: GraduationCap },
   { id: "leitura", name: "Leitura", icon: BookOpen },
+  { id: "saude", name: "Health OS", icon: Heart },
   { id: "financeiro", name: "Financeiro", icon: DollarSign },
   { id: "compras", name: "Compras (Wishlist)", icon: ShoppingCart },
+  { id: "conteudo", name: "Conteúdo", icon: PlaySquare },
   { id: "analytics", name: "Insights", icon: PieChart, path: "/analytics" },
   { id: "ideias", name: "Ideias", icon: Lightbulb },
   { id: "entretenimento", name: "Entretenimento", icon: Sparkles },
@@ -131,8 +135,8 @@ function DashboardGeral() {
   const { tasks } = usePosTasks();
   const { habits, logs: habitLogs } = usePosHabits();
   const { events } = usePosAgenda();
-  const { books } = usePosLibrary();
-  const { courses } = usePosStudies();
+  const { books, sessions: readingSessions } = usePosLibrary();
+  const { courses, sessions: studySessions } = usePosStudies();
   const { ideas } = usePosIdeas();
   const { expenses } = usePosFinance();
   const { accounts: treasuryAccounts } = useTreasuryRealtime();
@@ -261,7 +265,10 @@ function DashboardGeral() {
   
   const eventsToday = events.filter(e => e.event_date === todayStr).length;
   
-  const hoursFocused = Math.round(tasks.filter(t => t.status === 'concluida').reduce((acc, t) => acc + (t.actual_minutes || t.estimated_minutes || 0), 0) / 60);
+  const tasksFocusedMinutes = tasks.filter(t => t.status === 'concluida').reduce((acc, t) => acc + (t.actual_minutes || t.estimated_minutes || 0), 0);
+  const readingFocusedMinutes = readingSessions.reduce((acc, s) => acc + (s.duration_minutes || 0), 0);
+  const studyFocusedMinutes = studySessions.reduce((acc, s) => acc + (s.duration_minutes || 0), 0);
+  const hoursFocused = Math.round((tasksFocusedMinutes + readingFocusedMinutes + studyFocusedMinutes) / 60);
   const pagesRead = books.reduce((acc, b) => acc + (b.pages_read || 0), 0);
   const booksReading = books.filter(b => b.status === 'lendo').length;
   const hoursStudied = Math.round(courses.reduce((acc, c) => acc + (c.completed_hours || 0), 0));
@@ -829,7 +836,9 @@ function DashboardGeral() {
 
       {/* MÓDULO DE ALARMES INTEGRADO NA ABA PESSOAL */}
       <div className="mt-8 pt-4">
-        <PosAlarms />
+        <Suspense fallback={<div className="h-40 flex items-center justify-center text-muted-foreground">Carregando Alarmes...</div>}>
+          <PosAlarms />
+        </Suspense>
       </div>
 
       {/* CONSELHO IA MODAL */}
@@ -1320,48 +1329,59 @@ function PersonalOSPage() {
           </>
         )}
 
-        {activeModule === "principal" ? (
-          <PosPrincipal />
-        ) : activeModule === "geral" ? (
-          <DashboardGeral />
-        ) : activeModule === "agenda" ? (
-          <PosAgenda />
-        ) : activeModule === "tarefas" ? (
-          <PosTarefas />
-        ) : activeModule === "habitos" ? (
-          <PosHabits />
-        ) : activeModule === "metas" ? (
-          <PosGoals />
-        ) : activeModule === "leitura" ? (
-          <PosLibrary />
-        ) : activeModule === "ideias" ? (
-          <PosIdeas />
-        ) : activeModule === "estudos" ? (
-          <PosStudies />
-        ) : activeModule === "evolucao" ? (
-          <PosEvolution />
-        ) : activeModule === "recompensas" ? (
-          <PosRewards />
-        ) : activeModule === "financeiro" ? (
-          <PosFinance />
-        ) : activeModule === "compras" ? (
-          <PosAcquisitions />
-        ) : activeModule === "entretenimento" ? (
-          <PosEntertainment />
-        ) : activeModule === "alarmes" ? (
-          <PosAlarms />
-        ) : activeModule === "profissional" ? (
-          <PosProfessional />
-        ) : (
-          <div className="p-10 max-w-[1400px] mx-auto flex flex-col items-center justify-center min-h-[60vh] text-center">
-            {activeModuleData && <activeModuleData.icon className="size-16 text-[#1A1A1E] mb-6" />}
-            <h2 className="text-2xl font-bold tracking-tight text-white mb-2">{activeModuleData?.name}</h2>
-            <p className="text-[#A1A1AA] max-w-md">
-              A interface executiva para este módulo foi mapeada e a arquitetura SQL do banco de dados já está pronta.
-              Para que o CRUD (Criar, Ler, Atualizar, Deletar) entre em ação, eu preciso conectá-lo ao Supabase.
-            </p>
+        <Suspense fallback={
+          <div className="flex flex-col items-center justify-center min-h-[60vh] text-center">
+            <div className="size-10 border-2 border-primary/20 border-t-primary rounded-full animate-spin mb-4"></div>
+            <div className="text-muted-foreground text-sm uppercase tracking-widest font-bold">Carregando Módulo...</div>
           </div>
-        )}
+        }>
+          {activeModule === "principal" ? (
+            <PosPrincipal />
+          ) : activeModule === "geral" ? (
+            <DashboardGeral />
+          ) : activeModule === "agenda" ? (
+            <PosAgenda />
+          ) : activeModule === "tarefas" ? (
+            <PosTarefas />
+          ) : activeModule === "habitos" ? (
+            <PosHabits />
+          ) : activeModule === "metas" ? (
+            <PosGoals />
+          ) : activeModule === "leitura" ? (
+            <PosLibrary />
+          ) : activeModule === "ideias" ? (
+            <PosIdeas />
+          ) : activeModule === "estudos" ? (
+            <PosStudies />
+          ) : activeModule === "evolucao" ? (
+            <PosEvolution />
+          ) : activeModule === "recompensas" ? (
+            <PosRewards />
+          ) : activeModule === "financeiro" ? (
+            <PosFinance />
+          ) : activeModule === "compras" ? (
+            <PosAcquisitions />
+          ) : activeModule === "entretenimento" ? (
+            <PosEntertainment />
+          ) : activeModule === "alarmes" ? (
+            <PosAlarms />
+          ) : activeModule === "profissional" ? (
+            <PosProfessional />
+          ) : activeModule === "saude" ? (
+            <PosHealth />
+          ) : activeModule === "conteudo" ? (
+            <PosContent />
+          ) : (
+            <div className="p-10 max-w-[1400px] mx-auto flex flex-col items-center justify-center min-h-[60vh] text-center">
+              {activeModuleData && <activeModuleData.icon className="size-16 text-[#1A1A1E] mb-6" />}
+              <h2 className="text-2xl font-bold tracking-tight text-white mb-2">{activeModuleData?.name}</h2>
+              <p className="text-[#A1A1AA] max-w-md">
+                A interface executiva para este módulo foi mapeada e a arquitetura SQL do banco de dados já está pronta.
+                Para que o CRUD (Criar, Ler, Atualizar, Deletar) entre em ação, eu preciso conectá-lo ao Supabase.
+              </p>
+            </div>
+          )}
+        </Suspense>
 
       </main>
       </div>

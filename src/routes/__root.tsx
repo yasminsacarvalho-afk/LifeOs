@@ -12,7 +12,7 @@ import { useEffect, type ReactNode } from "react";
 import appCss from "../styles.css?url";
 import { reportLovableError } from "../lib/lovable-error-reporting";
 import { AppSidebar } from "@/components/AppSidebar";
-import { Toaster } from "sonner";
+import { Toaster, toast } from "sonner";
 import { AuthProvider, useAuth } from "@/contexts/AuthContext";
 import { ThemeProvider } from "@/contexts/ThemeContext";
 import { useRouterState, Navigate } from "@tanstack/react-router";
@@ -160,6 +160,27 @@ function RootComponent() {
     if ("serviceWorker" in navigator) {
       registerSW({ immediate: true });
     }
+
+    const handleOffline = () => {
+      toast.error("Você está offline. Operando em modo cache local.", { duration: Infinity, id: 'offline-toast' });
+    };
+
+    const handleOnline = () => {
+      toast.dismiss('offline-toast');
+      toast.success("Conexão restabelecida. Sincronizando...");
+    };
+
+    window.addEventListener('offline', handleOffline);
+    window.addEventListener('online', handleOnline);
+
+    if (!navigator.onLine) {
+      handleOffline();
+    }
+
+    return () => {
+      window.removeEventListener('offline', handleOffline);
+      window.removeEventListener('online', handleOnline);
+    };
   }, []);
 
   return (
