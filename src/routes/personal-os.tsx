@@ -38,7 +38,7 @@ const PosEvolution = lazy(() => import("@/components/pos/PosEvolution").then(m =
 const PosRewards = lazy(() => import("@/components/pos/PosRewards").then(m => ({ default: m.PosRewards })));
 const PosProfessional = lazy(() => import("@/components/pos/PosProfessional").then(m => ({ default: m.PosProfessional })));
 import { GlobalNextTripTicker } from "@/components/pos/GlobalNextTripTicker";
-import { PieChart, PiggyBank, Gift, BellRing } from "lucide-react";
+import { PieChart, PiggyBank, Gift, BellRing, Database, Cloud } from "lucide-react";
 import { AlarmsProvider } from "@/contexts/AlarmsContext";
 
 export const Route = createFileRoute("/personal-os")({
@@ -522,6 +522,55 @@ function DashboardGeral() {
               </div>
             </div>
           ))}
+        </div>
+      </div>
+
+      {/* Infraestrutura e Armazenamento */}
+      <div className="mt-8">
+        <div className="flex items-center justify-between mb-6">
+          <h2 className="text-lg font-medium text-white tracking-tight">Infraestrutura Cloud & Banco de Dados</h2>
+        </div>
+        
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          {/* Supabase */}
+          <div className="bg-[#111113] border border-[rgba(255,255,255,0.04)] rounded-3xl p-6 flex flex-col sm:flex-row sm:items-center gap-6 group hover:border-[rgba(255,255,255,0.1)] transition-all">
+            <div className="size-14 rounded-2xl bg-[#3ECF8E]/10 border border-[#3ECF8E]/20 flex items-center justify-center shrink-0">
+               <Database className="size-6 text-[#3ECF8E]" />
+            </div>
+            <div className="flex-1 w-full">
+               <div className="flex justify-between items-end mb-2">
+                 <h3 className="text-sm font-bold text-white uppercase tracking-widest">Supabase (PostgreSQL)</h3>
+                 <span className="text-xs font-bold text-[#3ECF8E]">Saudável</span>
+               </div>
+               <div className="flex justify-between items-end mb-2">
+                 <div className="text-xs text-[#71717A]">Armazenamento (Estimado)</div>
+                 <div className="text-sm font-bold text-white">45 MB <span className="text-[#A1A1AA] text-xs font-normal">/ 500 MB</span></div>
+               </div>
+               <div className="h-1.5 w-full bg-[#1A1A1E] rounded-full overflow-hidden">
+                 <div className="h-full rounded-full bg-[#3ECF8E]" style={{ width: '9%' }} />
+               </div>
+            </div>
+          </div>
+
+          {/* Google Drive */}
+          <div className="bg-[#111113] border border-[rgba(255,255,255,0.04)] rounded-3xl p-6 flex flex-col sm:flex-row sm:items-center gap-6 group hover:border-[rgba(255,255,255,0.1)] transition-all">
+            <div className="size-14 rounded-2xl bg-[#4285F4]/10 border border-[#4285F4]/20 flex items-center justify-center shrink-0">
+               <Cloud className="size-6 text-[#4285F4]" />
+            </div>
+            <div className="flex-1 w-full">
+               <div className="flex justify-between items-end mb-2">
+                 <h3 className="text-sm font-bold text-white uppercase tracking-widest">Google Drive Workspace</h3>
+                 <span className="text-xs font-bold text-[#4285F4]">Sincronizado</span>
+               </div>
+               <div className="flex justify-between items-end mb-2">
+                 <div className="text-xs text-[#71717A]">Mídias & Docs (Estimado)</div>
+                 <div className="text-sm font-bold text-white">2.4 GB <span className="text-[#A1A1AA] text-xs font-normal">/ 15 GB</span></div>
+               </div>
+               <div className="h-1.5 w-full bg-[#1A1A1E] rounded-full overflow-hidden">
+                 <div className="h-full rounded-full bg-[#4285F4]" style={{ width: '16%' }} />
+               </div>
+            </div>
+          </div>
         </div>
       </div>
 

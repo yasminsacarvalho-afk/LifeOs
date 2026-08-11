@@ -93,7 +93,7 @@ export function usePosStudies() {
     }
   };
 
-  const updateCourse = async (id: string, updates: Partial<PosStudyCourse>) => {
+  const updateCourse = async (id: string, updates: Partial<PosStudyCourse>, showToast: boolean = true) => {
     try {
       const { data, error } = await supabase
         .from('pos_studies')
@@ -104,9 +104,11 @@ export function usePosStudies() {
 
       if (error) throw error;
       if (data) setCourses(courses.map(c => c.id === id ? data : c));
-      toast.success("Curso atualizado!");
+      if (showToast) toast.success("Curso atualizado!");
+      return true;
     } catch (error: any) {
       toast.error("Erro ao atualizar: " + error.message);
+      return false;
     }
   };
 

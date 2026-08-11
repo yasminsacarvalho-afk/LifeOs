@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { usePosStudies } from "@/hooks/use-pos-studies";
 import { 
   GraduationCap, Plus, Play, BookOpen, Clock, Trophy, Flame, Target, 
@@ -6,11 +6,15 @@ import {
   ChevronDown, Search, Filter, LayoutGrid, List as ListIcon,
   ChevronRight, BookMarked, Sparkles, FileText, Library, CheckSquare,
   TrendingUp, BarChart2, Video, PenTool, LayoutTemplate, Layers, AlertCircle,
-  MoreVertical, Share2, Star, FolderOpen, ArrowLeft, Download, X, UploadCloud, Loader2, ExternalLink, Link as LinkIcon
+  MoreVertical, Share2, Star, FolderOpen, ArrowLeft, Download, X, UploadCloud, Loader2, ExternalLink, Link as LinkIcon, Pause, XCircle, Edit2, Camera, Headphones, Music, CloudRain
 } from "lucide-react";
 import { format, isToday, parseISO } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { cn } from "@/lib/utils";
+import { toast } from "sonner";
+import { supabase } from "@/integrations/supabase/client";
+import { RichTextEditor } from "./RichTextEditor";
+import { VoiceRecordButton } from "@/components/ui/VoiceRecordButton";
 
 const KpiCard = ({ icon, label, value, sub }: any) => (
   <div className="bg-[#111113] p-4 rounded-2xl border border-[rgba(255,255,255,0.04)] shadow-lg hover:border-[rgba(255,255,255,0.1)] transition-colors flex flex-col">
@@ -23,6 +27,18 @@ const KpiCard = ({ icon, label, value, sub }: any) => (
   </div>
 );
 
+const getThumbnail = (url: string) => {
+  if (!url) return null;
+  const ytMatch = url.match(/(?:youtube\.com\/(?:[^\/]+\/.+\/|(?:v|e(?:mbed)?)\/|.*[?&]v=)|youtu\.be\/)([^"&?\/\s]{11})/i);
+  if (ytMatch && ytMatch[1]) {
+    return `https://img.youtube.com/vi/${ytMatch[1]}/hqdefault.jpg`;
+  }
+  if (url.match(/\.(jpeg|jpg|gif|png|webp)$/i)) {
+    return url;
+  }
+  return null;
+};
+
 export function PosStudies() {
   const { courses, sessions, loading, addCourse, updateCourse, deleteCourse, addSession } = usePosStudies();
   const [activeTab, setActiveTab] = useState("Visão Geral");
@@ -31,6 +47,9 @@ export function PosStudies() {
   const [isCreatingCourse, setIsCreatingCourse] = useState(false);
   const [isEditingCourse, setIsEditingCourse] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
+  const [filterStatus, setFilterStatus] = useState("todos");
+  const [filterArea, setFilterArea] = useState("todas");
+  const [showFilterMenu, setShowFilterMenu] = useState(false);
   const [expandedTopicId, setExpandedTopicId] = useState<number | string | null>(null);
   const [isLoggingSession, setIsLoggingSession] = useState(false);
   const [newSession, setNewSession] = useState({
@@ -40,8 +59,24 @@ export function PosStudies() {
     summary: ''
   });
 
+  const [activeTopicTimer, setActiveTopicTimer] = useState<string | number | null>(null);
+  const [elapsedSeconds, setElapsedSeconds] = useState(0);
+  const [isTimerPaused, setIsTimerPaused] = useState(false);
+  const [localNotes, setLocalNotes] = useState("");
+  const [localTags, setLocalTags] = useState("");
+
+  useEffect(() => {
+    let interval: NodeJS.Timeout;
+    if (activeTopicTimer !== null && !isTimerPaused) {
+      interval = setInterval(() => {
+        setElapsedSeconds(prev => prev + 1);
+      }, 1000);
+    }
+    return () => clearInterval(interval);
+  }, [activeTopicTimer, isTimerPaused]);
+
   const initialCourseState = {
-    title: "", knowledge_area: "Tecnologia", category: "Programação", status: "fila", platform: "", instructor: "", course_url: "",
+    title: "", knowledge_area: "Tecnologia", category: "Curso", status: "fila", platform: "", instructor: "", course_url: "",
     total_hours: 0, deadline: "", level: "intermediario"
   };
   const [newCourse, setNewCourse] = useState(initialCourseState);
@@ -54,14 +89,20 @@ export function PosStudies() {
       delete coursePayload.deadline;
     }
     
+    let success = false;
     if (isEditingCourse && selectedCourseId) {
-      await updateCourse(selectedCourseId, coursePayload);
+      const res = await updateCourse(selectedCourseId, coursePayload);
+      if (res !== false) success = true;
     } else {
-      await addCourse(coursePayload);
+      const res = await addCourse(coursePayload);
+      if (res) success = true;
     }
-    setIsCreatingCourse(false);
-    setIsEditingCourse(false);
-    setNewCourse(initialCourseState);
+    
+    if (success) {
+      setIsCreatingCourse(false);
+      setIsEditingCourse(false);
+      setNewCourse(initialCourseState);
+    }
   };
 
   const handleLogSession = async (e: React.FormEvent) => {
@@ -116,7 +157,10 @@ export function PosStudies() {
       // Update the topic source with the Drive URL
       const currentTopics = JSON.parse(selectedCourse?.next_topics || '[]');
       if (currentTopics[modIdx] && currentTopics[modIdx].topics[topicIdx]) {
-         currentTopics[modIdx].topics[topicIdx].source = result.url;
+         if (!currentTopics[modIdx].topics[topicIdx].materials) {
+            currentTopics[modIdx].topics[topicIdx].materials = [];
+         }
+         currentTopics[modIdx].topics[topicIdx].materials.push({ name: file.name, url: result.url, type: 'file' });
          await updateCourse(selectedCourseId, { next_topics: JSON.stringify(currentTopics) });
          // toast.success is handled implicitly by updateCourse, but we can be explicit
       }
@@ -142,6 +186,52 @@ export function PosStudies() {
   const selectedCourse = courses.find(c => c.id === selectedCourseId);
   const activeCourses = courses.filter(c => c.status !== 'concluido');
   const recentCourses = activeCourses.filter(c => c.status === 'em_andamento');
+
+  const getTabStats = () => {
+    if (activeTab === "Visão Geral") return null;
+    let tabCourses = [];
+    if (activeTab === "Concluídos") {
+       tabCourses = courses.filter(c => c.status === 'concluido');
+    } else if (activeTab === "Cursos") {
+       tabCourses = courses.filter(c => !['Faculdade', 'Disciplina', 'Certificação', 'Trilha', 'Projeto Acadêmico'].includes(c.category || '') && c.status !== 'concluido');
+    } else if (activeTab === "Faculdade") {
+       tabCourses = courses.filter(c => ['Faculdade', 'Disciplina'].includes(c.category || '') && c.status !== 'concluido');
+    } else if (activeTab === "Certificações") {
+       tabCourses = courses.filter(c => c.category === 'Certificação' && c.status !== 'concluido');
+    } else if (activeTab === "Trilhas") {
+       tabCourses = courses.filter(c => c.category === 'Trilha' && c.status !== 'concluido');
+    } else if (activeTab === "Projetos") {
+       tabCourses = courses.filter(c => c.category === 'Projeto Acadêmico' && c.status !== 'concluido');
+    }
+    
+    const itemsCount = tabCourses.length;
+    const tabHours = Number(tabCourses.reduce((acc, c) => acc + (c.completed_hours || 0), 0).toFixed(1));
+    const tabTotalHours = Number(tabCourses.reduce((acc, c) => acc + (c.total_hours || 0), 0).toFixed(1));
+    
+    let totalTopics = 0;
+    let completedTopics = 0;
+    
+    tabCourses.forEach(c => {
+      const mods = JSON.parse(c.next_topics || '[]');
+      mods.forEach((m: any) => {
+        if (m.topics) {
+          totalTopics += m.topics.length;
+          completedTopics += m.topics.filter((t: any) => t.completed).length;
+        }
+      });
+    });
+
+    const completionRate = totalTopics > 0 ? Math.round((completedTopics / totalTopics) * 100) : 0;
+    
+    const tabCourseIds = tabCourses.map(c => c.id);
+    const tabSessions = sessions.filter(s => tabCourseIds.includes(s.course_id));
+    const sessionsCount = tabSessions.length;
+    const xpEarned = tabSessions.reduce((acc, s) => acc + (s.xp_earned || 0), 0);
+
+    return { itemsCount, tabHours, tabTotalHours, totalTopics, completedTopics, completionRate, sessionsCount, xpEarned };
+  };
+
+  const tabStats = getTabStats();
 
   const renderDashboard = () => (
     <div className="animate-in fade-in slide-in-from-bottom-4 duration-500">
@@ -328,15 +418,48 @@ export function PosStudies() {
              className="w-full bg-[#111113] border border-[rgba(255,255,255,0.06)] rounded-xl pl-10 pr-4 py-2.5 text-sm text-white focus:outline-none focus:border-cyan-500 transition-colors"
            />
          </div>
-         <div className="flex gap-2">
-           <button className="px-4 py-2.5 rounded-xl border border-[rgba(255,255,255,0.06)] bg-[#111113] text-xs font-bold text-white hover:bg-[#1A1A1E] flex items-center gap-2">
-             <Filter className="size-3" /> Filtros
-           </button>
-         </div>
+         <div className="flex gap-2 relative">
+            <button onClick={() => setShowFilterMenu(!showFilterMenu)} className={cn("px-4 py-2.5 rounded-xl border border-[rgba(255,255,255,0.06)] bg-[#111113] text-xs font-bold text-white hover:bg-[#1A1A1E] flex items-center gap-2", showFilterMenu && "bg-[#1A1A1E] border-cyan-500/30")}>
+              <Filter className="size-3" /> Filtros {(filterStatus !== "todos" || filterArea !== "todas") && <span className="w-2 h-2 rounded-full bg-cyan-500 ml-1 shadow-[0_0_8px_rgba(6,182,212,0.6)]"></span>}
+            </button>
+            {showFilterMenu && (
+              <div className="absolute top-full right-0 mt-2 w-48 bg-[#111113] border border-[rgba(255,255,255,0.1)] rounded-2xl shadow-2xl z-50 p-2 animate-in fade-in zoom-in-95 max-h-[60vh] overflow-y-auto custom-scrollbar">
+                 <div className="text-[10px] uppercase font-bold text-[#71717A] tracking-widest px-2 py-1 mb-1">Status</div>
+                 <button onClick={() => { setFilterStatus("todos"); setShowFilterMenu(false); }} className={cn("w-full text-left px-3 py-2 text-xs font-bold rounded-xl transition-colors", filterStatus === "todos" ? "bg-cyan-500/10 text-cyan-400" : "text-white hover:bg-white/5")}>Todos</button>
+                 <button onClick={() => { setFilterStatus("em_andamento"); setShowFilterMenu(false); }} className={cn("w-full text-left px-3 py-2 text-xs font-bold rounded-xl transition-colors", filterStatus === "em_andamento" ? "bg-cyan-500/10 text-cyan-400" : "text-white hover:bg-white/5")}>Em Andamento</button>
+                 <button onClick={() => { setFilterStatus("fila"); setShowFilterMenu(false); }} className={cn("w-full text-left px-3 py-2 text-xs font-bold rounded-xl transition-colors", filterStatus === "fila" ? "bg-cyan-500/10 text-cyan-400" : "text-white hover:bg-white/5")}>Na Fila</button>
+                 <button onClick={() => { setFilterStatus("pausado"); setShowFilterMenu(false); }} className={cn("w-full text-left px-3 py-2 text-xs font-bold rounded-xl transition-colors", filterStatus === "pausado" ? "bg-cyan-500/10 text-cyan-400" : "text-white hover:bg-white/5")}>Pausados</button>
+                 
+                 <div className="h-px bg-white/5 w-full my-2"></div>
+                 
+                 <div className="text-[10px] uppercase font-bold text-[#71717A] tracking-widest px-2 py-1 mb-1">Área</div>
+                 <button onClick={() => { setFilterArea("todas"); setShowFilterMenu(false); }} className={cn("w-full text-left px-3 py-2 text-xs font-bold rounded-xl transition-colors", filterArea === "todas" ? "bg-cyan-500/10 text-cyan-400" : "text-white hover:bg-white/5")}>Todas as Áreas</button>
+                 <button onClick={() => { setFilterArea("Tecnologia"); setShowFilterMenu(false); }} className={cn("w-full text-left px-3 py-2 text-xs font-bold rounded-xl transition-colors", filterArea === "Tecnologia" ? "bg-cyan-500/10 text-cyan-400" : "text-white hover:bg-white/5")}>Tecnologia</button>
+                 <button onClick={() => { setFilterArea("Negócios"); setShowFilterMenu(false); }} className={cn("w-full text-left px-3 py-2 text-xs font-bold rounded-xl transition-colors", filterArea === "Negócios" ? "bg-cyan-500/10 text-cyan-400" : "text-white hover:bg-white/5")}>Negócios</button>
+                 <button onClick={() => { setFilterArea("Finanças"); setShowFilterMenu(false); }} className={cn("w-full text-left px-3 py-2 text-xs font-bold rounded-xl transition-colors", filterArea === "Finanças" ? "bg-cyan-500/10 text-cyan-400" : "text-white hover:bg-white/5")}>Finanças</button>
+                 <button onClick={() => { setFilterArea("Idiomas"); setShowFilterMenu(false); }} className={cn("w-full text-left px-3 py-2 text-xs font-bold rounded-xl transition-colors", filterArea === "Idiomas" ? "bg-cyan-500/10 text-cyan-400" : "text-white hover:bg-white/5")}>Idiomas</button>
+              </div>
+            )}
+          </div>
        </div>
 
        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
-         {courses.filter(c => c.title.toLowerCase().includes(searchQuery.toLowerCase()) || c.knowledge_area?.toLowerCase().includes(searchQuery.toLowerCase())).map(course => {
+         {courses.filter(c => {
+             const searchMatch = c.title.toLowerCase().includes(searchQuery.toLowerCase()) || c.knowledge_area?.toLowerCase().includes(searchQuery.toLowerCase());
+             if (!searchMatch) return false;
+             
+             if (filterStatus !== "todos" && c.status !== filterStatus && activeTab !== "Concluídos") return false;
+             if (filterArea !== "todas" && c.knowledge_area !== filterArea) return false;
+             
+             if (activeTab === "Cursos") return !['Faculdade', 'Disciplina', 'Certificação', 'Trilha', 'Projeto Acadêmico'].includes(c.category || '') && c.status !== 'concluido';
+             if (activeTab === "Faculdade") return ['Faculdade', 'Disciplina'].includes(c.category || '') && c.status !== 'concluido';
+             if (activeTab === "Certificações") return c.category === 'Certificação' && c.status !== 'concluido';
+             if (activeTab === "Trilhas") return c.category === 'Trilha' && c.status !== 'concluido';
+             if (activeTab === "Projetos") return c.category === 'Projeto Acadêmico' && c.status !== 'concluido';
+             if (activeTab === "Concluídos") return c.status === 'concluido';
+             
+             return true;
+         }).map(course => {
             const percent = course.total_hours ? Math.min(100, Math.round((course.completed_hours / course.total_hours) * 100)) : 0;
             const isCompleted = course.status === 'concluido';
             return (
@@ -620,6 +743,22 @@ export function PosStudies() {
                     
                     {/* Right Column: Setup & Info */}
                     <div className="space-y-6">
+                      
+                      {(() => {
+                         let goals = "";
+                         try { goals = JSON.parse(selectedCourse.description || '{}').goals || ""; } catch(e){}
+                         if (goals) {
+                           return (
+                             <div className="bg-[#111113] border border-[rgba(255,255,255,0.04)] rounded-2xl p-6 shadow-lg">
+                               <h4 className="text-sm font-bold text-white uppercase tracking-widest mb-4 flex items-center gap-2">
+                                 <Target className="size-4 text-rose-500" /> Metas do Estudo
+                               </h4>
+                               <p className="text-sm text-[#A1A1AA] whitespace-pre-wrap">{goals}</p>
+                             </div>
+                           );
+                         }
+                         return null;
+                      })()}
                       
                       <div className="bg-[#111113] border border-[rgba(255,255,255,0.04)] rounded-2xl p-6 shadow-lg">
                         <h4 className="text-sm font-bold text-white uppercase tracking-widest mb-4 flex items-center gap-2">
@@ -908,7 +1047,15 @@ export function PosStudies() {
                                             {topic.status === 'avançando' && <Flame className="size-3" />}
                                             {topic.status === 'revisando' && <BookOpen className="size-3" />}
                                           </button>
-                                          <div className="flex flex-col cursor-pointer flex-1" onClick={() => setExpandedTopicId(expandedTopicId === (topic.id || tIdx) ? null : (topic.id || tIdx))}>
+                                          <div className="flex flex-col cursor-pointer flex-1" onClick={() => {
+                                             if (expandedTopicId === (topic.id || tIdx)) {
+                                                setExpandedTopicId(null);
+                                             } else {
+                                                setExpandedTopicId(topic.id || tIdx);
+                                                setLocalNotes(topic.notes || '');
+                                                setLocalTags(topic.tags || '');
+                                             }
+                                          }}>
                                             <span className={`text-sm font-medium ${topic.status === 'concluido' ? 'text-[#71717A] line-through' : 'text-white'}`}>{topic.title}</span>
                                             <span className={`text-[9px] uppercase tracking-widest font-bold mt-0.5 ${
                                               topic.status === 'concluido' ? 'text-emerald-500' :
@@ -957,7 +1104,7 @@ export function PosStudies() {
                                       {/* EXPANDED WORKSPACE MODAL */}
                                       {expandedTopicId === (topic.id || tIdx) && (
                                         <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/80 backdrop-blur-md animate-in fade-in duration-200" onClick={(e) => { e.stopPropagation(); setExpandedTopicId(null); }}>
-                                          <div className="bg-[#111113] border border-[rgba(255,255,255,0.06)] rounded-2xl p-6 w-full max-w-4xl shadow-2xl relative flex flex-col gap-6" onClick={(e) => e.stopPropagation()}>
+                                          <div className="bg-[#111113] border border-[rgba(255,255,255,0.06)] rounded-2xl p-6 md:p-10 w-full max-w-[95vw] lg:max-w-[85vw] h-[95vh] flex flex-col gap-6 shadow-2xl relative overflow-y-auto custom-scrollbar" onClick={(e) => e.stopPropagation()}>
                                             
                                             {/* Header do Modal */}
                                             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-white/5 pb-4">
@@ -968,13 +1115,53 @@ export function PosStudies() {
                                                 <h2 className="text-xl font-bold text-white">{topic.title}</h2>
                                               </div>
                                               <div className="flex items-center gap-3">
-                                                <button onClick={() => {
-                                                   setNewSession({ duration_minutes: 60, module_name: mod.title, class_name: topic.title, summary: topic.notes || '' });
-                                                   setIsLoggingSession(true);
-                                                   setExpandedTopicId(null);
-                                                }} className="px-5 py-2.5 bg-cyan-600 hover:bg-cyan-500 text-white rounded-xl text-sm font-bold flex items-center justify-center gap-2 shadow-lg shadow-cyan-500/20 transition-all">
-                                                  <Play className="size-4 fill-white" /> Iniciar Sessão
-                                                </button>
+                                                {activeTopicTimer === (topic.id || tIdx) ? (
+                                                  <div className="flex items-center gap-2">
+                                                    <div className="px-4 py-2 bg-[#1A1A1E] border border-cyan-500/30 rounded-xl flex items-center justify-center min-w-[95px] shadow-[inset_0_0_10px_rgba(6,182,212,0.1)]">
+                                                       <span className={cn("text-lg font-mono font-bold tracking-wider", isTimerPaused ? "text-[#71717A] animate-pulse" : "text-cyan-400")}>
+                                                         {String(Math.floor(elapsedSeconds / 3600)).padStart(2, '0')}:
+                                                         {String(Math.floor((elapsedSeconds % 3600) / 60)).padStart(2, '0')}:
+                                                         {String(elapsedSeconds % 60).padStart(2, '0')}
+                                                       </span>
+                                                    </div>
+                                                    <button onClick={() => setIsTimerPaused(!isTimerPaused)} className="p-2.5 bg-[#1A1A1E] hover:bg-[#27272A] border border-[rgba(255,255,255,0.06)] rounded-xl text-white transition-colors" title={isTimerPaused ? "Retomar" : "Pausar"}>
+                                                      {isTimerPaused ? <Play className="size-4 fill-white" /> : <Pause className="size-4 fill-white" />}
+                                                    </button>
+                                                    <button onClick={() => {
+                                                       if (confirm("Cancelar a sessão atual? O tempo não será salvo.")) {
+                                                          setActiveTopicTimer(null);
+                                                          setElapsedSeconds(0);
+                                                          setIsTimerPaused(false);
+                                                       }
+                                                    }} className="p-2.5 bg-rose-500/10 hover:bg-rose-500/20 text-rose-500 rounded-xl transition-colors" title="Cancelar">
+                                                      <XCircle className="size-4" />
+                                                    </button>
+                                                    <button onClick={async () => {
+                                                       const durationMinutes = Math.max(1, Math.ceil(elapsedSeconds / 60));
+                                                       await addSession({
+                                                          course_id: selectedCourse.id,
+                                                          session_date: format(new Date(), 'yyyy-MM-dd'),
+                                                          duration_minutes: durationMinutes,
+                                                          module_name: mod.title,
+                                                          class_name: topic.title,
+                                                          summary: topic.notes || 'Sessão focada na ferramenta Topic Workspace.'
+                                                       });
+                                                       setActiveTopicTimer(null);
+                                                       setElapsedSeconds(0);
+                                                       setIsTimerPaused(false);
+                                                    }} className="px-5 py-2.5 bg-emerald-600 hover:bg-emerald-500 text-white rounded-xl text-sm font-bold flex items-center gap-2 shadow-lg shadow-emerald-500/20 transition-all">
+                                                      <CheckCircle2 className="size-4" /> Concluir
+                                                    </button>
+                                                  </div>
+                                                ) : (
+                                                  <button onClick={() => {
+                                                     setActiveTopicTimer(topic.id || tIdx);
+                                                     setElapsedSeconds(0);
+                                                     setIsTimerPaused(false);
+                                                  }} className="px-5 py-2.5 bg-cyan-600 hover:bg-cyan-500 text-white rounded-xl text-sm font-bold flex items-center justify-center gap-2 shadow-lg shadow-cyan-500/20 transition-all">
+                                                    <Play className="size-4 fill-white" /> Iniciar Sessão
+                                                  </button>
+                                                )}
                                                 <button onClick={() => setExpandedTopicId(null)} className="p-2.5 bg-[#1A1A1E] hover:bg-[#27272A] rounded-xl transition-colors text-[#A1A1AA] hover:text-white">
                                                   <X className="size-4" />
                                                 </button>
@@ -982,18 +1169,82 @@ export function PosStudies() {
                                             </div>
                                             
                                             <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-                                              <div className="lg:col-span-2 flex flex-col h-full">
-                                                <label className="text-[10px] text-[#A1A1AA] uppercase tracking-widest font-bold mb-1.5 block">Quadro de Anotações</label>
-                                                <textarea
-                                                  placeholder="Digite aqui o resumo da aula, vocabulário novo, insights..."
-                                                  value={topic.notes || ''}
-                                                  onChange={(e) => {
+                                              <div className="lg:col-span-2 flex flex-col h-full min-h-[500px]">
+                                                <div className="flex flex-col sm:flex-row sm:items-center justify-between mb-2 gap-2">
+                                                  <label className="text-[10px] uppercase tracking-widest text-[#71717A] font-bold flex items-center gap-2">
+                                                    <Edit2 className="size-3 text-purple-500" /> Anotações / Resumo (Salvas Automático)
+                                                  </label>
+                                                  <div className="flex items-center gap-2">
+                                                    <input 
+                                                      type="file" 
+                                                      accept="image/*" 
+                                                      capture="environment"
+                                                      id={`camera-${topic.id || tIdx}`}
+                                                      className="hidden"
+                                                      onChange={async (e) => {
+                                                        const file = e.target.files?.[0];
+                                                        if (!file) return;
+                                                        
+                                                        try {
+                                                          toast.loading("Analisando imagem...", { id: `upload-${topic.id || tIdx}` });
+                                                          
+                                                          const maxSizeBytes = 5 * 1024 * 1024; // 5MB
+                                                          if (file.size > maxSizeBytes) {
+                                                            toast.error(`A imagem é muito pesada! O limite é de 5MB.`, { id: `upload-${topic.id || tIdx}` });
+                                                            return;
+                                                          }
+
+                                                          const arrayBuffer = await file.arrayBuffer();
+                                                          const hashBuffer = await crypto.subtle.digest('SHA-256', arrayBuffer);
+                                                          const hashArray = Array.from(new Uint8Array(hashBuffer));
+                                                          const hashHex = hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
+                                                          
+                                                          const fileExt = file.name.split('.').pop() || 'jpg';
+                                                          const fileName = `session_${hashHex}.${fileExt}`;
+                                                          const filePath = `anotacoes/${fileName}`;
+                                                          
+                                                          toast.loading("Enviando imagem...", { id: `upload-${topic.id || tIdx}` });
+                                                          const { error } = await supabase.storage.from('livros').upload(filePath, file);
+                                                          
+                                                          if (error && !error.message.toLowerCase().includes('already exists') && !error.message.toLowerCase().includes('duplicate')) {
+                                                            throw error;
+                                                          }
+                                                          
+                                                          const { data } = supabase.storage.from('livros').getPublicUrl(filePath);
+                                                          
+                                                          const imgHtml = `<p><img src="${data.publicUrl}" alt="Anotação" style="max-width: 100%; border-radius: 8px; margin: 10px 0; border: 1px solid rgba(255,255,255,0.1);" /></p><p><br></p>`;
+                                                          
+                                                          setLocalNotes(prev => prev + imgHtml);
+                                                          
+                                                          toast.success("Imagem anexada à anotação!", { id: `upload-${topic.id || tIdx}` });
+                                                        } catch (err: any) {
+                                                          toast.error("Erro ao enviar imagem: " + err.message, { id: `upload-${topic.id || tIdx}` });
+                                                        }
+                                                      }}
+                                                    />
+                                                    <label htmlFor={`camera-${topic.id || tIdx}`} className="cursor-pointer h-6 w-6 flex items-center justify-center rounded-md bg-[#1A1A1E] hover:bg-emerald-500/20 text-emerald-400 border border-emerald-500/20 transition-colors" title="Tirar foto ou anexar imagem">
+                                                      <Camera className="size-3.5" />
+                                                    </label>
+                                                    <VoiceRecordButton 
+                                                      onTranscript={(t) => setLocalNotes(prev => prev + `<p>${t}</p>`)} 
+                                                      className="h-6 w-6 !p-1 bg-[#1A1A1E] hover:bg-purple-500/20 text-purple-400 border-purple-500/20"
+                                                      placeholder="Ditar anotação"
+                                                    />
+                                                  </div>
+                                                </div>
+                                                <div 
+                                                  className="rounded-xl overflow-hidden border border-[rgba(255,255,255,0.06)] focus-within:border-purple-500/50 transition-colors bg-[#1A1A1E] flex-1 flex flex-col"
+                                                  onBlur={() => {
                                                     const updated = [...modules];
-                                                    updated[mIdx].topics[tIdx].notes = e.target.value;
-                                                    updateCourse(selectedCourse.id, { next_topics: JSON.stringify(updated) });
+                                                    updated[mIdx].topics[tIdx].notes = localNotes;
+                                                    updateCourse(selectedCourse.id, { next_topics: JSON.stringify(updated) }, false);
                                                   }}
-                                                  className="w-full bg-[#1A1A1E] border border-[rgba(255,255,255,0.04)] rounded-xl p-4 text-sm text-white min-h-[250px] flex-1 focus:outline-none focus:border-cyan-500/50 transition-colors custom-scrollbar"
-                                                />
+                                                >
+                                                  <RichTextEditor 
+                                                    content={localNotes}
+                                                    onChange={(content) => setLocalNotes(content)}
+                                                  />
+                                                </div>
                                               </div>
                                               
                                               <div className="space-y-6">
@@ -1001,11 +1252,12 @@ export function PosStudies() {
                                                   <label className="text-[10px] text-[#A1A1AA] uppercase tracking-widest font-bold mb-1.5 block">Tags da Aula</label>
                                                   <input 
                                                     placeholder="Ex: grammar, business, reading"
-                                                    value={topic.tags || ''}
-                                                    onChange={(e) => {
+                                                    value={localTags}
+                                                    onChange={(e) => setLocalTags(e.target.value)}
+                                                    onBlur={() => {
                                                       const updated = [...modules];
-                                                      updated[mIdx].topics[tIdx].tags = e.target.value;
-                                                      updateCourse(selectedCourse.id, { next_topics: JSON.stringify(updated) });
+                                                      updated[mIdx].topics[tIdx].tags = localTags;
+                                                      updateCourse(selectedCourse.id, { next_topics: JSON.stringify(updated) }, false);
                                                     }}
                                                     className="w-full bg-[#1A1A1E] border border-[rgba(255,255,255,0.04)] rounded-xl p-3 text-sm text-white focus:outline-none focus:border-cyan-500/50 transition-colors"
                                                   />
@@ -1016,37 +1268,65 @@ export function PosStudies() {
                                                     <FolderOpen className="size-3 text-cyan-500"/> Materiais Anexos
                                                   </label>
                                                   <div className="flex flex-col gap-2">
-                                                    {topic.source ? (
+                                                    {topic.source && !(topic.materials && topic.materials.length > 0) && (
                                                       <div className="flex items-center justify-between p-3 bg-[#1A1A1E] border border-[rgba(255,255,255,0.04)] rounded-xl">
                                                         <a href={topic.source.startsWith('http') ? topic.source : `https://${topic.source}`} target="_blank" rel="noopener noreferrer" className="text-xs font-bold text-cyan-400 hover:underline truncate max-w-[150px] flex items-center gap-1.5">
-                                                          <ExternalLink className="size-3" /> Ver Anexo
+                                                          <ExternalLink className="size-3" /> Anexo Antigo
                                                         </a>
                                                         <button onClick={() => {
                                                            const updated = [...modules];
                                                            updated[mIdx].topics[tIdx].source = "";
-                                                           updateCourse(selectedCourse.id, { next_topics: JSON.stringify(updated) });
+                                                           updateCourse(selectedCourse.id, { next_topics: JSON.stringify(updated) }, false);
                                                         }} className="text-rose-500 hover:bg-rose-500/10 p-1.5 rounded transition-colors" title="Remover anexo">
                                                           <Trash2 className="size-3.5" />
                                                         </button>
                                                       </div>
-                                                    ) : (
-                                                      <div className="flex gap-2">
-                                                        <button onClick={() => {
-                                                          const src = prompt("Cole o link (YouTube, Drive):");
-                                                          if (src) {
-                                                            const updated = [...modules];
-                                                            updated[mIdx].topics[tIdx].source = src;
-                                                            updateCourse(selectedCourse.id, { next_topics: JSON.stringify(updated) });
-                                                          }
-                                                        }} className="flex-1 py-3 bg-[#1A1A1E] hover:bg-[#27272A] border border-[rgba(255,255,255,0.04)] rounded-xl text-xs font-bold text-[#A1A1AA] hover:text-white transition-colors flex items-center justify-center gap-1.5">
-                                                          <LinkIcon className="size-3" /> Link
-                                                        </button>
-                                                        <label className="flex-1 py-3 bg-[#1A1A1E] hover:bg-[#27272A] border border-[rgba(255,255,255,0.04)] rounded-xl text-xs font-bold text-[#A1A1AA] hover:text-white transition-colors flex items-center justify-center gap-1.5 cursor-pointer">
-                                                          {isUploading ? <Loader2 className="size-3 animate-spin" /> : <UploadCloud className="size-3" />} Upload
-                                                          <input type="file" className="hidden" disabled={isUploading} onChange={(e) => handleMaterialUpload(e, mIdx, tIdx)} />
-                                                        </label>
-                                                      </div>
                                                     )}
+                                                    
+                                                    {topic.materials?.map((mat: any, i: number) => {
+                                                      const thumb = getThumbnail(mat.url);
+                                                      return (
+                                                      <div key={i} className="flex items-center justify-between p-2 bg-[#1A1A1E] border border-[rgba(255,255,255,0.04)] rounded-xl group hover:border-[rgba(255,255,255,0.1)] transition-colors">
+                                                        <a href={mat.url.startsWith('http') ? mat.url : `https://${mat.url}`} target="_blank" rel="noopener noreferrer" className="flex items-center gap-3 overflow-hidden flex-1" title={mat.name}>
+                                                          {thumb ? (
+                                                             <div className="w-12 h-8 rounded shrink-0 bg-[#27272A] overflow-hidden border border-white/5">
+                                                               <img src={thumb} alt="thumb" className="w-full h-full object-cover opacity-80 group-hover:opacity-100 transition-opacity" />
+                                                             </div>
+                                                          ) : (
+                                                             <div className="w-8 h-8 rounded shrink-0 bg-white/5 flex items-center justify-center">
+                                                               {mat.type === 'file' ? <FileText className="size-3.5 text-purple-400" /> : <LinkIcon className="size-3.5 text-cyan-400" />}
+                                                             </div>
+                                                          )}
+                                                          <span className="text-xs font-bold text-gray-300 group-hover:text-cyan-400 truncate pr-2">{mat.name || "Material Anexo"}</span>
+                                                        </a>
+                                                        <button onClick={() => {
+                                                           const updated = [...modules];
+                                                           updated[mIdx].topics[tIdx].materials = updated[mIdx].topics[tIdx].materials.filter((_: any, idx: number) => idx !== i);
+                                                           updateCourse(selectedCourse.id, { next_topics: JSON.stringify(updated) }, false);
+                                                        }} className="text-rose-500/50 hover:text-rose-500 hover:bg-rose-500/10 p-2 rounded transition-colors shrink-0" title="Remover anexo">
+                                                          <Trash2 className="size-3.5" />
+                                                        </button>
+                                                      </div>
+                                                    )})}
+
+                                                    <div className="flex gap-2 mt-1">
+                                                      <button onClick={() => {
+                                                        const src = prompt("Cole o link (YouTube, Drive):");
+                                                        if (src) {
+                                                          const matName = prompt("Qual o nome desse material/link?") || "Link Externo";
+                                                          const updated = [...modules];
+                                                          if (!updated[mIdx].topics[tIdx].materials) updated[mIdx].topics[tIdx].materials = [];
+                                                          updated[mIdx].topics[tIdx].materials.push({ name: matName, url: src, type: 'link' });
+                                                          updateCourse(selectedCourse.id, { next_topics: JSON.stringify(updated) }, false);
+                                                        }
+                                                      }} className="flex-1 py-3 bg-[#1A1A1E] hover:bg-[#27272A] border border-[rgba(255,255,255,0.04)] rounded-xl text-xs font-bold text-[#A1A1AA] hover:text-white transition-colors flex items-center justify-center gap-1.5">
+                                                        <LinkIcon className="size-3" /> Add Link
+                                                      </button>
+                                                      <label className="flex-1 py-3 bg-[#1A1A1E] hover:bg-[#27272A] border border-[rgba(255,255,255,0.04)] rounded-xl text-xs font-bold text-[#A1A1AA] hover:text-white transition-colors flex items-center justify-center gap-1.5 cursor-pointer">
+                                                        {isUploading ? <Loader2 className="size-3 animate-spin" /> : <UploadCloud className="size-3" />} Add Arquivo
+                                                        <input type="file" className="hidden" disabled={isUploading} onChange={(e) => handleMaterialUpload(e, mIdx, tIdx)} />
+                                                      </label>
+                                                    </div>
                                                   </div>
                                                 </div>
 
@@ -1060,6 +1340,23 @@ export function PosStudies() {
                                                     </button>
                                                     <button onClick={() => window.open('https://notebooklm.google.com/', '_blank')} className="w-full py-3 bg-emerald-900/20 hover:bg-emerald-900/40 border border-emerald-500/20 hover:border-emerald-500/50 rounded-xl text-xs font-bold text-emerald-400 transition-colors flex items-center justify-center gap-1.5" title="Abrir NotebookLM para gerar quiz baseado nas notas">
                                                       <Brain className="size-3.5" /> NotebookLM (Quiz)
+                                                    </button>
+                                                  </div>
+                                                </div>
+
+                                                <div>
+                                                  <label className="text-[10px] text-[#A1A1AA] uppercase tracking-widest font-bold mb-1.5 flex items-center gap-1">
+                                                    <Headphones className="size-3 text-cyan-500"/> Músicas (Foco)
+                                                  </label>
+                                                  <div className="flex flex-col gap-2">
+                                                    <button onClick={() => window.open('https://www.youtube.com/results?search_query=lofi+gospel', '_blank')} className="w-full py-2.5 bg-[#1A1A1E] hover:bg-[#27272A] border border-[rgba(255,255,255,0.04)] rounded-xl text-xs font-bold text-[#A1A1AA] hover:text-white transition-colors flex items-center gap-2 px-3 text-left">
+                                                      <Music className="size-3.5 text-purple-400" /> <span className="flex-1 truncate">Gospel</span>
+                                                    </button>
+                                                    <button onClick={() => window.open('https://www.youtube.com/results?search_query=som+de+chuva', '_blank')} className="w-full py-2.5 bg-[#1A1A1E] hover:bg-[#27272A] border border-[rgba(255,255,255,0.04)] rounded-xl text-xs font-bold text-[#A1A1AA] hover:text-white transition-colors flex items-center gap-2 px-3 text-left">
+                                                      <CloudRain className="size-3.5 text-blue-400" /> <span className="flex-1 truncate">Som de Chuva</span>
+                                                    </button>
+                                                    <button onClick={() => window.open('https://www.youtube.com/results?search_query=ambient+focus+music', '_blank')} className="w-full py-2.5 bg-[#1A1A1E] hover:bg-[#27272A] border border-[rgba(255,255,255,0.04)] rounded-xl text-xs font-bold text-[#A1A1AA] hover:text-white transition-colors flex items-center gap-2 px-3 text-left">
+                                                      <Headphones className="size-3.5 text-emerald-400" /> <span className="flex-1 truncate">Som Ambiente</span>
                                                     </button>
                                                   </div>
                                                 </div>
@@ -1190,11 +1487,36 @@ export function PosStudies() {
           <div>
             <h1 className="text-3xl md:text-4xl font-black text-white tracking-tight flex items-center gap-3">
               <GraduationCap className="size-8 md:size-10 text-cyan-500 drop-shadow-[0_0_15px_rgba(6,182,212,0.3)]" />
-              Academia Operacional
+              {activeTab === "Visão Geral" ? "Academia Operacional" : 
+                activeTab === "Concluídos" ? "Histórico de Conclusões" :
+                activeTab}
             </h1>
-            <p className="text-sm md:text-base text-[#A1A1AA] mt-3 max-w-xl leading-relaxed">
-              Gerencie cursos, faculdade, certificações e toda sua evolução acadêmica. Um verdadeiro sistema operacional para seus estudos.
-            </p>
+            {activeTab === "Visão Geral" ? (
+              <p className="text-sm md:text-base text-[#A1A1AA] mt-3 max-w-xl leading-relaxed">
+                Gerencie cursos, faculdade, certificações e toda sua evolução acadêmica. Um verdadeiro sistema operacional para seus estudos.
+              </p>
+            ) : tabStats && (
+              <div className="flex flex-wrap items-center gap-3 mt-4">
+                <div className="flex items-center gap-2 bg-[#111113] border border-[rgba(255,255,255,0.06)] px-3 py-1.5 rounded-lg text-xs font-bold text-[#A1A1AA]">
+                  <BookMarked className="size-3.5 text-cyan-400" /> {tabStats.itemsCount} Itens
+                </div>
+                <div className="flex items-center gap-2 bg-[#111113] border border-[rgba(255,255,255,0.06)] px-3 py-1.5 rounded-lg text-xs font-bold text-[#A1A1AA]">
+                  <TrendingUp className="size-3.5 text-emerald-400" /> {tabStats.tabHours}h Estudadas
+                </div>
+                <div className="flex items-center gap-2 bg-[#111113] border border-[rgba(255,255,255,0.06)] px-3 py-1.5 rounded-lg text-xs font-bold text-[#A1A1AA]">
+                  <CheckSquare className="size-3.5 text-purple-400" /> {tabStats.completedTopics} / {tabStats.totalTopics} Tópicos
+                </div>
+                <div className="flex items-center gap-2 bg-[#111113] border border-[rgba(255,255,255,0.06)] px-3 py-1.5 rounded-lg text-xs font-bold text-[#A1A1AA]">
+                  <BarChart2 className="size-3.5 text-blue-400" /> {tabStats.completionRate}% Concluído
+                </div>
+                <div className="flex items-center gap-2 bg-[#111113] border border-[rgba(255,255,255,0.06)] px-3 py-1.5 rounded-lg text-xs font-bold text-[#A1A1AA]">
+                  <Sparkles className="size-3.5 text-amber-400" /> {tabStats.xpEarned} XP Acumulado
+                </div>
+                <div className="flex items-center gap-2 bg-[#111113] border border-[rgba(255,255,255,0.06)] px-3 py-1.5 rounded-lg text-xs font-bold text-[#A1A1AA]">
+                  <Layers className="size-3.5 text-rose-400" /> {tabStats.sessionsCount} Sessões Feitas
+                </div>
+              </div>
+            )}
           </div>
           <div className="flex flex-wrap items-center gap-3 shrink-0">
             <div className="relative group">
@@ -1378,6 +1700,21 @@ export function PosStudies() {
               </div>
 
               <div className="md:col-span-2">
+                <label className="text-[10px] uppercase tracking-widest text-[#71717A] font-bold mb-2 block">Metas / Objetivos do Estudo</label>
+                <textarea 
+                  value={(() => { try { const p = JSON.parse(newCourse.description || '{}'); return p.goals || ""; } catch(e){ return ""; } })()}
+                  onChange={e => {
+                     let s: any = { days: [] as number[], time: "19:00" };
+                     try { const p = JSON.parse(newCourse.description || '{}'); if (p.days) s = p; } catch(e){}
+                     s.goals = e.target.value;
+                     setNewCourse({...newCourse, description: JSON.stringify(s)});
+                  }}
+                  className="w-full bg-[#1A1A1E] border border-[rgba(255,255,255,0.06)] rounded-xl px-4 py-3 text-sm text-white focus:border-cyan-500 focus:outline-none transition-colors min-h-[80px]"
+                  placeholder="O que você quer alcançar ao concluir este estudo?"
+                />
+              </div>
+
+              <div className="md:col-span-2">
                 <label className="text-[10px] uppercase tracking-widest text-[#71717A] font-bold mb-2 block">Capa do Curso (URL da Imagem)</label>
                 <input 
                   type="url" 
@@ -1409,14 +1746,8 @@ export function PosStudies() {
          renderCourseDetails()
       ) : activeTab === "Visão Geral" ? (
          renderDashboard()
-      ) : activeTab === "Cursos" ? (
-         renderCoursesList()
       ) : (
-         <div className="p-20 text-center flex flex-col items-center justify-center border border-dashed border-[rgba(255,255,255,0.06)] rounded-3xl bg-[#111113]">
-            <Layers className="size-16 text-[#333] mb-4" />
-            <h2 className="text-xl font-bold text-white mb-2">Módulo em Desenvolvimento</h2>
-            <p className="text-[#71717A] max-w-md mx-auto">A aba "{activeTab}" está recebendo melhorias para suportar o novo design system. Em breve ela estará disponível com integrações avançadas.</p>
-         </div>
+         renderCoursesList()
       )}
 
       {/* MODAL REGISTRO DE SESSÃO */}
