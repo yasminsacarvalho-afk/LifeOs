@@ -78,11 +78,21 @@ export function PosStudies() {
   const [newVideoUrl, setNewVideoUrl] = useState('');
   const [newVideoTitle, setNewVideoTitle] = useState('');
   const [activeTopicVideo, setActiveTopicVideo] = useState<any>(null);
+  
+  // Videoteca Workspace States
+  const [activeVideotecaVideos, setActiveVideotecaVideos] = useState<any[]>([]); // max 2
+  const [videotecaNotes, setVideotecaNotes] = useState('');
+  const [videotecaTags, setVideotecaTags] = useState<string[]>([]);
+  const [newVideotecaTag, setNewVideotecaTag] = useState('');
+  const [isSelectingSecondVideo, setIsSelectingSecondVideo] = useState(false);
 
   const [videoMetadata, setVideoMetadata] = useState<YouTubeVideoMetadata | null>(null);
   const [channelMetadata, setChannelMetadata] = useState<YouTubeChannelMetadata | null>(null);
   const [isSearchingMetadata, setIsSearchingMetadata] = useState(false);
   const [metadataSearchUrl, setMetadataSearchUrl] = useState('');
+  
+  const [webSearchQuery, setWebSearchQuery] = useState('');
+  const [dictionaryQuery, setDictionaryQuery] = useState('');
 
   const [activeTopicTimer, setActiveTopicTimer] = useState<string | number | null>(null);
   const [elapsedSeconds, setElapsedSeconds] = useState(0);
@@ -110,6 +120,21 @@ export function PosStudies() {
 
   const [previewReference, setPreviewReference] = useState<any>(null);
   const [isPreviewMinimized, setIsPreviewMinimized] = useState(false);
+
+  const handleSaveVideotecaNotes = () => {
+     if (!selectedCourse || activeVideotecaVideos.length === 0) return;
+     const primary = activeVideotecaVideos[0];
+     if (primary.channelIdx === undefined || primary.videoIdx === undefined) return;
+
+     let s: any = {};
+     try { s = JSON.parse(selectedCourse.description || '{}'); } catch(e){}
+     if (s.youtube_channels && s.youtube_channels[primary.channelIdx] && s.youtube_channels[primary.channelIdx].videos) {
+         s.youtube_channels[primary.channelIdx].videos[primary.videoIdx].notes = videotecaNotes;
+         s.youtube_channels[primary.channelIdx].videos[primary.videoIdx].tags = videotecaTags;
+         updateCourse(selectedCourse.id, { description: JSON.stringify(s) }, false);
+         toast.success("Anotações salvas com sucesso!");
+     }
+  };
 
   useEffect(() => {
     const handleRefClick = (e: any) => {
@@ -713,9 +738,11 @@ export function PosStudies() {
                  return <div className="p-8 text-center border border-dashed border-[rgba(255,255,255,0.06)] rounded-2xl text-[#A1A1AA] text-sm">Nenhuma trilha encontrada.</div>;
               }
 
+              
               return Object.entries(grouped).map(([area, areaCourses]) => (
                  <div key={area} className="space-y-4">
                     <h3 className="text-xl md:text-2xl font-black text-white px-3 border-l-4 border-cyan-500 flex items-center gap-2">
+                      
                        {area} <span className="text-xs font-bold text-[#71717A] bg-white/5 px-2 py-0.5 rounded-md border border-white/5">{areaCourses.length}</span>
                     </h3>
                     <div className="flex overflow-x-auto gap-4 pb-4 hide-scrollbar snap-x snap-mandatory">
@@ -737,16 +764,16 @@ export function PosStudies() {
                                    return <GraduationCap className="size-12 text-cyan-500/20 group-hover:scale-125 transition-transform duration-700 z-0" />;
                                 })()}
                                 <div className="absolute top-3 right-3 z-20">
-                                   <button className="text-[#A1A1AA] hover:text-white bg-black/50 p-1.5 rounded-md backdrop-blur-md border border-white/10 opacity-0 group-hover:opacity-100 transition-all"><MoreVertical className="size-4" /></button>
+                                    <button className="text-[#A1A1AA] hover:text-white bg-black/50 p-1.5 rounded-md backdrop-blur-md border border-white/10 opacity-0 group-hover:opacity-100 transition-all"><MoreVertical className="size-4" /></button>
                                 </div>
                                 <div className="absolute bottom-3 left-4 z-20 flex flex-col items-start gap-1">
                                   {course.instructor && (
-                                     <span className="px-2 py-0.5 bg-black/60 backdrop-blur-md rounded border border-white/10 text-[9px] font-bold text-white uppercase tracking-wider">{course.instructor}</span>
+                                      <span className="px-2 py-0.5 bg-black/60 backdrop-blur-md rounded border border-white/10 text-[9px] font-bold text-white uppercase tracking-wider">{course.instructor}</span>
                                   )}
                                   <span className="px-2 py-0.5 bg-cyan-500/20 backdrop-blur-md rounded border border-cyan-500/30 text-[9px] font-bold text-cyan-400 uppercase tracking-wider">Trilha</span>
                                 </div>
-                              </div>
-                              <div className="p-5 flex-1 flex flex-col bg-gradient-to-b from-[#111113] to-[#0A0A0C]">
+                                </div>
+                                <div className="p-5 flex-1 flex flex-col bg-gradient-to-b from-[#111113] to-[#0A0A0C]">
                                 <h4 className="font-bold text-white text-base leading-tight mb-4 group-hover:text-cyan-400 transition-colors line-clamp-2">{course.title}</h4>
                                 <div className="mt-auto">
                                   <div className="flex justify-between items-end mb-2">
@@ -757,7 +784,7 @@ export function PosStudies() {
                                     <div className="h-full bg-cyan-500 rounded-full shadow-[0_0_10px_rgba(6,182,212,0.5)]" style={{ width: `${percent}%` }}></div>
                                   </div>
                                 </div>
-                              </div>
+                                </div>
                             </div>
                           );
                        })}
@@ -1818,7 +1845,7 @@ export function PosStudies() {
                                                           e.target.value = "";
                                                         }}
                                                       >
-                                                        <option value="" className="bg-[#111113] text-[#A1A1AA] font-normal">+ Escolher Livro do Acervo...</option>
+                                                        <option value="" className="bg-[#111113] text-[#A1A1AA] font-normal">Acervo</option>
                                                         {books.map(b => (
                                                           <option key={b.id} value={b.id} className="bg-[#111113] text-white py-2">{b.title}</option>
                                                         ))}
@@ -1936,7 +1963,7 @@ export function PosStudies() {
                                                   </label>
                                                   <div className="flex flex-col gap-2">
                                                     {availableVideos && availableVideos.length > 0 ? (
-                                                      <div className="flex gap-3 overflow-x-auto pb-2 hide-scrollbar w-[240px]">
+                                                      <div className="flex gap-3 overflow-x-auto pb-2 hide-scrollbar w-[100%]">
                                                         {availableVideos.map((vid: any, idx: number) => {
                                                           const thumb = getThumbnail(vid.url);
                                                           return (
@@ -1963,6 +1990,58 @@ export function PosStudies() {
                                                   </div>
                                                 </div>
 
+                                                {/* NOVA SESSÃO DE PESQUISA */}
+                                                <div>
+                                                  <label className="text-[10px] text-[#A1A1AA] uppercase tracking-widest font-bold mb-2 flex items-center gap-1">
+                                                    <Search className="size-3 text-emerald-500"/> Pesquisa Rápida
+                                                  </label>
+                                                  <div className="flex flex-col gap-2">
+                                                    <div className="flex bg-[#1A1A1E] border border-[rgba(255,255,255,0.04)] rounded-xl overflow-hidden focus-within:border-emerald-500/50 transition-colors">
+                                                      <div className="flex-1 px-3 flex items-center gap-2">
+                                                        <Search className="size-3 text-[#71717A]" />
+                                                        <input 
+                                                          type="text" placeholder="Pesquisar na Web..."
+                                                          value={webSearchQuery}
+                                                          onChange={e => setWebSearchQuery(e.target.value)}
+                                                          onKeyDown={e => {
+                                                            if(e.key === 'Enter' && webSearchQuery.trim()) {
+                                                              window.open(`https://www.google.com/search?q=${encodeURIComponent(webSearchQuery.trim())}`, '_blank');
+                                                            }
+                                                          }}
+                                                          className="w-full bg-transparent border-none text-xs text-white py-2.5 focus:outline-none"
+                                                        />
+                                                      </div>
+                                                      <button onClick={() => {
+                                                          if(webSearchQuery.trim()) window.open(`https://www.google.com/search?q=${encodeURIComponent(webSearchQuery.trim())}`, '_blank');
+                                                      }} className="px-3 bg-emerald-500/10 text-emerald-500 hover:bg-emerald-500/20 font-bold text-xs transition-colors border-l border-[rgba(255,255,255,0.04)]">
+                                                        Ir
+                                                      </button>
+                                                    </div>
+
+                                                    <div className="flex bg-[#1A1A1E] border border-[rgba(255,255,255,0.04)] rounded-xl overflow-hidden focus-within:border-indigo-500/50 transition-colors">
+                                                      <div className="flex-1 px-3 flex items-center gap-2">
+                                                        <BookOpen className="size-3 text-[#71717A]" />
+                                                        <input 
+                                                          type="text" placeholder="Dicionário (Dicio)..."
+                                                          value={dictionaryQuery}
+                                                          onChange={e => setDictionaryQuery(e.target.value)}
+                                                          onKeyDown={e => {
+                                                            if(e.key === 'Enter' && dictionaryQuery.trim()) {
+                                                              window.open(`https://www.dicio.com.br/${encodeURIComponent(dictionaryQuery.trim().toLowerCase().replace(/\s+/g, '-'))}/`, '_blank');
+                                                            }
+                                                          }}
+                                                          className="w-full bg-transparent border-none text-xs text-white py-2.5 focus:outline-none"
+                                                        />
+                                                      </div>
+                                                      <button onClick={() => {
+                                                          if(dictionaryQuery.trim()) window.open(`https://www.dicio.com.br/${encodeURIComponent(dictionaryQuery.trim().toLowerCase().replace(/\s+/g, '-'))}/`, '_blank');
+                                                      }} className="px-3 bg-indigo-500/10 text-indigo-400 hover:bg-indigo-500/20 font-bold text-xs transition-colors border-l border-[rgba(255,255,255,0.04)]">
+                                                        Definir
+                                                      </button>
+                                                    </div>
+                                                  </div>
+                                                </div>
+
                                                 <div>
                                                   <label className="text-[10px] text-[#A1A1AA] uppercase tracking-widest font-bold mb-1.5 flex items-center gap-1">
                                                     <Sparkles className="size-3 text-cyan-500"/> Laboratório I.A.
@@ -1982,13 +2061,19 @@ export function PosStudies() {
                                                     <Headphones className="size-3 text-cyan-500"/> Músicas (Foco)
                                                   </label>
                                                   <div className="flex flex-col gap-2">
-                                                    <button onClick={() => window.open('https://www.youtube.com/results?search_query=lofi+gospel', '_blank')} className="w-full py-2.5 bg-[#1A1A1E] hover:bg-[#27272A] border border-[rgba(255,255,255,0.04)] rounded-xl text-xs font-bold text-[#A1A1AA] hover:text-white transition-colors flex items-center gap-2 px-3 text-left">
+                                                    <button onClick={() => {
+                                                        window.dispatchEvent(new CustomEvent('reference-click', { detail: { refType: 'video', title: 'Lofi Gospel', url: 'https://www.youtube.com/watch?v=srxN4L1n5p4', id: 'srxN4L1n5p4' } }));
+                                                    }} className="w-full py-2.5 bg-[#1A1A1E] hover:bg-[#27272A] border border-[rgba(255,255,255,0.04)] rounded-xl text-xs font-bold text-[#A1A1AA] hover:text-white transition-colors flex items-center gap-2 px-3 text-left">
                                                       <Music className="size-3.5 text-purple-400" /> <span className="flex-1 truncate">Gospel</span>
                                                     </button>
-                                                    <button onClick={() => window.open('https://www.youtube.com/results?search_query=som+de+chuva', '_blank')} className="w-full py-2.5 bg-[#1A1A1E] hover:bg-[#27272A] border border-[rgba(255,255,255,0.04)] rounded-xl text-xs font-bold text-[#A1A1AA] hover:text-white transition-colors flex items-center gap-2 px-3 text-left">
+                                                    <button onClick={() => {
+                                                        window.dispatchEvent(new CustomEvent('reference-click', { detail: { refType: 'video', title: 'Som de Chuva', url: 'https://www.youtube.com/watch?v=mPZkdNFkNps', id: 'mPZkdNFkNps' } }));
+                                                    }} className="w-full py-2.5 bg-[#1A1A1E] hover:bg-[#27272A] border border-[rgba(255,255,255,0.04)] rounded-xl text-xs font-bold text-[#A1A1AA] hover:text-white transition-colors flex items-center gap-2 px-3 text-left">
                                                       <CloudRain className="size-3.5 text-blue-400" /> <span className="flex-1 truncate">Som de Chuva</span>
                                                     </button>
-                                                    <button onClick={() => window.open('https://www.youtube.com/results?search_query=ambient+focus+music', '_blank')} className="w-full py-2.5 bg-[#1A1A1E] hover:bg-[#27272A] border border-[rgba(255,255,255,0.04)] rounded-xl text-xs font-bold text-[#A1A1AA] hover:text-white transition-colors flex items-center gap-2 px-3 text-left">
+                                                    <button onClick={() => {
+                                                        window.dispatchEvent(new CustomEvent('reference-click', { detail: { refType: 'video', title: 'Som Ambiente (Lofi)', url: 'https://www.youtube.com/watch?v=jfKfPfyJRdk', id: 'jfKfPfyJRdk' } }));
+                                                    }} className="w-full py-2.5 bg-[#1A1A1E] hover:bg-[#27272A] border border-[rgba(255,255,255,0.04)] rounded-xl text-xs font-bold text-[#A1A1AA] hover:text-white transition-colors flex items-center gap-2 px-3 text-left">
                                                       <Headphones className="size-3.5 text-emerald-400" /> <span className="flex-1 truncate">Som Ambiente</span>
                                                     </button>
                                                   </div>
@@ -2015,14 +2100,121 @@ export function PosStudies() {
 
              {courseTab === "Videoteca" && (
                 <div className="space-y-4 animate-in fade-in slide-in-from-bottom-4 duration-300">
-                  <div className="flex justify-between items-center mb-4">
-                    <h4 className="text-sm font-bold text-white uppercase tracking-widest flex items-center gap-2">
-                      <Video className="size-4 text-rose-500" /> Canais e Playlists
-                    </h4>
-                    <button onClick={() => setIsAddingChannel(!isAddingChannel)} className="px-4 py-2 bg-rose-500/10 text-rose-400 hover:bg-rose-500/20 border border-rose-500/20 rounded-xl text-xs font-bold flex items-center gap-2 transition-colors shadow-sm">
-                      <Plus className="size-3" /> Adicionar Canal
-                    </button>
-                  </div>
+                  {activeVideotecaVideos.length > 0 ? (
+                    <div className="flex flex-col gap-4">
+                      {/* WORKSPACE HEADER */}
+                      <div className="flex items-center justify-between bg-[#1A1A1E] p-4 rounded-xl border border-[rgba(255,255,255,0.06)]">
+                        <div className="flex items-center gap-4">
+                          <button onClick={() => { setActiveVideotecaVideos([]); setVideotecaNotes(''); setVideotecaTags([]); }} className="text-[#A1A1AA] hover:text-white transition-colors bg-white/5 p-2 rounded-lg">
+                            <ArrowLeft className="size-4" />
+                          </button>
+                          <div>
+                            <h3 className="text-white font-bold text-lg">{activeVideotecaVideos[0].video.title}</h3>
+                            <span className="text-[10px] text-[#A1A1AA] uppercase tracking-widest">{activeVideotecaVideos[0].channelName || 'Videoteca'}</span>
+                          </div>
+                        </div>
+                        <div className="flex items-center gap-2">
+                           {activeVideotecaVideos.length < 2 && (
+                             <button onClick={() => setIsSelectingSecondVideo(true)} className="px-3 py-1.5 bg-cyan-500/10 text-cyan-400 hover:bg-cyan-500/20 border border-cyan-500/20 rounded-lg text-xs font-bold transition-colors flex items-center gap-1.5">
+                               <Plus className="size-3" /> Segundo Vídeo
+                             </button>
+                           )}
+                           <button onClick={handleSaveVideotecaNotes} className="px-4 py-2 bg-emerald-600 hover:bg-emerald-500 text-white rounded-lg text-xs font-bold transition-colors shadow-sm flex items-center gap-2">
+                             <Save className="size-3.5" /> Salvar Notas
+                           </button>
+                        </div>
+                      </div>
+
+                      {/* WORKSPACE GRID */}
+                      <div className="grid grid-cols-1 lg:grid-cols-[60%_40%] gap-4 items-start min-h-[60vh]">
+                        {/* LEFT COLUMN: VIDEOS */}
+                        <div className="flex flex-col gap-4">
+                          {activeVideotecaVideos.map((av, idx) => (
+                            <div key={idx} className="relative bg-black rounded-xl border border-white/5 shadow-inner overflow-hidden flex flex-col">
+                              {idx === 1 && (
+                                <div className="absolute top-2 right-2 z-10 flex gap-2">
+                                  <button onClick={() => {
+                                      const newVids = [...activeVideotecaVideos];
+                                      newVids.splice(1, 1);
+                                      setActiveVideotecaVideos(newVids);
+                                  }} className="bg-rose-500/80 text-white p-1.5 rounded-lg hover:bg-rose-500 transition-colors shadow-lg">
+                                    <X className="size-3.5" />
+                                  </button>
+                                </div>
+                              )}
+                              <div className="aspect-video w-full relative">
+                                <iframe 
+                                  src={getSafeEmbedUrl(av.video.url, '')}
+                                  className="absolute inset-0 w-full h-full border-0"
+                                  allow="autoplay; fullscreen; picture-in-picture"
+                                ></iframe>
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                        
+                        {/* RIGHT COLUMN: NOTES & TAGS */}
+                        <div className="flex flex-col gap-4 h-full">
+                           <div className="flex-1 bg-[#1A1A1E] border border-[rgba(255,255,255,0.06)] rounded-xl overflow-hidden flex flex-col min-h-[400px]">
+                             <div className="p-3 border-b border-[rgba(255,255,255,0.06)] bg-[#111113] flex items-center justify-between">
+                               <span className="text-[10px] text-[#A1A1AA] uppercase tracking-widest font-bold flex items-center gap-1.5">
+                                 <FileText className="size-3 text-emerald-500" /> Anotações do Vídeo
+                               </span>
+                             </div>
+                             <div className="flex-1 p-0 overflow-y-auto custom-scrollbar">
+                               <RichTextEditor content={videotecaNotes} onChange={setVideotecaNotes} placeholder="Escreva suas anotações aqui..." />
+                             </div>
+                           </div>
+                           
+                           {/* TAGS */}
+                           <div className="bg-[#1A1A1E] border border-[rgba(255,255,255,0.06)] rounded-xl p-4">
+                              <label className="text-[10px] text-[#A1A1AA] uppercase tracking-widest font-bold mb-2 flex items-center gap-1.5">
+                                <Tag className="size-3 text-purple-500" /> Tags de Estudo
+                              </label>
+                              <div className="flex flex-wrap gap-2 mb-3">
+                                {videotecaTags.map((tag, i) => (
+                                  <span key={i} className="px-2 py-1 bg-purple-500/10 text-purple-400 border border-purple-500/20 rounded-md text-xs font-bold flex items-center gap-1.5">
+                                    {tag}
+                                    <button onClick={() => setVideotecaTags(videotecaTags.filter((_, idx) => idx !== i))} className="text-purple-400 hover:text-white"><X className="size-3"/></button>
+                                  </span>
+                                ))}
+                              </div>
+                              <div className="flex gap-2">
+                                <input 
+                                  type="text" placeholder="Adicionar nova tag..."
+                                  value={newVideotecaTag} onChange={e => setNewVideotecaTag(e.target.value)}
+                                  onKeyDown={e => {
+                                    if(e.key === 'Enter' && newVideotecaTag.trim()) {
+                                      e.preventDefault();
+                                      if(!videotecaTags.includes(newVideotecaTag.trim())) {
+                                        setVideotecaTags([...videotecaTags, newVideotecaTag.trim()]);
+                                      }
+                                      setNewVideotecaTag('');
+                                    }
+                                  }}
+                                  className="flex-1 bg-[#111113] border border-[rgba(255,255,255,0.06)] rounded-lg px-3 py-2 text-xs text-white focus:outline-none focus:border-purple-500/50"
+                                />
+                                <button onClick={() => {
+                                  if(newVideotecaTag.trim() && !videotecaTags.includes(newVideotecaTag.trim())) {
+                                    setVideotecaTags([...videotecaTags, newVideotecaTag.trim()]);
+                                    setNewVideotecaTag('');
+                                  }
+                                }} className="px-3 py-2 bg-white/5 hover:bg-white/10 text-white rounded-lg text-xs font-bold transition-colors">Adicionar</button>
+                              </div>
+                           </div>
+                        </div>
+                      </div>
+                    </div>
+                  ) : (
+                    <>
+                      <div className="flex justify-between items-center mb-4">
+                        <h4 className="text-sm font-bold text-white uppercase tracking-widest flex items-center gap-2">
+                          <Video className="size-4 text-rose-500" /> Canais e Playlists
+                        </h4>
+                        <button onClick={() => setIsAddingChannel(!isAddingChannel)} className="px-4 py-2 bg-rose-500/10 text-rose-400 hover:bg-rose-500/20 border border-rose-500/20 rounded-xl text-xs font-bold flex items-center gap-2 transition-colors shadow-sm">
+                          <Plus className="size-3" /> Adicionar Canal
+                        </button>
+                      </div>
                   
                   {isAddingChannel && (
                     <div className="bg-[#111113] border border-[rgba(255,255,255,0.06)] p-4 rounded-xl flex flex-col sm:flex-row gap-4 animate-in fade-in slide-in-from-top-2 mb-4">
@@ -2126,7 +2318,11 @@ export function PosStudies() {
                                      const thumb = getThumbnail(vid.url);
                                      return (
                                        <div key={vid.id || vIdx} className="bg-[#1A1A1E] border border-white/5 rounded-xl overflow-hidden group hover:border-cyan-500/30 transition-colors shadow-sm">
-                                         <div className="h-24 bg-black relative flex items-center justify-center group-hover:opacity-90 cursor-pointer" onClick={() => window.open(vid.url.startsWith('http') ? vid.url : `https://${vid.url}`, '_blank')}>
+                                         <div className="h-24 bg-black relative flex items-center justify-center group-hover:opacity-90 cursor-pointer" onClick={() => {
+                                             setActiveVideotecaVideos([{ channelIdx: idx, videoIdx: vIdx, video: vid, channelName: ch.name }]);
+                                             setVideotecaNotes(vid.notes || '');
+                                             setVideotecaTags(vid.tags || []);
+                                         }}>
                                            {thumb ? <img src={thumb} alt="thumb" className="w-full h-full object-cover opacity-60 group-hover:opacity-100 transition-opacity" /> : <Play className="size-6 text-white/20" />}
                                            <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity bg-black/40">
                                               <Play className="size-8 text-white drop-shadow-lg" />
@@ -2159,8 +2355,10 @@ export function PosStudies() {
                       ));
                     })()}
                   </div>
-                </div>
-             )}
+                </>
+              )}
+            </div>
+          )}
 
              {courseTab === "Diário de Bordo" && (
                <div className="space-y-4 animate-in fade-in slide-in-from-bottom-4 duration-300">
@@ -2736,6 +2934,80 @@ export function PosStudies() {
          renderIntelligenceReport()
       ) : (
          renderCoursesList()
+      )}
+
+      {/* MODAL SELECIONAR SEGUNDO VÍDEO */}
+      {isSelectingSecondVideo && (
+        <div className="fixed inset-0 z-[100] flex items-end sm:items-center justify-center bg-black/60 backdrop-blur-sm sm:p-4">
+          <div className="bg-[#111113] border border-[rgba(255,255,255,0.1)] rounded-t-3xl sm:rounded-3xl p-6 md:p-8 shadow-2xl w-full max-w-2xl relative animate-in slide-in-from-bottom duration-300 flex flex-col max-h-[90vh]">
+            <button type="button" onClick={() => setIsSelectingSecondVideo(false)} className="absolute top-6 right-6 text-[#71717A] hover:text-white bg-white/5 p-2 rounded-full transition-colors"><X className="size-4"/></button>
+            
+            <h3 className="text-xl font-bold text-white mb-6 flex items-center gap-2">
+               <Video className="size-5 text-cyan-500" /> Adicionar Segundo Vídeo
+            </h3>
+            
+            <div className="flex-1 overflow-y-auto custom-scrollbar pr-2 space-y-6 min-h-[300px]">
+              
+              {/* Canais da Videoteca */}
+              <div>
+                <h4 className="text-xs uppercase tracking-widest font-bold text-[#A1A1AA] mb-3">Da Videoteca</h4>
+                <div className="space-y-2">
+                  {(() => {
+                    let channels: any[] = [];
+                    try { channels = JSON.parse(selectedCourse?.description || '{}').youtube_channels || []; } catch(e){}
+                    if (channels.length === 0) return <div className="text-[10px] text-[#71717A]">Nenhum vídeo salvo na Videoteca.</div>;
+                    
+                    return channels.map((ch, cIdx) => (
+                      <div key={cIdx} className="mb-4">
+                        <span className="text-xs font-bold text-white mb-2 block">{ch.name}</span>
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                          {ch.videos?.map((vid: any, vIdx: number) => (
+                            <button key={vIdx} onClick={() => {
+                               setActiveVideotecaVideos([...activeVideotecaVideos, { channelIdx: cIdx, videoIdx: vIdx, video: vid, channelName: ch.name }]);
+                               setIsSelectingSecondVideo(false);
+                            }} className="text-left bg-[#1A1A1E] border border-white/5 p-2 rounded-lg hover:border-cyan-500/50 transition-colors flex items-center gap-2 group">
+                               <Play className="size-4 text-cyan-500/50 group-hover:text-cyan-400 shrink-0" />
+                               <span className="text-xs text-[#A1A1AA] group-hover:text-white truncate">{vid.title}</span>
+                            </button>
+                          ))}
+                        </div>
+                      </div>
+                    ));
+                  })()}
+                </div>
+              </div>
+              
+              {/* Músicas de Foco */}
+              <div>
+                <h4 className="text-xs uppercase tracking-widest font-bold text-[#A1A1AA] mb-3">Músicas (Foco)</h4>
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
+                   <button onClick={() => {
+                       setActiveVideotecaVideos([...activeVideotecaVideos, { channelIdx: undefined, videoIdx: undefined, video: { title: 'Lofi Gospel', url: 'https://www.youtube.com/watch?v=srxN4L1n5p4' }, channelName: 'Foco' }]);
+                       setIsSelectingSecondVideo(false);
+                   }} className="text-left bg-[#1A1A1E] border border-white/5 p-3 rounded-lg hover:border-purple-500/50 transition-colors flex flex-col gap-1 items-center justify-center group">
+                      <Music className="size-5 text-purple-400 mb-1" />
+                      <span className="text-xs font-bold text-[#A1A1AA] group-hover:text-white">Gospel Lofi</span>
+                   </button>
+                   <button onClick={() => {
+                       setActiveVideotecaVideos([...activeVideotecaVideos, { channelIdx: undefined, videoIdx: undefined, video: { title: 'Som de Chuva', url: 'https://www.youtube.com/watch?v=mPZkdNFkNps' }, channelName: 'Foco' }]);
+                       setIsSelectingSecondVideo(false);
+                   }} className="text-left bg-[#1A1A1E] border border-white/5 p-3 rounded-lg hover:border-blue-500/50 transition-colors flex flex-col gap-1 items-center justify-center group">
+                      <CloudRain className="size-5 text-blue-400 mb-1" />
+                      <span className="text-xs font-bold text-[#A1A1AA] group-hover:text-white">Som de Chuva</span>
+                   </button>
+                   <button onClick={() => {
+                       setActiveVideotecaVideos([...activeVideotecaVideos, { channelIdx: undefined, videoIdx: undefined, video: { title: 'Som Ambiente', url: 'https://www.youtube.com/watch?v=jfKfPfyJRdk' }, channelName: 'Foco' }]);
+                       setIsSelectingSecondVideo(false);
+                   }} className="text-left bg-[#1A1A1E] border border-white/5 p-3 rounded-lg hover:border-emerald-500/50 transition-colors flex flex-col gap-1 items-center justify-center group">
+                      <Headphones className="size-5 text-emerald-400 mb-1" />
+                      <span className="text-xs font-bold text-[#A1A1AA] group-hover:text-white">Som Ambiente</span>
+                   </button>
+                </div>
+              </div>
+
+            </div>
+          </div>
+        </div>
       )}
 
       {/* MODAL REGISTRO DE SESSÃO */}
