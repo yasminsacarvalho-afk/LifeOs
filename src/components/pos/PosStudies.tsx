@@ -47,6 +47,12 @@ export function PosStudies() {
   const [activeTab, setActiveTab] = useState("Visão Geral");
   const [selectedCourseId, setSelectedCourseId] = useState<string | null>(null);
   const [courseTab, setCourseTab] = useState("Módulos");
+  const [activeModuleIndex, setActiveModuleIndex] = useState<number | null>(null);
+
+  useEffect(() => {
+    setActiveModuleIndex(null);
+  }, [selectedCourseId, courseTab]);
+
   const [isCreatingCourse, setIsCreatingCourse] = useState(false);
   const [isEditingCourse, setIsEditingCourse] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
@@ -1156,21 +1162,81 @@ export function PosStudies() {
                             </div>
                           </div>
 
-                          <div className="space-y-6">
-                            {modules.length === 0 ? (
-                              <div className="p-8 text-center border border-dashed border-[rgba(255,255,255,0.06)] rounded-2xl text-[#A1A1AA] text-sm">
-                                Nenhum módulo cadastrado. Comece criando um módulo para estruturar seus tópicos.
-                              </div>
-                            ) : modules.map((mod: any, mIdx: number) => (
-                              <div key={mod.id || mIdx} className="bg-[#111113] border border-white/5 rounded-2xl overflow-hidden shadow-lg mb-6 group transition-all hover:border-cyan-500/20">
-                                <div className="flex items-center justify-between p-5 bg-gradient-to-r from-[#1A1A1E] to-[#111113] border-b border-white/5 relative">
-                                  <div className="absolute left-0 top-0 bottom-0 w-1 bg-cyan-500 rounded-l-2xl opacity-50 group-hover:opacity-100 transition-opacity"></div>
-                                  <h4 className="text-base font-black text-white flex items-center gap-3">
-                                    <div className="bg-cyan-500/10 p-2 rounded-lg border border-cyan-500/20 shadow-inner">
-                                      <FolderOpen className="size-4 text-cyan-400" />
+                          {activeModuleIndex === null ? (
+                            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                              {modules.length === 0 ? (
+                                <div className="col-span-full p-8 text-center border border-dashed border-[rgba(255,255,255,0.06)] rounded-2xl text-[#A1A1AA] text-sm">
+                                  Nenhum módulo cadastrado. Comece criando um módulo para estruturar seus tópicos.
+                                </div>
+                              ) : modules.map((mod: any, mIdx: number) => {
+                                const tTotal = mod.topics?.length || 0;
+                                const tDone = mod.topics?.filter((t:any) => t.status === 'concluido').length || 0;
+                                const pct = tTotal > 0 ? Math.round((tDone / tTotal) * 100) : 0;
+                                return (
+                                  <div key={mod.id || mIdx} onClick={() => setActiveModuleIndex(mIdx)} className="bg-[#111113] border border-white/5 rounded-2xl overflow-hidden shadow-lg group cursor-pointer hover:border-cyan-500/50 transition-all flex flex-col h-[240px]">
+                                    <div className="h-32 w-full relative bg-gradient-to-br from-[#1A1A1E] to-[#111113] overflow-hidden flex items-center justify-center">
+                                      {mod.cover_url ? (
+                                        <img src={mod.cover_url} alt={mod.title} className="w-full h-full object-cover opacity-60 group-hover:opacity-100 group-hover:scale-105 transition-all duration-500" />
+                                      ) : (
+                                        <Layers className="size-10 text-cyan-500/20 group-hover:scale-110 transition-transform duration-500" />
+                                      )}
+                                      <div className="absolute top-2 right-2 z-10 flex gap-2">
+                                        <button onClick={(e) => {
+                                          e.stopPropagation();
+                                          const url = prompt("URL da Capa do Módulo (Imagem):", mod.cover_url || '');
+                                          if (url !== null) {
+                                            const updated = [...modules];
+                                            updated[mIdx].cover_url = url;
+                                            updateCourse(selectedCourse.id, { next_topics: JSON.stringify(updated) });
+                                          }
+                                        }} className="p-1.5 bg-black/50 hover:bg-cyan-500/80 rounded-lg text-white backdrop-blur-sm border border-white/10 transition-colors" title="Capa">
+                                          <Camera className="size-3" />
+                                        </button>
+                                        <button onClick={(e) => {
+                                          e.stopPropagation();
+                                          if(confirm("Excluir este módulo inteiro e seus tópicos?")) {
+                                            const updated = modules.filter((_: any, i: number) => i !== mIdx);
+                                            updateCourse(selectedCourse.id, { next_topics: JSON.stringify(updated) });
+                                          }
+                                        }} className="p-1.5 bg-black/50 hover:bg-rose-500/80 rounded-lg text-rose-400 hover:text-white backdrop-blur-sm border border-white/10 transition-colors" title="Excluir">
+                                          <Trash2 className="size-3" />
+                                        </button>
+                                      </div>
                                     </div>
-                                    {mod.title}
-                                  </h4>
+                                    <div className="p-4 flex flex-col justify-between flex-1 bg-[#111113]">
+                                      <h4 className="text-sm font-bold text-white truncate">{mod.title}</h4>
+                                      <div className="mt-auto pt-2">
+                                        <div className="flex justify-between items-end mb-1.5">
+                                          <span className="text-[10px] text-[#A1A1AA] font-bold uppercase tracking-widest">{tTotal} aulas</span>
+                                          <span className="text-[10px] font-bold text-cyan-400">{pct}%</span>
+                                        </div>
+                                        <div className="h-1.5 w-full bg-[#1A1A1E] rounded-full overflow-hidden shadow-inner border border-white/5">
+                                          <div className="h-full bg-cyan-500 rounded-full" style={{ width: `${pct}%` }}></div>
+                                        </div>
+                                      </div>
+                                    </div>
+                                  </div>
+                                );
+                              })}
+                            </div>
+                          ) : (
+                            <div className="space-y-6 animate-in fade-in slide-in-from-right-4 duration-300">
+                              <button onClick={() => setActiveModuleIndex(null)} className="flex items-center gap-2 text-xs font-bold text-[#A1A1AA] hover:text-white transition-colors mb-2 w-fit bg-white/5 px-3 py-2 rounded-lg border border-white/10 hover:border-white/20">
+                                <ArrowLeft className="size-4" /> Voltar para Grade de Módulos
+                              </button>
+                              
+                              {modules.map((mod: any, mIdx: number) => {
+                                if (mIdx !== activeModuleIndex) return null;
+                                return (
+                                  <div key={mod.id || mIdx} className="bg-[#111113] border border-white/5 rounded-2xl overflow-hidden shadow-lg mb-6 group transition-all hover:border-cyan-500/20">
+                                    <div className="flex items-center justify-between p-5 bg-gradient-to-r from-[#1A1A1E] to-[#111113] border-b border-white/5 relative">
+                                      <div className="absolute left-0 top-0 bottom-0 w-1 bg-cyan-500 rounded-l-2xl opacity-50 group-hover:opacity-100 transition-opacity"></div>
+                                      <h4 className="text-base font-black text-white flex items-center gap-3">
+                                        <div className="bg-cyan-500/10 p-2 rounded-lg border border-cyan-500/20 shadow-inner">
+                                          <FolderOpen className="size-4 text-cyan-400" />
+                                        </div>
+                                        {mod.title}
+                                      </h4>
                                   <div className="flex items-center gap-2 relative z-10">
                                     <button onClick={() => {
                                       const topicTitle = prompt("Nome do novo tópico/aula:");
@@ -1660,8 +1726,10 @@ export function PosStudies() {
                                   ))}
                                 </div>
                               </div>
-                            ))}
+                            );
+                          })}
                           </div>
+                          )}
                         </>
                       );
                     })()}
@@ -1912,6 +1980,133 @@ export function PosStudies() {
                    </button>
                 </div>
              </div>
+
+             {(() => {
+                let allBooks: string[] = [];
+                let allMaterials: any[] = [];
+                let allLinks: any[] = [];
+                let allVideos: any[] = [];
+                let allChannels: any[] = [];
+
+                try {
+                  const parsed = JSON.parse(selectedCourse.next_topics || '[]');
+                  const modulesArray = (parsed.length > 0 && !parsed[0].topics) ? [{ topics: parsed }] : parsed;
+                  
+                  modulesArray.forEach((m: any) => {
+                    m.topics?.forEach((t: any) => {
+                      if (t.books) {
+                          t.books.forEach((bId: string) => {
+                             if (!allBooks.includes(bId)) allBooks.push(bId);
+                          });
+                      }
+                      if (t.materials) {
+                          t.materials.forEach((mat: any) => {
+                             if (!allMaterials.find(x => x.url === mat.url)) allMaterials.push(mat);
+                          });
+                      }
+                      if (t.source) {
+                          if (!allLinks.find(x => x.url === t.source)) allLinks.push({ name: t.title, url: t.source });
+                      }
+                    });
+                  });
+                } catch(e) {}
+
+                try {
+                   const desc = JSON.parse(selectedCourse.description || '{}');
+                   if (desc.youtube_channels) {
+                     allChannels = desc.youtube_channels;
+                     desc.youtube_channels.forEach((ch: any) => {
+                        if (ch.videos) {
+                           ch.videos.forEach((v: any) => allVideos.push(v));
+                        }
+                     });
+                   }
+                } catch(e) {}
+
+                if (allBooks.length === 0 && allChannels.length === 0 && allVideos.length === 0 && allMaterials.length === 0 && allLinks.length === 0) {
+                   return null; 
+                }
+
+                return (
+                  <div className="bg-[#111113] border border-[rgba(255,255,255,0.04)] rounded-3xl p-6 shadow-lg">
+                    <h3 className="text-sm font-bold text-white mb-4 uppercase tracking-widest flex items-center gap-2">
+                       <Library className="size-4 text-emerald-500" /> Materiais em Uso
+                    </h3>
+                    
+                    <div className="space-y-5">
+                       {/* Livros */}
+                       {allBooks.length > 0 && (
+                         <div>
+                            <h4 className="text-[10px] text-[#A1A1AA] uppercase tracking-widest font-bold mb-2 flex items-center gap-1.5"><Book className="size-3 text-emerald-400" /> Livros Associados</h4>
+                            <div className="flex flex-col gap-2">
+                               {allBooks.map((bId) => {
+                                  const b = books.find(book => book.id === bId);
+                                  if (!b) return null;
+                                  return (
+                                    <div key={bId} className="flex items-center gap-2 bg-[#1A1A1E] p-2.5 rounded-xl border border-white/5 hover:border-emerald-500/20 transition-colors">
+                                       <div className="size-7 bg-emerald-500/10 rounded-lg flex items-center justify-center shrink-0">
+                                         <Book className="size-3.5 text-emerald-500" />
+                                       </div>
+                                       <span className="text-xs text-white truncate font-medium">{b.title}</span>
+                                    </div>
+                                  );
+                               })}
+                            </div>
+                         </div>
+                       )}
+
+                       {/* Canais e Videos */}
+                       {(allChannels.length > 0 || allVideos.length > 0) && (
+                         <div>
+                            <h4 className="text-[10px] text-[#A1A1AA] uppercase tracking-widest font-bold mb-2 flex items-center gap-1.5"><Video className="size-3 text-rose-400" /> Videoteca</h4>
+                            <div className="flex flex-col gap-2">
+                               {allChannels.length > 0 && (
+                                 <div className="flex flex-wrap gap-1.5">
+                                    {allChannels.map((ch: any) => (
+                                      <span key={ch.id} className="text-[10px] font-bold text-rose-400 bg-rose-500/10 px-2.5 py-1 rounded-md border border-rose-500/20">{ch.name}</span>
+                                    ))}
+                                 </div>
+                               )}
+                               {allVideos.length > 0 && (
+                                  <div className="text-xs text-[#A1A1AA] flex items-center gap-1.5 bg-[#1A1A1E] p-2.5 rounded-xl border border-white/5 mt-1">
+                                    <Play className="size-3.5 text-rose-400" /> {allVideos.length} vídeos salvos nas aulas
+                                  </div>
+                               )}
+                            </div>
+                         </div>
+                       )}
+
+                       {/* Anexos e Links */}
+                       {(allMaterials.length > 0 || allLinks.length > 0) && (
+                         <div>
+                            <h4 className="text-[10px] text-[#A1A1AA] uppercase tracking-widest font-bold mb-2 flex items-center gap-1.5"><LinkIcon className="size-3 text-cyan-400" /> Anexos e Links</h4>
+                            <div className="flex flex-col gap-2">
+                               {allMaterials.map((mat, i) => (
+                                 <a key={`m-${i}`} href={mat.url.startsWith('http') ? mat.url : `https://${mat.url}`} target="_blank" rel="noopener noreferrer" className="flex items-center gap-3 bg-[#1A1A1E] p-2.5 rounded-xl border border-white/5 hover:border-cyan-500/30 transition-colors group">
+                                    <div className="size-7 bg-cyan-500/10 rounded-lg flex items-center justify-center shrink-0">
+                                      {mat.type === 'file' ? <FileText className="size-3.5 text-cyan-500" /> : <LinkIcon className="size-3.5 text-cyan-500" />}
+                                    </div>
+                                    <span className="text-xs text-white truncate font-medium group-hover:text-cyan-400 transition-colors">{mat.name || 'Link'}</span>
+                                 </a>
+                               ))}
+                               {allLinks.map((link, i) => (
+                                 <a key={`l-${i}`} href={link.url.startsWith('http') ? link.url : `https://${link.url}`} target="_blank" rel="noopener noreferrer" className="flex items-center gap-3 bg-[#1A1A1E] p-2.5 rounded-xl border border-white/5 hover:border-cyan-500/30 transition-colors group">
+                                    <div className="size-7 bg-cyan-500/10 rounded-lg flex items-center justify-center shrink-0">
+                                      <ExternalLink className="size-3.5 text-cyan-500" />
+                                    </div>
+                                    <div className="flex flex-col overflow-hidden">
+                                       <span className="text-xs text-white truncate font-medium group-hover:text-cyan-400 transition-colors">{link.name}</span>
+                                       <span className="text-[10px] text-[#71717A] uppercase">Fonte</span>
+                                    </div>
+                                 </a>
+                               ))}
+                            </div>
+                         </div>
+                       )}
+                    </div>
+                  </div>
+                );
+             })()}
           </div>
           )}
         </div>
