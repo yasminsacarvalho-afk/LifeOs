@@ -1,5 +1,5 @@
-import { useState, useEffect } from 'react';
-import { Play, X, Maximize2, ExternalLink, Minimize2 } from 'lucide-react';
+import { useState, useEffect, useRef } from 'react';
+import { Play, X, Maximize2, ExternalLink, Minimize2, GripHorizontal } from 'lucide-react';
 import { getSafeEmbedUrl } from '@/lib/youtube';
 import { cn } from '@/lib/utils';
 import { toast } from 'sonner';
@@ -7,6 +7,33 @@ import { toast } from 'sonner';
 export function GlobalPiPPlayer() {
   const [pipData, setPipData] = useState<any>(null);
   const [isMaximized, setIsMaximized] = useState(false);
+  
+  const [position, setPosition] = useState({ x: 0, y: 0 });
+  const [isDragging, setIsDragging] = useState(false);
+  const dragStartPos = useRef({ x: 0, y: 0 });
+
+  const handlePointerDown = (e: React.PointerEvent) => {
+    if ((e.target as HTMLElement).closest('button')) return;
+    setIsDragging(true);
+    (e.target as HTMLElement).setPointerCapture(e.pointerId);
+    dragStartPos.current = {
+      x: e.clientX - position.x,
+      y: e.clientY - position.y
+    };
+  };
+
+  const handlePointerMove = (e: React.PointerEvent) => {
+    if (!isDragging) return;
+    setPosition({
+      x: e.clientX - dragStartPos.current.x,
+      y: e.clientY - dragStartPos.current.y
+    });
+  };
+
+  const handlePointerUp = (e: React.PointerEvent) => {
+    setIsDragging(false);
+    (e.target as HTMLElement).releasePointerCapture(e.pointerId);
+  };
 
   useEffect(() => {
     const handleGlobalPip = (e: any) => {
@@ -69,10 +96,23 @@ export function GlobalPiPPlayer() {
   }
 
   return (
-    <div className="fixed bottom-20 right-4 md:bottom-6 md:right-6 z-[999999] w-80 md:w-96 bg-[#111113] border border-[rgba(255,255,255,0.1)] rounded-xl shadow-2xl overflow-hidden animate-in slide-in-from-bottom-5">
-      <div className="flex justify-between items-center p-2 border-b border-white/5 bg-[#1A1A1E]">
+    <div 
+      className={cn(
+        "fixed bottom-20 right-4 md:bottom-6 md:right-6 z-[999999] w-80 md:w-96 bg-[#111113] border border-[rgba(255,255,255,0.1)] rounded-xl shadow-2xl overflow-hidden",
+        isDragging ? "transition-none" : "transition-transform duration-200 ease-out",
+        !position.x && !position.y && "animate-in slide-in-from-bottom-5"
+      )}
+      style={{ transform: `translate(${position.x}px, ${position.y}px)` }}
+    >
+      <div 
+        className="flex justify-between items-center p-2 border-b border-white/5 bg-[#1A1A1E] cursor-move select-none active:cursor-grabbing"
+        onPointerDown={handlePointerDown}
+        onPointerMove={handlePointerMove}
+        onPointerUp={handlePointerUp}
+        onPointerCancel={handlePointerUp}
+      >
         <h3 className="text-xs font-bold text-white flex items-center gap-1.5 truncate pr-2">
-          <Play className="size-3 text-cyan-500 shrink-0" />
+          <GripHorizontal className="size-3 text-[#71717A] shrink-0" />
           <span className="truncate">{pipData.title}</span>
         </h3>
         <div className="flex items-center gap-1 shrink-0">

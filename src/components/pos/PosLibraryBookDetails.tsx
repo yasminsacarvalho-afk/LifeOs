@@ -254,6 +254,28 @@ export function PosLibraryBookDetails({ book, sessions, onClose, onUpdate, onDel
     setLocalPagesRead(prev => Math.min(max, prev + amount));
   };
 
+  const handleShare = async () => {
+    setShowMenu(false);
+    const shareText = `📚 Estou lendo: ${book.title}\n👤 Autor: ${book.author || 'Desconhecido'}\n📈 Progresso: ${localPagesRead}/${book.total_pages || '?'} ${book.progress_unit === 'percentage' ? '%' : book.progress_unit === 'chapters' ? 'caps' : book.progress_unit === 'minutes' ? 'min' : 'páginas'}\n\nAcompanhando na Biblioteca Operacional`;
+    
+    if (navigator.share) {
+      try {
+        await navigator.share({
+          title: book.title,
+          text: shareText,
+        });
+      } catch (err: any) {
+        if (err.name !== 'AbortError') {
+          await navigator.clipboard.writeText(shareText);
+          toast.success("Texto copiado para a área de transferência!");
+        }
+      }
+    } else {
+      await navigator.clipboard.writeText(shareText);
+      toast.success("Texto copiado para a área de transferência!");
+    }
+  };
+
   return createPortal(
     <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/80 backdrop-blur-sm sm:p-4 animate-in fade-in duration-300">
       <div className="w-full h-[100dvh] sm:h-[90vh] max-h-[100dvh] sm:max-h-[90vh] sm:max-w-3xl lg:max-w-4xl bg-[#09090B] flex flex-col font-sans sm:rounded-3xl shadow-2xl overflow-hidden animate-in slide-in-from-bottom-full sm:zoom-in-95 duration-300 relative border-0 sm:border border-[rgba(255,255,255,0.06)]">
@@ -278,7 +300,7 @@ export function PosLibraryBookDetails({ book, sessions, onClose, onUpdate, onDel
                   <div className="py-1">
                     {book.buy_link && <a href={book.buy_link} target="_blank" rel="noreferrer" className="flex items-center gap-3 px-4 py-3 text-sm text-white hover:bg-white/5"><ExternalLink size={16} /> Comprar / Ver online</a>}
                     <button onClick={() => { setShowMenu(false); if (onEdit) onEdit(); else document.getElementById('edit-book-btn')?.click(); }} className="w-full flex items-center gap-3 px-4 py-3 text-sm text-white hover:bg-white/5"><Edit2 size={16} /> Editar livro</button>
-                    <button onClick={() => { setShowMenu(false); alert("Compartilhar gerado com sucesso! (Em breve)"); }} className="w-full flex items-center gap-3 px-4 py-3 text-sm text-white hover:bg-white/5"><Share2 size={16} /> Compartilhar card</button>
+                    <button onClick={handleShare} className="w-full flex items-center gap-3 px-4 py-3 text-sm text-white hover:bg-white/5"><Share2 size={16} /> Compartilhar card</button>
                     <button onClick={() => { setShowMenu(false); alert("Exportado! (Em breve)"); }} className="w-full flex items-center gap-3 px-4 py-3 text-sm text-white hover:bg-white/5"><Download size={16} /> Exportar anotações</button>
                     <div className="h-px w-full bg-[rgba(255,255,255,0.1)] my-1"></div>
                     <button onClick={handleDelete} className="w-full flex items-center gap-3 px-4 py-3 text-sm text-rose-500 hover:bg-rose-500/10"><Trash2 size={16} /> Excluir da biblioteca</button>

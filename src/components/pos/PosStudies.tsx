@@ -505,6 +505,83 @@ export function PosStudies() {
           </div>
        </div>
 
+       {activeTab === "Trilhas" ? (
+         <div className="space-y-12 animate-in fade-in slide-in-from-bottom-4 duration-500">
+            {(() => {
+              const trilhas = courses.filter(c => {
+                 const searchMatch = c.title.toLowerCase().includes(searchQuery.toLowerCase()) || c.knowledge_area?.toLowerCase().includes(searchQuery.toLowerCase());
+                 if (!searchMatch) return false;
+                 if (filterStatus !== "todos" && c.status !== filterStatus) return false;
+                 if (filterArea !== "todas" && c.knowledge_area !== filterArea) return false;
+                 return c.category === 'Trilha' && c.status !== 'concluido';
+              });
+
+              // Group by knowledge_area
+              const grouped = trilhas.reduce((acc, course) => {
+                 const area = course.knowledge_area || 'Outras Áreas';
+                 if (!acc[area]) acc[area] = [];
+                 acc[area].push(course);
+                 return acc;
+              }, {} as Record<string, typeof courses>);
+
+              if (Object.keys(grouped).length === 0) {
+                 return <div className="p-8 text-center border border-dashed border-[rgba(255,255,255,0.06)] rounded-2xl text-[#A1A1AA] text-sm">Nenhuma trilha encontrada.</div>;
+              }
+
+              return Object.entries(grouped).map(([area, areaCourses]) => (
+                 <div key={area} className="space-y-4">
+                    <h3 className="text-xl md:text-2xl font-black text-white px-3 border-l-4 border-cyan-500 flex items-center gap-2">
+                       {area} <span className="text-xs font-bold text-[#71717A] bg-white/5 px-2 py-0.5 rounded-md border border-white/5">{areaCourses.length}</span>
+                    </h3>
+                    <div className="flex overflow-x-auto gap-4 pb-4 hide-scrollbar snap-x snap-mandatory">
+                       {areaCourses.map(course => {
+                          const percent = course.total_hours ? Math.min(100, Math.round((course.completed_hours / course.total_hours) * 100)) : 0;
+                          return (
+                            <div 
+                              key={course.id} 
+                              onClick={() => setSelectedCourseId(course.id)}
+                              className="snap-start shrink-0 w-[280px] md:w-[320px] bg-[#111113] border border-[rgba(255,255,255,0.04)] rounded-2xl overflow-hidden hover:border-cyan-500/50 hover:shadow-[0_0_20px_rgba(6,182,212,0.15)] transition-all group cursor-pointer shadow-lg flex flex-col"
+                            >
+                              <div className="h-40 w-full relative overflow-hidden bg-gradient-to-br from-[#1A1A1E] to-[#111113] flex items-center justify-center">
+                                <div className="absolute inset-0 bg-gradient-to-t from-[#111113] via-transparent to-transparent z-10"></div>
+                                {(() => {
+                                   try {
+                                     const p = JSON.parse(course.description || '{}');
+                                     if (p.cover_url) return <img src={p.cover_url} alt="Cover" className="absolute inset-0 w-full h-full object-cover opacity-60 group-hover:opacity-100 group-hover:scale-110 transition-all duration-700 z-0" />;
+                                   } catch(e) {}
+                                   return <GraduationCap className="size-12 text-cyan-500/20 group-hover:scale-125 transition-transform duration-700 z-0" />;
+                                })()}
+                                <div className="absolute top-3 right-3 z-20">
+                                   <button className="text-[#A1A1AA] hover:text-white bg-black/50 p-1.5 rounded-md backdrop-blur-md border border-white/10 opacity-0 group-hover:opacity-100 transition-all"><MoreVertical className="size-4" /></button>
+                                </div>
+                                <div className="absolute bottom-3 left-4 z-20 flex flex-col items-start gap-1">
+                                  {course.instructor && (
+                                     <span className="px-2 py-0.5 bg-black/60 backdrop-blur-md rounded border border-white/10 text-[9px] font-bold text-white uppercase tracking-wider">{course.instructor}</span>
+                                  )}
+                                  <span className="px-2 py-0.5 bg-cyan-500/20 backdrop-blur-md rounded border border-cyan-500/30 text-[9px] font-bold text-cyan-400 uppercase tracking-wider">Trilha</span>
+                                </div>
+                              </div>
+                              <div className="p-5 flex-1 flex flex-col bg-gradient-to-b from-[#111113] to-[#0A0A0C]">
+                                <h4 className="font-bold text-white text-base leading-tight mb-4 group-hover:text-cyan-400 transition-colors line-clamp-2">{course.title}</h4>
+                                <div className="mt-auto">
+                                  <div className="flex justify-between items-end mb-2">
+                                    <div className="text-[10px] font-bold text-[#71717A] uppercase tracking-widest">{course.completed_hours}h / {course.total_hours}h</div>
+                                    <div className="text-xs font-bold text-cyan-400">{percent}%</div>
+                                  </div>
+                                  <div className="h-1.5 w-full bg-[#1A1A1E] rounded-full overflow-hidden mb-2">
+                                    <div className="h-full bg-cyan-500 rounded-full shadow-[0_0_10px_rgba(6,182,212,0.5)]" style={{ width: `${percent}%` }}></div>
+                                  </div>
+                                </div>
+                              </div>
+                            </div>
+                          );
+                       })}
+                    </div>
+                 </div>
+              ));
+            })()}
+         </div>
+       ) : (
        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
          {courses.filter(c => {
              const searchMatch = c.title.toLowerCase().includes(searchQuery.toLowerCase()) || c.knowledge_area?.toLowerCase().includes(searchQuery.toLowerCase());
@@ -516,7 +593,7 @@ export function PosStudies() {
              if (activeTab === "Cursos") return !['Faculdade', 'Disciplina', 'Certificação', 'Trilha', 'Projeto Acadêmico'].includes(c.category || '') && c.status !== 'concluido';
              if (activeTab === "Faculdade") return ['Faculdade', 'Disciplina'].includes(c.category || '') && c.status !== 'concluido';
              if (activeTab === "Certificações") return c.category === 'Certificação' && c.status !== 'concluido';
-             if (activeTab === "Trilhas") return c.category === 'Trilha' && c.status !== 'concluido';
+             if (activeTab === "Trilhas") return false; // This case is already handled above
              if (activeTab === "Projetos") return c.category === 'Projeto Acadêmico' && c.status !== 'concluido';
              if (activeTab === "Concluídos") return c.status === 'concluido';
              
@@ -568,6 +645,7 @@ export function PosStudies() {
             );
          })}
        </div>
+       )}
     </div>
   );
 
@@ -624,11 +702,11 @@ export function PosStudies() {
                  <span className="px-3 py-1 bg-black/50 border border-white/10 text-white rounded-lg text-[10px] font-bold uppercase tracking-widest backdrop-blur-sm shadow-lg">{selectedCourse.category}</span>
                </div>
                
-               <div className="flex justify-between items-start gap-4">
-                 <h1 className="text-3xl md:text-5xl font-black text-white tracking-tight leading-tight mb-6 max-w-3xl drop-shadow-xl">
+               <div className="flex flex-col md:flex-row justify-between items-start gap-4 mb-6">
+                 <h1 className="text-3xl md:text-5xl font-black text-white tracking-tight leading-tight max-w-3xl drop-shadow-xl">
                    {selectedCourse.title}
                  </h1>
-                 <div className="flex items-center gap-2 relative z-20 shrink-0">
+                 <div className="flex items-center gap-2 relative z-20 shrink-0 mt-2 md:mt-0">
                    <button 
                      onClick={() => {
                        setNewCourse(selectedCourse as any);
@@ -1337,28 +1415,31 @@ export function PosStudies() {
                                       
                                       {/* EXPANDED WORKSPACE MODAL */}
                                       {expandedTopicId === (topic.id || tIdx) && (
-                                        <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/80 backdrop-blur-md animate-in fade-in duration-200" onClick={(e) => { e.stopPropagation(); setExpandedTopicId(null); }}>
-                                          <div className="bg-[#111113] border border-[rgba(255,255,255,0.06)] rounded-2xl p-6 md:p-10 w-full max-w-[95vw] lg:max-w-[85vw] h-[95vh] flex flex-col gap-6 shadow-2xl relative overflow-y-auto custom-scrollbar" onClick={(e) => e.stopPropagation()}>
+                                        <div className="fixed inset-0 z-[100] flex items-center justify-center p-2 md:p-4 bg-black/90 backdrop-blur-xl animate-in fade-in zoom-in-95 duration-200" onClick={(e) => { e.stopPropagation(); setExpandedTopicId(null); }}>
+                                          <div className="bg-[#0A0A0C] border border-white/5 rounded-3xl p-6 md:p-8 w-full max-w-[98vw] lg:max-w-[90vw] h-[98vh] flex flex-col gap-6 shadow-2xl relative overflow-y-auto custom-scrollbar shadow-cyan-900/20" onClick={(e) => e.stopPropagation()}>
                                             
+                                            <div className="absolute top-0 left-0 w-full h-32 bg-gradient-to-b from-cyan-900/20 to-transparent pointer-events-none rounded-t-3xl"></div>
+
                                             {/* Header do Modal */}
-                                            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-white/5 pb-4">
+                                            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-white/5 pb-6 relative z-10">
                                               <div>
-                                                <h5 className="text-[10px] uppercase font-bold tracking-widest text-cyan-500 flex items-center gap-1.5 mb-1">
-                                                  <Layers className="size-3" /> Topic Workspace
-                                                </h5>
-                                                <h2 className="text-xl font-bold text-white">{topic.title}</h2>
+                                                <div className="flex items-center gap-3 mb-2">
+                                                   <span className="px-2 py-1 bg-cyan-500/10 text-cyan-400 text-[10px] uppercase font-black tracking-widest rounded border border-cyan-500/20 flex items-center gap-1.5 shadow-[0_0_10px_rgba(6,182,212,0.15)]"><Layers className="size-3" /> WORKSPACE</span>
+                                                   <span className="text-[10px] text-[#A1A1AA] font-bold uppercase tracking-widest flex items-center gap-1.5"><FolderOpen className="size-3" /> {mod.title}</span>
+                                                </div>
+                                                <h2 className="text-2xl md:text-3xl font-black text-white tracking-tight drop-shadow-md">{topic.title}</h2>
                                               </div>
-                                              <div className="flex items-center gap-3">
+                                              <div className="flex flex-wrap items-center gap-3 w-full sm:w-auto mt-4 sm:mt-0 justify-end">
                                                 {activeTopicTimer === (topic.id || tIdx) ? (
-                                                  <div className="flex items-center gap-2">
-                                                    <div className="px-4 py-2 bg-[#1A1A1E] border border-cyan-500/30 rounded-xl flex items-center justify-center min-w-[95px] shadow-[inset_0_0_10px_rgba(6,182,212,0.1)]">
-                                                       <span className={cn("text-lg font-mono font-bold tracking-wider", isTimerPaused ? "text-[#71717A] animate-pulse" : "text-cyan-400")}>
+                                                  <div className="flex flex-wrap items-center justify-center gap-2 bg-black/40 p-1.5 rounded-2xl sm:rounded-full border border-white/5 backdrop-blur-md w-full sm:w-auto">
+                                                    <div className="px-4 py-1.5 bg-cyan-900/30 rounded-full flex items-center justify-center min-w-[95px] shadow-[inset_0_0_10px_rgba(6,182,212,0.1)]">
+                                                       <span className={cn("text-lg font-mono font-bold tracking-wider", isTimerPaused ? "text-[#71717A] animate-pulse" : "text-cyan-400 drop-shadow-[0_0_8px_rgba(6,182,212,0.5)]")}>
                                                          {String(Math.floor(elapsedSeconds / 3600)).padStart(2, '0')}:
                                                          {String(Math.floor((elapsedSeconds % 3600) / 60)).padStart(2, '0')}:
                                                          {String(elapsedSeconds % 60).padStart(2, '0')}
                                                        </span>
                                                     </div>
-                                                    <button onClick={() => setIsTimerPaused(!isTimerPaused)} className="p-2.5 bg-[#1A1A1E] hover:bg-[#27272A] border border-[rgba(255,255,255,0.06)] rounded-xl text-white transition-colors" title={isTimerPaused ? "Retomar" : "Pausar"}>
+                                                    <button onClick={() => setIsTimerPaused(!isTimerPaused)} className="p-2.5 hover:bg-white/10 rounded-full text-white transition-colors" title={isTimerPaused ? "Retomar" : "Pausar"}>
                                                       {isTimerPaused ? <Play className="size-4 fill-white" /> : <Pause className="size-4 fill-white" />}
                                                     </button>
                                                     <button onClick={() => {
@@ -1367,7 +1448,7 @@ export function PosStudies() {
                                                           setElapsedSeconds(0);
                                                           setIsTimerPaused(false);
                                                        }
-                                                    }} className="p-2.5 bg-rose-500/10 hover:bg-rose-500/20 text-rose-500 rounded-xl transition-colors" title="Cancelar">
+                                                    }} className="p-2.5 hover:bg-rose-500/20 text-rose-500 rounded-full transition-colors" title="Cancelar">
                                                       <XCircle className="size-4" />
                                                     </button>
                                                     <button onClick={async () => {
@@ -1383,7 +1464,7 @@ export function PosStudies() {
                                                        setActiveTopicTimer(null);
                                                        setElapsedSeconds(0);
                                                        setIsTimerPaused(false);
-                                                    }} className="px-5 py-2.5 bg-emerald-600 hover:bg-emerald-500 text-white rounded-xl text-sm font-bold flex items-center gap-2 shadow-lg shadow-emerald-500/20 transition-all">
+                                                    }} className="px-5 py-2 bg-emerald-500 hover:bg-emerald-400 text-black rounded-full text-sm font-bold flex items-center gap-2 shadow-[0_0_15px_rgba(16,185,129,0.3)] transition-all">
                                                       <CheckCircle2 className="size-4" /> Concluir
                                                     </button>
                                                   </div>
@@ -1392,18 +1473,18 @@ export function PosStudies() {
                                                      setActiveTopicTimer(topic.id || tIdx);
                                                      setElapsedSeconds(0);
                                                      setIsTimerPaused(false);
-                                                  }} className="px-5 py-2.5 bg-cyan-600 hover:bg-cyan-500 text-white rounded-xl text-sm font-bold flex items-center justify-center gap-2 shadow-lg shadow-cyan-500/20 transition-all">
-                                                    <Play className="size-4 fill-white" /> Iniciar Sessão
+                                                  }} className="px-5 py-2.5 bg-cyan-500 hover:bg-cyan-400 text-black rounded-full text-sm font-bold flex items-center justify-center gap-2 shadow-[0_0_15px_rgba(6,182,212,0.3)] transition-all">
+                                                    <Play className="size-4 fill-black" /> Iniciar Sessão
                                                   </button>
                                                 )}
-                                                <button onClick={() => setExpandedTopicId(null)} className="p-2.5 bg-[#1A1A1E] hover:bg-[#27272A] rounded-xl transition-colors text-[#A1A1AA] hover:text-white">
-                                                  <X className="size-4" />
+                                                <button onClick={() => setExpandedTopicId(null)} className="p-2.5 bg-white/5 hover:bg-white/10 rounded-full transition-colors text-white backdrop-blur-md">
+                                                  <X className="size-5" />
                                                 </button>
                                               </div>
                                             </div>
                                             
-                                            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-                                              <div className="lg:col-span-2 flex flex-col h-full min-h-[500px]">
+                                            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 pb-20">
+                                              <div className="lg:col-span-2 flex flex-col h-[65vh] lg:h-auto lg:min-h-[600px] relative">
                                                 {activeTopicVideo && (
                                                   <div className="mb-4 rounded-xl overflow-hidden bg-black border border-white/5 shadow-inner flex flex-col animate-in fade-in zoom-in-95 duration-300">
                                                     <div className="flex items-center justify-between p-2 bg-[#1A1A1E] border-b border-white/5">
@@ -1492,7 +1573,7 @@ export function PosStudies() {
                                                   </div>
                                                 </div>
                                                 <div 
-                                                  className="rounded-xl overflow-hidden border border-[rgba(255,255,255,0.06)] focus-within:border-purple-500/50 transition-colors bg-[#1A1A1E] flex-1 flex flex-col"
+                                                  className="rounded-2xl overflow-hidden border border-white/5 focus-within:border-cyan-500/50 focus-within:shadow-[0_0_20px_rgba(6,182,212,0.1)] transition-all bg-[#0A0A0C] flex-1 flex flex-col group relative"
                                                   onBlur={() => {
                                                     const updated = [...modules];
                                                     updated[mIdx].topics[tIdx].notes = localNotes;
@@ -1509,7 +1590,7 @@ export function PosStudies() {
                                                 </div>
                                               </div>
                                               
-                                              <div className="space-y-6">
+                                              <div className="space-y-6 bg-black/20 p-5 rounded-3xl border border-white/5 h-fit">
                                                 <div>
                                                   <label className="text-[10px] text-[#A1A1AA] uppercase tracking-widest font-bold mb-1.5 block">Tags da Aula</label>
                                                   <input 
@@ -1926,7 +2007,7 @@ export function PosStudies() {
              )}
 
             {courseTab === "Inteligência Artificial" && (
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <button className="bg-gradient-to-br from-cyan-900/30 to-blue-900/30 border border-cyan-500/20 p-6 rounded-3xl hover:border-cyan-500/50 transition-all text-left group">
                   <div className="size-10 bg-cyan-500/20 rounded-xl flex items-center justify-center mb-4 text-cyan-400 group-hover:scale-110 transition-transform"><FileText className="size-5" /></div>
                   <h4 className="font-bold text-white mb-2">Resumir Aula</h4>
@@ -2037,17 +2118,29 @@ export function PosStudies() {
                        {/* Livros */}
                        {allBooks.length > 0 && (
                          <div>
-                            <h4 className="text-[10px] text-[#A1A1AA] uppercase tracking-widest font-bold mb-2 flex items-center gap-1.5"><Book className="size-3 text-emerald-400" /> Livros Associados</h4>
-                            <div className="flex flex-col gap-2">
+                            <h4 className="text-[10px] text-[#A1A1AA] uppercase tracking-widest font-bold mb-3 flex items-center gap-1.5"><Book className="size-3 text-emerald-400" /> Livros Associados</h4>
+                            <div className="flex flex-col gap-3">
                                {allBooks.map((bId) => {
                                   const b = books.find(book => book.id === bId);
                                   if (!b) return null;
                                   return (
-                                    <div key={bId} className="flex items-center gap-2 bg-[#1A1A1E] p-2.5 rounded-xl border border-white/5 hover:border-emerald-500/20 transition-colors">
-                                       <div className="size-7 bg-emerald-500/10 rounded-lg flex items-center justify-center shrink-0">
-                                         <Book className="size-3.5 text-emerald-500" />
+                                    <div key={bId} className="flex items-center gap-3 bg-[#1A1A1E] p-2 rounded-xl border border-white/5 hover:border-emerald-500/30 transition-all group cursor-pointer" onClick={() => {
+                                      const event = new CustomEvent('reference-click', { detail: { refType: 'book', title: b.title, id: b.id } });
+                                      window.dispatchEvent(event);
+                                    }}>
+                                       <div className="w-10 h-14 rounded overflow-hidden bg-black shrink-0 relative border border-white/10 group-hover:border-emerald-500/50 transition-colors shadow-sm">
+                                         {b.cover_url ? (
+                                           <img src={b.cover_url} alt={b.title} className="w-full h-full object-cover opacity-80 group-hover:opacity-100 transition-opacity" />
+                                         ) : (
+                                           <div className="w-full h-full flex items-center justify-center bg-emerald-500/10">
+                                             <Book className="size-4 text-emerald-500" />
+                                           </div>
+                                         )}
                                        </div>
-                                       <span className="text-xs text-white truncate font-medium">{b.title}</span>
+                                       <div className="flex flex-col min-w-0 flex-1">
+                                          <span className="text-xs text-white truncate font-bold group-hover:text-emerald-400 transition-colors">{b.title}</span>
+                                          <span className="text-[10px] text-[#A1A1AA] truncate mt-0.5">{b.author || 'Livro'}</span>
+                                       </div>
                                     </div>
                                   );
                                })}
@@ -2058,18 +2151,51 @@ export function PosStudies() {
                        {/* Canais e Videos */}
                        {(allChannels.length > 0 || allVideos.length > 0) && (
                          <div>
-                            <h4 className="text-[10px] text-[#A1A1AA] uppercase tracking-widest font-bold mb-2 flex items-center gap-1.5"><Video className="size-3 text-rose-400" /> Videoteca</h4>
-                            <div className="flex flex-col gap-2">
+                            <h4 className="text-[10px] text-[#A1A1AA] uppercase tracking-widest font-bold mb-3 flex items-center gap-1.5"><Video className="size-3 text-rose-400" /> Videoteca</h4>
+                            <div className="flex flex-col gap-3">
                                {allChannels.length > 0 && (
-                                 <div className="flex flex-wrap gap-1.5">
+                                 <div className="flex flex-wrap gap-1.5 mb-1">
                                     {allChannels.map((ch: any) => (
-                                      <span key={ch.id} className="text-[10px] font-bold text-rose-400 bg-rose-500/10 px-2.5 py-1 rounded-md border border-rose-500/20">{ch.name}</span>
+                                      <span key={ch.id} className="text-[10px] font-bold text-rose-400 bg-rose-500/10 px-2.5 py-1.5 rounded-md border border-rose-500/20 flex items-center gap-1">
+                                        <Video className="size-3" /> {ch.name}
+                                      </span>
                                     ))}
                                  </div>
                                )}
                                {allVideos.length > 0 && (
-                                  <div className="text-xs text-[#A1A1AA] flex items-center gap-1.5 bg-[#1A1A1E] p-2.5 rounded-xl border border-white/5 mt-1">
-                                    <Play className="size-3.5 text-rose-400" /> {allVideos.length} vídeos salvos nas aulas
+                                  <div className="grid grid-cols-2 gap-3 mt-1">
+                                    {allVideos.slice(0, 4).map((v: any, i: number) => {
+                                      let videoId = "";
+                                      try { 
+                                        if (v.url.includes("v=")) videoId = v.url.split("v=")[1].split("&")[0];
+                                        else if (v.url.includes("youtu.be/")) videoId = v.url.split("youtu.be/")[1].split("?")[0];
+                                      } catch(e){}
+                                      return (
+                                        <div key={i} className="flex flex-col gap-2 group cursor-pointer" onClick={() => {
+                                           const event = new CustomEvent('reference-click', { detail: { refType: 'video', title: v.title, url: v.url } });
+                                           window.dispatchEvent(event);
+                                        }}>
+                                          <div className="aspect-video rounded-lg overflow-hidden bg-black relative border border-white/10 group-hover:border-rose-500/50 transition-colors shadow-sm">
+                                            {videoId ? (
+                                              <img src={`https://img.youtube.com/vi/${videoId}/mqdefault.jpg`} alt={v.title} className="w-full h-full object-cover opacity-70 group-hover:opacity-100 group-hover:scale-105 transition-all duration-300" />
+                                            ) : (
+                                              <div className="w-full h-full flex items-center justify-center bg-rose-500/10">
+                                                <Video className="size-5 text-rose-500" />
+                                              </div>
+                                            )}
+                                            <div className="absolute inset-0 flex items-center justify-center bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity">
+                                               <Play className="size-6 text-white fill-white drop-shadow-[0_0_10px_rgba(244,63,94,0.8)]" />
+                                            </div>
+                                          </div>
+                                          <span className="text-[10px] text-white font-medium line-clamp-2 leading-tight group-hover:text-rose-400 transition-colors" title={v.title}>{v.title}</span>
+                                        </div>
+                                      );
+                                    })}
+                                    {allVideos.length > 4 && (
+                                       <div className="col-span-2 text-center text-[10px] text-[#A1A1AA] italic mt-1 bg-white/5 py-2 rounded-lg border border-white/5 hover:bg-white/10 transition-colors cursor-pointer" onClick={() => setCourseTab("Videoteca")}>
+                                         Ver todos os {allVideos.length} vídeos salvos
+                                       </div>
+                                    )}
                                   </div>
                                )}
                             </div>
@@ -2107,6 +2233,32 @@ export function PosStudies() {
                   </div>
                 );
              })()}
+             
+             {/* Outros Estudos */}
+             <div className="bg-[#111113] border border-[rgba(255,255,255,0.04)] rounded-3xl p-6 shadow-lg">
+                <h3 className="text-sm font-bold text-white mb-4 uppercase tracking-widest flex items-center gap-2">
+                   <GraduationCap className="size-4 text-purple-500" /> Outros Estudos
+                </h3>
+                <div className="flex flex-col gap-3">
+                   {courses.filter(c => c.id !== selectedCourse.id && c.status === 'em andamento').slice(0, 4).map(c => (
+                     <div key={c.id} className="group cursor-pointer p-3 bg-[#1A1A1E] border border-white/5 rounded-xl hover:border-purple-500/30 transition-all flex items-center justify-between" onClick={() => setSelectedCourseId(c.id)}>
+                        <div className="flex items-center gap-3 overflow-hidden">
+                           <div className="size-8 bg-purple-500/10 rounded-lg flex items-center justify-center shrink-0">
+                              <BookOpen className="size-4 text-purple-500" />
+                           </div>
+                           <div className="flex flex-col overflow-hidden">
+                              <span className="text-xs font-bold text-white truncate group-hover:text-purple-400 transition-colors">{c.title}</span>
+                              <span className="text-[10px] text-[#A1A1AA] uppercase tracking-widest">{c.category}</span>
+                           </div>
+                        </div>
+                        <ChevronRight className="size-4 text-[#71717A] group-hover:text-purple-400 opacity-0 group-hover:opacity-100 transition-all transform group-hover:translate-x-1" />
+                     </div>
+                   ))}
+                   {courses.filter(c => c.id !== selectedCourse.id && c.status === 'em andamento').length === 0 && (
+                      <p className="text-xs text-[#71717A] italic text-center py-2">Nenhum outro estudo em andamento.</p>
+                   )}
+                </div>
+             </div>
           </div>
           )}
         </div>
