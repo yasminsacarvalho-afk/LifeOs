@@ -1720,12 +1720,32 @@ export function PosStudies() {
                                                         </button>
                                                       </div>
                                                     </div>
-                                                    <div className="w-full aspect-video relative">
-                                                      <iframe 
-                                                        src={getSafeEmbedUrl(activeTopicVideo.url, activeTopicVideo.extra)}
-                                                        className="w-full h-full border-0"
-                                                        allow="autoplay; fullscreen; picture-in-picture"
-                                                      ></iframe>
+                                                    <div className="w-full aspect-video relative bg-black flex items-center justify-center">
+                                                      {(() => {
+                                                         const u = activeTopicVideo.url.toLowerCase();
+                                                         if (u.endsWith('.mp3') || (u.includes('drive.google.com') && u.includes('audio'))) {
+                                                           return (
+                                                             <div className="w-full h-full flex flex-col items-center justify-center gap-6 bg-gradient-to-b from-[#111] to-black">
+                                                                <div className="size-24 rounded-full bg-cyan-500/10 border border-cyan-500/30 flex items-center justify-center shadow-[0_0_30px_rgba(6,182,212,0.1)]">
+                                                                  <Music className="size-10 text-cyan-400" />
+                                                                </div>
+                                                                <audio controls src={activeTopicVideo.url} className="w-full max-w-sm outline-none" />
+                                                             </div>
+                                                           );
+                                                         }
+                                                         if (u.endsWith('.pdf')) {
+                                                           return (
+                                                              <iframe src={activeTopicVideo.url} className="absolute inset-0 w-full h-full border-0 bg-white" />
+                                                           );
+                                                         }
+                                                         return (
+                                                           <iframe 
+                                                             src={getSafeEmbedUrl(activeTopicVideo.url, activeTopicVideo.extra)}
+                                                             className="absolute inset-0 w-full h-full border-0"
+                                                             allow="autoplay; fullscreen; picture-in-picture"
+                                                           ></iframe>
+                                                         );
+                                                      })()}
                                                     </div>
                                                   </div>
                                                 )}
@@ -1894,9 +1914,17 @@ export function PosStudies() {
                                                   <div className="flex flex-col gap-2">
                                                     {topic.source && !(topic.materials && topic.materials.length > 0) && (
                                                       <div className="flex items-center justify-between p-3 bg-[#1A1A1E] border border-[rgba(255,255,255,0.04)] rounded-xl">
-                                                        <a href={topic.source.startsWith('http') ? topic.source : `https://${topic.source}`} target="_blank" rel="noopener noreferrer" className="text-xs font-bold text-cyan-400 hover:underline truncate max-w-[150px] flex items-center gap-1.5">
+                                                        <button onClick={(e) => {
+                                                           e.preventDefault();
+                                                           const u = topic.source.toLowerCase();
+                                                           if (u.endsWith('.mp3') || u.endsWith('.pdf') || (u.includes('drive.google.com') && u.includes('audio'))) {
+                                                             setActiveTopicVideo({ refType: 'video', url: topic.source, title: "Anexo Antigo" });
+                                                           } else {
+                                                             window.open(topic.source.startsWith('http') ? topic.source : `https://${topic.source}`, '_blank');
+                                                           }
+                                                        }} className="text-xs font-bold text-cyan-400 hover:underline truncate max-w-[150px] flex items-center gap-1.5 text-left">
                                                           <ExternalLink className="size-3" /> Anexo Antigo
-                                                        </a>
+                                                        </button>
                                                         <button onClick={() => {
                                                            const updated = [...modules];
                                                            updated[mIdx].topics[tIdx].source = "";
@@ -1911,7 +1939,15 @@ export function PosStudies() {
                                                       const thumb = getThumbnail(mat.url);
                                                       return (
                                                       <div key={i} className="flex items-center justify-between p-2 bg-[#1A1A1E] border border-[rgba(255,255,255,0.04)] rounded-xl group hover:border-[rgba(255,255,255,0.1)] transition-colors">
-                                                        <a href={mat.url.startsWith('http') ? mat.url : `https://${mat.url}`} target="_blank" rel="noopener noreferrer" className="flex items-center gap-3 overflow-hidden flex-1" title={mat.name}>
+                                                        <button onClick={(e) => {
+                                                           e.preventDefault();
+                                                           const u = mat.url.toLowerCase();
+                                                           if (u.endsWith('.mp3') || u.endsWith('.pdf') || (u.includes('drive.google.com') && u.includes('audio'))) {
+                                                             setActiveTopicVideo({ refType: 'video', url: mat.url, title: mat.name || "Material Anexo" });
+                                                           } else {
+                                                             window.open(mat.url.startsWith('http') ? mat.url : `https://${mat.url}`, '_blank');
+                                                           }
+                                                        }} className="flex items-center gap-3 overflow-hidden flex-1 text-left" title={mat.name}>
                                                           {thumb ? (
                                                              <div className="w-12 h-8 rounded shrink-0 bg-[#27272A] overflow-hidden border border-white/5">
                                                                <img src={thumb} alt="thumb" className="w-full h-full object-cover opacity-80 group-hover:opacity-100 transition-opacity" />
@@ -1922,7 +1958,7 @@ export function PosStudies() {
                                                              </div>
                                                           )}
                                                           <span className="text-xs font-bold text-gray-300 group-hover:text-cyan-400 truncate pr-2">{mat.name || "Material Anexo"}</span>
-                                                        </a>
+                                                        </button>
                                                         <button onClick={() => {
                                                            const updated = [...modules];
                                                            updated[mIdx].topics[tIdx].materials = updated[mIdx].topics[tIdx].materials.filter((_: any, idx: number) => idx !== i);
@@ -2101,7 +2137,7 @@ export function PosStudies() {
              {courseTab === "Videoteca" && (
                 <div className="space-y-4 animate-in fade-in slide-in-from-bottom-4 duration-300">
                   {activeVideotecaVideos.length > 0 ? (
-                    <div className="flex flex-col gap-4">
+                    <div className="fixed inset-0 z-[200] bg-[#050505] overflow-y-auto w-full h-full p-4 md:p-8 flex flex-col gap-4 animate-in fade-in zoom-in-95 duration-300">
                       {/* WORKSPACE HEADER */}
                       <div className="flex items-center justify-between bg-[#1A1A1E] p-4 rounded-xl border border-[rgba(255,255,255,0.06)]">
                         <div className="flex items-center gap-4">
@@ -2142,12 +2178,32 @@ export function PosStudies() {
                                   </button>
                                 </div>
                               )}
-                              <div className="aspect-video w-full relative">
-                                <iframe 
-                                  src={getSafeEmbedUrl(av.video.url, '')}
-                                  className="absolute inset-0 w-full h-full border-0"
-                                  allow="autoplay; fullscreen; picture-in-picture"
-                                ></iframe>
+                              <div className="aspect-video w-full relative bg-black flex items-center justify-center">
+                                {(() => {
+                                   const u = av.video.url.toLowerCase();
+                                   if (u.endsWith('.mp3') || (u.includes('drive.google.com') && u.includes('audio'))) {
+                                     return (
+                                       <div className="w-full h-full flex flex-col items-center justify-center gap-6 bg-gradient-to-b from-[#111] to-black">
+                                          <div className="size-24 rounded-full bg-cyan-500/10 border border-cyan-500/30 flex items-center justify-center shadow-[0_0_30px_rgba(6,182,212,0.1)]">
+                                            <Music className="size-10 text-cyan-400" />
+                                          </div>
+                                          <audio controls src={av.video.url} className="w-full max-w-sm outline-none" />
+                                       </div>
+                                     );
+                                   }
+                                   if (u.endsWith('.pdf')) {
+                                     return (
+                                        <iframe src={av.video.url} className="absolute inset-0 w-full h-full border-0 bg-white" />
+                                     );
+                                   }
+                                   return (
+                                     <iframe 
+                                       src={getSafeEmbedUrl(av.video.url, '')}
+                                       className="absolute inset-0 w-full h-full border-0"
+                                       allow="autoplay; fullscreen; picture-in-picture"
+                                     ></iframe>
+                                   );
+                                })()}
                               </div>
                             </div>
                           ))}
@@ -2289,16 +2345,16 @@ export function PosStudies() {
                              <div className="overflow-hidden">
                                <div className="p-4 pt-0 border-t border-[rgba(255,255,255,0.06)] bg-[#111113]/50">
                                  <div className="flex justify-between items-center my-4">
-                                   <span className="text-[10px] uppercase font-bold text-[#A1A1AA] tracking-widest">Vídeos do Canal</span>
+                                   <span className="text-[10px] uppercase font-bold text-[#A1A1AA] tracking-widest">Mídias do Canal</span>
                                    <button onClick={() => setIsAddingVideoToChannel(isAddingVideoToChannel === idx ? null : idx)} className="px-3 py-1.5 bg-cyan-500/10 text-cyan-400 hover:bg-cyan-500/20 border border-cyan-500/20 rounded-lg text-xs font-bold transition-colors">
-                                     + Adicionar Vídeo
+                                     + Adicionar Mídia (Vídeo/Áudio/PDF)
                                    </button>
                                  </div>
                                  
                                  {isAddingVideoToChannel === idx && (
                                    <div className="flex flex-col sm:flex-row gap-3 mb-4 p-3 bg-[#1A1A1E] border border-cyan-500/20 rounded-xl">
                                      <input type="text" placeholder="Título (Ex: Aula 1 - Base)" value={newVideoTitle} onChange={e => setNewVideoTitle(e.target.value)} className="flex-1 bg-[#111113] border border-white/5 rounded-lg px-3 py-2 text-xs text-white focus:outline-none focus:border-cyan-500/50" />
-                                     <input type="url" placeholder="URL do Vídeo" value={newVideoUrl} onChange={e => setNewVideoUrl(e.target.value)} className="flex-1 bg-[#111113] border border-white/5 rounded-lg px-3 py-2 text-xs text-white focus:outline-none focus:border-cyan-500/50" />
+                                     <input type="url" placeholder="URL da Mídia (YouTube, .mp3, .pdf)" value={newVideoUrl} onChange={e => setNewVideoUrl(e.target.value)} className="flex-1 bg-[#111113] border border-white/5 rounded-lg px-3 py-2 text-xs text-white focus:outline-none focus:border-cyan-500/50" />
                                      <button onClick={() => {
                                        if (!newVideoTitle || !newVideoUrl) return;
                                        let s: any = {};

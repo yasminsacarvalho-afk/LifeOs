@@ -8,12 +8,15 @@ import Link from '@tiptap/extension-link';
 import TextAlign from '@tiptap/extension-text-align';
 import { Node, mergeAttributes } from '@tiptap/core';
 import { ReactNodeViewRenderer, NodeViewWrapper } from '@tiptap/react';
+import { FontFamily } from '@tiptap/extension-font-family';
+import { TextStyle } from '@tiptap/extension-text-style';
+import { Color } from '@tiptap/extension-color';
 import { 
   Bold, Italic, Underline as UnderlineIcon, Strikethrough, 
   Heading1, Heading2, Heading3, List, ListOrdered, 
   CheckSquare, Highlighter, Link as LinkIcon, 
   AlignLeft, AlignCenter, AlignRight, AlignJustify, Minus,
-  Book, Play, X, ChevronRight, FolderOpen
+  Book, Play, X, ChevronRight, FolderOpen, Palette, Type
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useEffect, useState } from 'react';
@@ -115,9 +118,12 @@ export function RichTextEditor({ content, onChange, placeholder, availableBooks,
       Underline,
       TaskList,
       TaskItem.configure({ nested: true }),
-      Highlight,
+      Highlight.configure({ multicolor: true }),
       Link.configure({ openOnClick: false }),
       TextAlign.configure({ types: ['heading', 'paragraph'] }),
+      TextStyle,
+      FontFamily,
+      Color,
       ReferenceExtension
     ],
     content,
@@ -242,7 +248,51 @@ export function RichTextEditor({ content, onChange, placeholder, availableBooks,
         <ToolbarButton onClick={() => editor.chain().focus().toggleItalic().run()} isActive={editor.isActive('italic')} icon={Italic} />
         <ToolbarButton onClick={() => editor.chain().focus().toggleUnderline().run()} isActive={editor.isActive('underline')} icon={UnderlineIcon} />
         <ToolbarButton onClick={() => editor.chain().focus().toggleStrike().run()} isActive={editor.isActive('strike')} icon={Strikethrough} />
-        <ToolbarButton onClick={() => editor.chain().focus().toggleHighlight().run()} isActive={editor.isActive('highlight')} icon={Highlighter} />
+        
+        {/* Text Colors */}
+        <div className="flex gap-1.5 items-center px-1 border-r border-[#3F3F46] pr-2">
+          <Type className="size-3 text-[#A1A1AA] mr-1" />
+          <button type="button" onClick={() => editor.chain().focus().setColor('#ef4444').run()} className={cn("size-3.5 rounded-full bg-[#ef4444] border border-black/20 hover:scale-110 transition-transform", editor.isActive('textStyle', { color: '#ef4444' }) && "ring-2 ring-white")} title="Texto Vermelho" />
+          <button type="button" onClick={() => editor.chain().focus().setColor('#3b82f6').run()} className={cn("size-3.5 rounded-full bg-[#3b82f6] border border-black/20 hover:scale-110 transition-transform", editor.isActive('textStyle', { color: '#3b82f6' }) && "ring-2 ring-white")} title="Texto Azul" />
+          <button type="button" onClick={() => editor.chain().focus().setColor('#10b981').run()} className={cn("size-3.5 rounded-full bg-[#10b981] border border-black/20 hover:scale-110 transition-transform", editor.isActive('textStyle', { color: '#10b981' }) && "ring-2 ring-white")} title="Texto Verde" />
+          <button type="button" onClick={() => editor.chain().focus().setColor('#f59e0b').run()} className={cn("size-3.5 rounded-full bg-[#f59e0b] border border-black/20 hover:scale-110 transition-transform", editor.isActive('textStyle', { color: '#f59e0b' }) && "ring-2 ring-white")} title="Texto Laranja" />
+          <button type="button" onClick={() => editor.chain().focus().unsetColor().run()} className="size-4 rounded-full border border-white/20 flex items-center justify-center hover:bg-white/10 text-white transition-colors" title="Limpar Cor">
+             <X className="size-3" />
+          </button>
+        </div>
+
+        {/* Highlights */}
+        <div className="flex gap-1.5 items-center px-1">
+          <Highlighter className="size-3 text-[#A1A1AA] mr-1" />
+          <button type="button" onClick={() => editor.chain().focus().toggleHighlight({ color: '#fef08a' }).run()} className={cn("size-3.5 rounded-full bg-[#fef08a] border border-black/20 hover:scale-110 transition-transform", editor.isActive('highlight', { color: '#fef08a' }) && "ring-2 ring-white")} title="Marca-texto Amarelo" />
+          <button type="button" onClick={() => editor.chain().focus().toggleHighlight({ color: '#bbf7d0' }).run()} className={cn("size-3.5 rounded-full bg-[#bbf7d0] border border-black/20 hover:scale-110 transition-transform", editor.isActive('highlight', { color: '#bbf7d0' }) && "ring-2 ring-white")} title="Marca-texto Verde" />
+          <button type="button" onClick={() => editor.chain().focus().toggleHighlight({ color: '#bfdbfe' }).run()} className={cn("size-3.5 rounded-full bg-[#bfdbfe] border border-black/20 hover:scale-110 transition-transform", editor.isActive('highlight', { color: '#bfdbfe' }) && "ring-2 ring-white")} title="Marca-texto Azul" />
+          <button type="button" onClick={() => editor.chain().focus().toggleHighlight({ color: '#fbcfe8' }).run()} className={cn("size-3.5 rounded-full bg-[#fbcfe8] border border-black/20 hover:scale-110 transition-transform", editor.isActive('highlight', { color: '#fbcfe8' }) && "ring-2 ring-white")} title="Marca-texto Rosa" />
+          <button type="button" onClick={() => editor.chain().focus().unsetHighlight().run()} className="size-4 rounded-full border border-white/20 flex items-center justify-center hover:bg-white/10 text-white transition-colors" title="Limpar Marca-texto">
+             <X className="size-3" />
+          </button>
+        </div>
+        
+        <div className="w-px h-5 bg-[#3F3F46] mx-1 self-center" />
+
+        {/* Fonts */}
+        <select 
+           onChange={(e) => {
+             if (e.target.value) {
+               editor.chain().focus().setFontFamily(e.target.value).run();
+             } else {
+               editor.chain().focus().unsetFontFamily().run();
+             }
+           }}
+           className="bg-transparent text-xs text-[#A1A1AA] hover:text-white outline-none border-none cursor-pointer px-1 h-8"
+           title="Fonte"
+        >
+           <option value="" className="bg-[#111113]">Padrão</option>
+           <option value="Inter" className="bg-[#111113]">Inter</option>
+           <option value="ui-serif, Georgia, serif" className="bg-[#111113]">Serif</option>
+           <option value="ui-monospace, monospace" className="bg-[#111113]">Mono</option>
+           <option value="'Comic Sans MS', 'Comic Sans', cursive" className="bg-[#111113]">Comic</option>
+        </select>
         
         <div className="w-px h-5 bg-[#3F3F46] mx-1 self-center" />
         
