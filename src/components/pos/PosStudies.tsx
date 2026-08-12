@@ -12,11 +12,12 @@ import {
 import { format, isToday, parseISO } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { cn } from "@/lib/utils";
-import { getSafeEmbedUrl } from "@/lib/youtube";
+import { getSafeEmbedUrl, extractVideoMetadata, extractChannelMetadata, YouTubeVideoMetadata, YouTubeChannelMetadata } from "@/lib/youtube";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { RichTextEditor } from "./RichTextEditor";
 import { VoiceRecordButton } from "@/components/ui/VoiceRecordButton";
+import { YouTubeMetadataCard } from "./YouTubeMetadataCard";
 
 const KpiCard = ({ icon, label, value, sub }: any) => (
   <div className="bg-[#111113] p-4 rounded-2xl border border-[rgba(255,255,255,0.04)] shadow-lg hover:border-[rgba(255,255,255,0.1)] transition-colors flex flex-col">
@@ -56,6 +57,8 @@ export function PosStudies() {
   const [isCreatingCourse, setIsCreatingCourse] = useState(false);
   const [isEditingCourse, setIsEditingCourse] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
+  const [referenceModalTarget, setReferenceModalTarget] = useState<{ mIdx: number, tIdx: number } | null>(null);
+  const [referenceSearchQuery, setReferenceSearchQuery] = useState('');
   const [filterStatus, setFilterStatus] = useState("todos");
   const [filterArea, setFilterArea] = useState("todas");
   const [showFilterMenu, setShowFilterMenu] = useState(false);
@@ -75,6 +78,11 @@ export function PosStudies() {
   const [newVideoUrl, setNewVideoUrl] = useState('');
   const [newVideoTitle, setNewVideoTitle] = useState('');
   const [activeTopicVideo, setActiveTopicVideo] = useState<any>(null);
+
+  const [videoMetadata, setVideoMetadata] = useState<YouTubeVideoMetadata | null>(null);
+  const [channelMetadata, setChannelMetadata] = useState<YouTubeChannelMetadata | null>(null);
+  const [isSearchingMetadata, setIsSearchingMetadata] = useState(false);
+  const [metadataSearchUrl, setMetadataSearchUrl] = useState('');
 
   const [activeTopicTimer, setActiveTopicTimer] = useState<string | number | null>(null);
   const [elapsedSeconds, setElapsedSeconds] = useState(0);
@@ -144,6 +152,33 @@ export function PosStudies() {
   };
   const [newCourse, setNewCourse] = useState(initialCourseState);
 
+  const handleMetadataSearch = async (url: string) => {
+    if (!url) return;
+    setIsSearchingMetadata(true);
+    setVideoMetadata(null);
+    setChannelMetadata(null);
+    try {
+      if (url.includes('/channel/') || url.includes('/@') || url.includes('/c/') || url.includes('/user/')) {
+        const channel = await extractChannelMetadata(url);
+        if (channel) {
+          setChannelMetadata(channel);
+          toast.success("Canal encontrado com sucesso!");
+        }
+      } else {
+        const video = await extractVideoMetadata(url);
+        if (video) {
+          setVideoMetadata(video);
+          toast.success("Vídeo encontrado com sucesso!");
+        }
+      }
+    } catch (err: any) {
+      console.error(err);
+      toast.error(err.message || "Erro ao buscar informações do YouTube. Verifique sua chave de API.");
+    } finally {
+      setIsSearchingMetadata(false);
+    }
+  };
+
   const handleCreateCourse = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!newCourse.title) return;
@@ -189,7 +224,7 @@ export function PosStudies() {
 
   const handleMaterialUpload = async (e: React.ChangeEvent<HTMLInputElement>, modIdx: number, topicIdx: number) => {
     const file = e.target.files?.[0];
-    if (!file || !selectedCourseId) return;
+    if (!file || !selectedCourseId || !selectedCourse) return;
 
     setIsUploading(true);
     try {
@@ -204,21 +239,25 @@ export function PosStudies() {
       reader.readAsDataURL(file);
       const base64Data = await base64Promise;
 
+      const currentTopics = JSON.parse(selectedCourse.next_topics || '[]');
+      const moduleTitle = currentTopics[modIdx]?.title || 'Módulo Geral';
+
       const response = await fetch(driveUrl, {
         method: "POST",
         body: JSON.stringify({
            base64: base64Data,
            filename: file.name,
-           mimeType: file.type || 'application/octet-stream'
+           mimeType: file.type || 'application/octet-stream',
+           path: ["Academia Operacional", selectedCourse.title, moduleTitle]
         }),
         headers: { 'Content-Type': 'text/plain' }
       });
       
       const result = await response.json();
       if (!result.success) throw new Error(result.error);
+
       
       // Update the topic source with the Drive URL
-      const currentTopics = JSON.parse(selectedCourse?.next_topics || '[]');
       if (currentTopics[modIdx] && currentTopics[modIdx].topics[topicIdx]) {
          if (!currentTopics[modIdx].topics[topicIdx].materials) {
             currentTopics[modIdx].topics[topicIdx].materials = [];
@@ -233,6 +272,68 @@ export function PosStudies() {
     } finally {
       setIsUploading(false);
       e.target.value = '';
+    }
+  };
+
+  const handleExportNotesToDrive = async () => {
+    if (!selectedCourse) return;
+    try {
+      const driveUrl = import.meta.env.VITE_GOOGLE_DRIVE_UPLOADER_URL;
+      if (!driveUrl) throw new Error("URL do Google Drive não configurada no ambiente.");
+      toast.loading("Exportando anotações para o Drive...", { id: 'export-notes' });
+
+      let htmlContent = `<html><head><meta charset="utf-8"><title>Anotações: ${selectedCourse.title}</title><style>body { font-family: sans-serif; line-height: 1.6; max-width: 800px; margin: 0 auto; padding: 20px; color: #333; } h1 { color: #111; border-bottom: 2px solid #06b6d4; padding-bottom: 10px; } h2 { color: #222; margin-top: 30px; } h3 { color: #444; } img { max-width: 100%; border-radius: 8px; } blockquote { border-left: 4px solid #e5e7eb; padding-left: 16px; color: #4b5563; }</style></head><body>`;
+      htmlContent += `<h1>📘 ${selectedCourse.title}</h1>`;
+      htmlContent += `<p><strong>Área:</strong> ${selectedCourse.knowledge_area} | <strong>Plataforma:</strong> ${selectedCourse.platform || 'N/A'}</p>`;
+      
+      let modules = [];
+      try { modules = JSON.parse(selectedCourse.next_topics || '[]'); } catch(e){}
+      
+      let hasNotes = false;
+      modules.forEach((mod: any) => {
+         let modHtml = `<h2>📁 Módulo: ${mod.title}</h2>`;
+         let hasModNotes = false;
+         
+         if (mod.topics) {
+            mod.topics.forEach((topic: any) => {
+               if (topic.notes && topic.notes.trim() !== '') {
+                  hasNotes = true;
+                  hasModNotes = true;
+                  modHtml += `<h3>📝 Aula: ${topic.title}</h3>`;
+                  if (topic.tags) modHtml += `<p><small>Tags: ${topic.tags}</small></p>`;
+                  modHtml += `<div style="background: #f9fafb; padding: 15px; border-radius: 8px; margin-bottom: 20px;">${topic.notes}</div>`;
+               }
+            });
+         }
+         if (hasModNotes) htmlContent += modHtml;
+      });
+
+      if (!hasNotes) {
+         toast.error("Nenhuma anotação encontrada neste curso para exportar.", { id: 'export-notes' });
+         return;
+      }
+
+      htmlContent += `</body></html>`;
+      const base64Data = btoa(unescape(encodeURIComponent(htmlContent)));
+
+      const response = await fetch(driveUrl, {
+        method: "POST",
+        body: JSON.stringify({
+           base64: base64Data,
+           filename: `Anotacoes_${selectedCourse.title.replace(/[^a-z0-9]/gi, '_')}.html`,
+           mimeType: 'text/html',
+           path: ["Academia Operacional", selectedCourse.title]
+        }),
+        headers: { 'Content-Type': 'text/plain' }
+      });
+      
+      const result = await response.json();
+      if (!result.success) throw new Error(result.error);
+      
+      toast.success("Anotações exportadas para o Drive com sucesso!", { id: 'export-notes' });
+    } catch (err: any) {
+      console.error(err);
+      toast.error(`Falha ao exportar anotações: ${err.message || "Erro desconhecido"}.`, { id: 'export-notes' });
     }
   };
 
@@ -463,6 +564,90 @@ export function PosStudies() {
              </div>
            );
          })}
+      </div>
+    </div>
+  );
+
+  const renderIntelligenceReport = () => (
+    <div className="animate-in fade-in slide-in-from-bottom-4 duration-500 space-y-6">
+      <div className="bg-[#0A0A0A] p-6 md:p-10 rounded-3xl border border-indigo-500/20 shadow-[0_0_40px_rgba(99,102,241,0.1)] relative overflow-hidden">
+        <div className="absolute top-0 right-0 p-32 bg-indigo-500/10 blur-[120px] w-96 h-96 rounded-full pointer-events-none"></div>
+        
+        <div className="flex items-center gap-4 mb-8 relative z-10">
+          <div className="p-4 bg-indigo-500/10 border border-indigo-500/20 rounded-2xl">
+            <Brain className="size-8 text-indigo-400" />
+          </div>
+          <div>
+            <h2 className="text-2xl md:text-3xl font-black text-white tracking-tight">Inteligência sobre você</h2>
+            <p className="text-sm text-indigo-400 font-bold uppercase tracking-widest mt-1">Relatório semanal de aprendizagem</p>
+          </div>
+        </div>
+
+        <div className="bg-[#111113] border border-white/5 p-6 rounded-2xl mb-8 relative z-10">
+          <div className="flex justify-between items-center mb-6">
+             <h3 className="text-sm font-bold text-white uppercase tracking-widest flex items-center gap-2"><CalendarIcon className="size-4 text-[#A1A1AA]"/> Todo domingo:</h3>
+          </div>
+          
+          <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
+            <div className="bg-[#1A1A1E] p-4 rounded-xl border border-white/5 flex flex-col items-center justify-center text-center">
+               <Clock className="size-6 text-cyan-400 mb-2" />
+               <span className="text-2xl font-black text-white">6h20</span>
+               <span className="text-xs text-[#A1A1AA] font-bold uppercase mt-1">Estudadas</span>
+            </div>
+            <div className="bg-[#1A1A1E] p-4 rounded-xl border border-white/5 flex flex-col items-center justify-center text-center">
+               <Brain className="size-6 text-purple-400 mb-2" />
+               <span className="text-2xl font-black text-white">43</span>
+               <span className="text-xs text-[#A1A1AA] font-bold uppercase mt-1">Conceitos<br/>Aprendidos</span>
+            </div>
+            <div className="bg-[#1A1A1E] p-4 rounded-xl border border-white/5 flex flex-col items-center justify-center text-center">
+               <CheckSquare className="size-6 text-emerald-400 mb-2" />
+               <span className="text-2xl font-black text-white">81</span>
+               <span className="text-xs text-[#A1A1AA] font-bold uppercase mt-1">Questões<br/>Respondidas</span>
+            </div>
+            <div className="bg-[#1A1A1E] p-4 rounded-xl border border-white/5 flex flex-col items-center justify-center text-center">
+               <Target className="size-6 text-blue-400 mb-2" />
+               <span className="text-2xl font-black text-white">76%</span>
+               <span className="text-xs text-[#A1A1AA] font-bold uppercase mt-1">De Acerto</span>
+            </div>
+            <div className="bg-[#1A1A1E] p-4 rounded-xl border border-orange-500/20 shadow-[0_0_15px_rgba(249,115,22,0.1)] flex flex-col items-center justify-center text-center col-span-2 md:col-span-1">
+               <Flame className="size-6 text-orange-500 mb-2" />
+               <span className="text-2xl font-black text-orange-400">7 dias</span>
+               <span className="text-xs text-orange-500/80 font-bold uppercase mt-1">Consecutivos</span>
+            </div>
+          </div>
+        </div>
+
+        <div className="relative z-10">
+          <h3 className="text-sm font-bold text-white uppercase tracking-widest flex items-center gap-2 mb-6">
+            <Sparkles className="size-4 text-amber-400" /> E principalmente:
+          </h3>
+          
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <div className="bg-emerald-500/10 border border-emerald-500/20 p-5 rounded-2xl flex flex-col gap-3">
+              <div className="p-2 bg-emerald-500/20 rounded-lg shrink-0 w-fit"><TrendingUp className="size-5 text-emerald-400" /></div>
+              <div>
+                <h4 className="font-bold text-emerald-400 text-xs uppercase tracking-widest mb-2">Evolução Máxima</h4>
+                <p className="text-white text-sm">Você está evoluindo mais em <span className="font-bold text-emerald-400 bg-emerald-500/20 px-1.5 py-0.5 rounded">Lógica de Programação</span>.</p>
+              </div>
+            </div>
+            
+            <div className="bg-rose-500/10 border border-rose-500/20 p-5 rounded-2xl flex flex-col gap-3">
+              <div className="p-2 bg-rose-500/20 rounded-lg shrink-0 w-fit"><AlertCircle className="size-5 text-rose-400" /></div>
+              <div>
+                <h4 className="font-bold text-rose-400 text-xs uppercase tracking-widest mb-2">Ponto de Atenção</h4>
+                <p className="text-white text-sm">Seu maior ponto fraco é <span className="font-bold text-rose-400 bg-rose-500/20 px-1.5 py-0.5 rounded">Gestão de Tempo</span>.</p>
+              </div>
+            </div>
+            
+            <div className="bg-amber-500/10 border border-amber-500/20 p-5 rounded-2xl flex flex-col gap-3">
+              <div className="p-2 bg-amber-500/20 rounded-lg shrink-0 w-fit"><CheckCircle2 className="size-5 text-amber-400" /></div>
+              <div>
+                <h4 className="font-bold text-amber-400 text-xs uppercase tracking-widest mb-2">Negligência Detectada</h4>
+                <p className="text-white text-sm">Você está negligenciando <span className="font-bold text-amber-400 bg-amber-500/20 px-1.5 py-0.5 rounded">Revisão Ativa</span>.</p>
+              </div>
+            </div>
+          </div>
+        </div>
       </div>
     </div>
   );
@@ -795,6 +980,13 @@ export function PosStudies() {
                       </div>
                     </div>
                     <div className="flex gap-2">
+                      <button 
+                        onClick={handleExportNotesToDrive}
+                        className="p-2 bg-[#111113] hover:bg-[#1A1A1E] rounded-xl text-emerald-400 border border-emerald-500/20 transition-colors shadow-sm"
+                        title="Exportar Anotações para o Drive"
+                      >
+                        <UploadCloud className="size-4" />
+                      </button>
                       <button 
                         onClick={() => {
                           setNewCourse(selectedCourse as any);
@@ -1724,13 +1916,16 @@ export function PosStudies() {
                                                           updated[mIdx].topics[tIdx].materials.push({ name: matName, url: src, type: 'link' });
                                                           updateCourse(selectedCourse.id, { next_topics: JSON.stringify(updated) }, false);
                                                         }
-                                                      }} className="flex-1 py-3 bg-[#1A1A1E] hover:bg-[#27272A] border border-[rgba(255,255,255,0.04)] rounded-xl text-xs font-bold text-[#A1A1AA] hover:text-white transition-colors flex items-center justify-center gap-1.5">
+                                                      }} className="flex-1 py-2 bg-[#1A1A1E] hover:bg-[#27272A] border border-[rgba(255,255,255,0.04)] rounded-xl text-[10px] font-bold text-[#A1A1AA] hover:text-white transition-colors flex items-center justify-center gap-1.5">
                                                         <LinkIcon className="size-3" /> Add Link
                                                       </button>
-                                                      <label className="flex-1 py-3 bg-[#1A1A1E] hover:bg-[#27272A] border border-[rgba(255,255,255,0.04)] rounded-xl text-xs font-bold text-[#A1A1AA] hover:text-white transition-colors flex items-center justify-center gap-1.5 cursor-pointer">
+                                                      <label className="flex-1 py-2 bg-[#1A1A1E] hover:bg-[#27272A] border border-[rgba(255,255,255,0.04)] rounded-xl text-[10px] font-bold text-[#A1A1AA] hover:text-white transition-colors flex items-center justify-center gap-1.5 cursor-pointer">
                                                         {isUploading ? <Loader2 className="size-3 animate-spin" /> : <UploadCloud className="size-3" />} Add Arquivo
                                                         <input type="file" className="hidden" disabled={isUploading} onChange={(e) => handleMaterialUpload(e, mIdx, tIdx)} />
                                                       </label>
+                                                      <button onClick={() => setReferenceModalTarget({ mIdx, tIdx })} className="flex-1 py-2 bg-[#1A1A1E] hover:bg-[#27272A] border border-[rgba(255,255,255,0.04)] rounded-xl text-[10px] font-bold text-amber-500/70 hover:text-amber-400 transition-colors flex items-center justify-center gap-1.5">
+                                                        <Search className="size-3" /> Puxar Ref.
+                                                      </button>
                                                     </div>
                                                   </div>
                                                 </div>
@@ -1830,7 +2025,7 @@ export function PosStudies() {
                   </div>
                   
                   {isAddingChannel && (
-                    <div className="bg-[#111113] border border-[rgba(255,255,255,0.06)] p-4 rounded-xl flex gap-4 animate-in fade-in slide-in-from-top-2 mb-4">
+                    <div className="bg-[#111113] border border-[rgba(255,255,255,0.06)] p-4 rounded-xl flex flex-col sm:flex-row gap-4 animate-in fade-in slide-in-from-top-2 mb-4">
                       <input 
                         type="text" placeholder="Nome do Canal (Ex: Curso em Vídeo)"
                         value={newChannel.name} onChange={e => setNewChannel({...newChannel, name: e.target.value})}
@@ -1848,9 +2043,9 @@ export function PosStudies() {
                         if (!s.youtube_channels) s.youtube_channels = [];
                         s.youtube_channels.push({ id: Date.now(), name: newChannel.name, cover_url: newChannel.cover_url, videos: [] });
                         updateCourse(selectedCourse.id, { description: JSON.stringify(s) }, false);
-                        setNewChannel({ name: '', cover_url: '' });
+                        setNewChannel({ name: '', cover_url: '', url: '' });
                         setIsAddingChannel(false);
-                      }} className="bg-rose-600 hover:bg-rose-500 text-white rounded-lg px-4 py-2 text-xs font-bold transition-colors">
+                      }} className="bg-rose-600 hover:bg-rose-500 text-white rounded-lg px-4 py-2 text-xs font-bold transition-colors w-full sm:w-auto">
                         Salvar
                       </button>
                     </div>
@@ -1909,7 +2104,7 @@ export function PosStudies() {
                                  </div>
                                  
                                  {isAddingVideoToChannel === idx && (
-                                   <div className="flex gap-3 mb-4 p-3 bg-[#1A1A1E] border border-cyan-500/20 rounded-xl">
+                                   <div className="flex flex-col sm:flex-row gap-3 mb-4 p-3 bg-[#1A1A1E] border border-cyan-500/20 rounded-xl">
                                      <input type="text" placeholder="Título (Ex: Aula 1 - Base)" value={newVideoTitle} onChange={e => setNewVideoTitle(e.target.value)} className="flex-1 bg-[#111113] border border-white/5 rounded-lg px-3 py-2 text-xs text-white focus:outline-none focus:border-cyan-500/50" />
                                      <input type="url" placeholder="URL do Vídeo" value={newVideoUrl} onChange={e => setNewVideoUrl(e.target.value)} className="flex-1 bg-[#111113] border border-white/5 rounded-lg px-3 py-2 text-xs text-white focus:outline-none focus:border-cyan-500/50" />
                                      <button onClick={() => {
@@ -1922,7 +2117,7 @@ export function PosStudies() {
                                          updateCourse(selectedCourse.id, { description: JSON.stringify(s) }, false);
                                          setNewVideoTitle(''); setNewVideoUrl(''); setIsAddingVideoToChannel(null);
                                        }
-                                     }} className="px-4 py-2 bg-cyan-600 hover:bg-cyan-500 text-white font-bold text-xs rounded-lg transition-colors">Salvar</button>
+                                     }} className="px-4 py-2 bg-cyan-600 hover:bg-cyan-500 text-white font-bold text-xs rounded-lg transition-colors w-full sm:w-auto">Salvar</button>
                                    </div>
                                  )}
 
@@ -2336,7 +2531,7 @@ export function PosStudies() {
 
         {/* TABS NAVEGAÇÃO */}
         <div className="flex items-center gap-1 overflow-x-auto pt-4 mt-4 border-t border-[rgba(255,255,255,0.04)] hide-scrollbar z-10 relative">
-          {["Visão Geral", "Cursos", "Faculdade", "Certificações", "Trilhas", "Projetos", "Concluídos"].map(tab => (
+          {["Visão Geral", "Cursos", "Faculdade", "Certificações", "Trilhas", "Projetos", "Concluídos", "Inteligência"].map(tab => (
             <button
               key={tab}
               onClick={() => { setActiveTab(tab); setSelectedCourseId(null); }}
@@ -2537,6 +2732,8 @@ export function PosStudies() {
          renderCourseDetails()
       ) : activeTab === "Visão Geral" ? (
          renderDashboard()
+      ) : activeTab === "Inteligência" ? (
+         renderIntelligenceReport()
       ) : (
          renderCoursesList()
       )}
@@ -2600,6 +2797,94 @@ export function PosStudies() {
 
 
       {/* Preview Reference Overlay */}
+      {/* MODAL PUXAR REFERÊNCIA */}
+      {referenceModalTarget && (
+        <div className="fixed inset-0 z-[100] flex items-end sm:items-center justify-center bg-black/60 backdrop-blur-sm sm:p-4">
+          <div className="bg-[#111113] border border-[rgba(255,255,255,0.1)] rounded-t-3xl sm:rounded-3xl p-6 md:p-8 shadow-2xl w-full max-w-2xl relative animate-in slide-in-from-bottom duration-300 flex flex-col max-h-[90vh]">
+            <button type="button" onClick={() => setReferenceModalTarget(null)} className="absolute top-6 right-6 text-[#71717A] hover:text-white bg-white/5 p-2 rounded-full transition-colors"><X className="size-4"/></button>
+            
+            <h3 className="text-xl font-bold text-white mb-2 flex items-center gap-2">
+               <FolderOpen className="size-5 text-amber-500" /> Puxar Referência
+            </h3>
+            <p className="text-sm text-[#A1A1AA] mb-6">Busque por materiais e links anexados em outras trilhas e cursos.</p>
+            
+            <div className="relative mb-6 shrink-0">
+              <Search className="size-4 absolute left-3 top-1/2 -translate-y-1/2 text-[#71717A]" />
+              <input 
+                type="text" 
+                placeholder="Buscar por nome do material, curso ou tópico..."
+                value={referenceSearchQuery}
+                onChange={e => setReferenceSearchQuery(e.target.value)}
+                className="w-full bg-[#1A1A1E] border border-[rgba(255,255,255,0.06)] rounded-xl pl-10 pr-4 py-3 text-sm text-white focus:outline-none focus:border-amber-500 transition-colors"
+                autoFocus
+              />
+            </div>
+
+            <div className="flex-1 overflow-y-auto custom-scrollbar pr-2 space-y-2 min-h-[300px]">
+              {(() => {
+                 const allMats: any[] = [];
+                 courses.forEach(c => {
+                    let t = [];
+                    try { t = JSON.parse(c.next_topics || '[]'); } catch(e){}
+                    t.forEach((mod: any) => {
+                       mod.topics?.forEach((top: any) => {
+                          if (top.source) allMats.push({ course: c.title, topic: top.title, name: "Anexo Antigo", url: top.source, type: 'link' });
+                          top.materials?.forEach((m: any) => {
+                             allMats.push({ course: c.title, topic: top.title, name: m.name, url: m.url, type: m.type });
+                          });
+                       });
+                    });
+                 });
+                 
+                 const filtered = allMats.filter(m => 
+                   m.name.toLowerCase().includes(referenceSearchQuery.toLowerCase()) || 
+                   m.course.toLowerCase().includes(referenceSearchQuery.toLowerCase()) ||
+                   m.topic.toLowerCase().includes(referenceSearchQuery.toLowerCase())
+                 );
+
+                 if (filtered.length === 0) {
+                   return <div className="text-center text-[#A1A1AA] py-10 text-sm">Nenhum material encontrado nas suas trilhas e cursos.</div>;
+                 }
+
+                 return filtered.map((m, idx) => (
+                   <div key={idx} className="bg-[#1A1A1E] border border-[rgba(255,255,255,0.04)] p-3 rounded-xl flex items-center justify-between group hover:border-amber-500/30 transition-colors">
+                     <div className="flex flex-col overflow-hidden mr-4">
+                       <span className="text-sm font-bold text-white truncate flex items-center gap-1.5">
+                         {m.type === 'file' ? <FileText className="size-3 text-purple-400" /> : <LinkIcon className="size-3 text-cyan-400" />}
+                         {m.name}
+                       </span>
+                       <span className="text-[10px] text-[#A1A1AA] uppercase tracking-widest mt-1 truncate">
+                         {m.course} <ChevronRight className="inline size-3" /> {m.topic}
+                       </span>
+                     </div>
+                     <button onClick={() => {
+                        if (!selectedCourse) return;
+                        const mIdx = referenceModalTarget.mIdx;
+                        const tIdx = referenceModalTarget.tIdx;
+                        let t = [];
+                        try { t = JSON.parse(selectedCourse.next_topics || '[]'); } catch(e){}
+                        if (!t[mIdx].topics[tIdx].materials) t[mIdx].topics[tIdx].materials = [];
+                        
+                        // Check if already exists
+                        if (!t[mIdx].topics[tIdx].materials.find((ext: any) => ext.url === m.url)) {
+                           t[mIdx].topics[tIdx].materials.push({ name: m.name, url: m.url, type: m.type });
+                           updateCourse(selectedCourse.id, { next_topics: JSON.stringify(t) }, false);
+                           toast.success("Referência adicionada com sucesso!");
+                        } else {
+                           toast.info("Este material já está anexado a este tópico.");
+                        }
+                        setReferenceModalTarget(null);
+                     }} className="px-3 py-1.5 bg-amber-500/10 text-amber-500 hover:bg-amber-500 hover:text-white font-bold text-xs rounded-lg transition-colors shrink-0">
+                       Importar
+                     </button>
+                   </div>
+                 ));
+              })()}
+            </div>
+          </div>
+        </div>
+      )}
+
       {previewReference && (
         <div className={`fixed z-[9999] transition-all duration-300 ${isPreviewMinimized ? 'bottom-4 right-4 w-[384px] rounded-xl shadow-2xl border border-white/10' : 'inset-0 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm'}`}>
           <div className={`bg-[#111113] w-full max-w-4xl rounded-2xl overflow-hidden shadow-2xl border border-[rgba(255,255,255,0.08)] ${isPreviewMinimized ? 'h-[216px]' : ''}`}>

@@ -40,3 +40,132 @@ export const getSafeEmbedUrl = (url: string, timeExtra?: string) => {
   }
   return url.replace('watch?v=', 'embed/').replace('/view', '/preview');
 };
+
+export interface YouTubeVideoMetadata {
+  id: string;
+  title: string;
+  channelTitle: string;
+  channelId: string;
+  publishedAt: string;
+  duration: string;
+  categoryId: string;
+  description: string;
+  tags: string[];
+  thumbnail: string;
+  viewCount: string;
+  likeCount: string;
+  commentCount: string;
+}
+
+export interface YouTubeChannelMetadata {
+  id: string;
+  title: string;
+  description: string;
+  customUrl: string;
+  publishedAt: string;
+  thumbnail: string;
+  viewCount: string;
+  subscriberCount: string;
+  videoCount: string;
+}
+
+const YOUTUBE_API_KEY = import.meta.env.VITE_YOUTUBE_API_KEY || '';
+
+export const extractVideoMetadata = async (url: string): Promise<YouTubeVideoMetadata | null> => {
+  const videoId = getYouTubeVideoId(url);
+  if (!videoId) throw new Error("Invalid YouTube Video URL");
+  if (!YOUTUBE_API_KEY) throw new Error("VITE_YOUTUBE_API_KEY is not configured.");
+
+  try {
+    const res = await fetch(`https://www.googleapis.com/youtube/v3/videos?part=snippet,contentDetails,statistics&id=${videoId}&key=${YOUTUBE_API_KEY}`);
+    const data = await res.json();
+    
+    if (!data.items || data.items.length === 0) {
+      throw new Error("Video not found or private");
+    }
+
+    const item = data.items[0];
+    const { snippet, contentDetails, statistics } = item;
+
+    return {
+      id: videoId,
+      title: snippet.title,
+      channelTitle: snippet.channelTitle,
+      channelId: snippet.channelId,
+      publishedAt: snippet.publishedAt,
+      duration: contentDetails.duration, // format is ISO 8601 like PT15M33S
+      categoryId: snippet.categoryId,
+      description: snippet.description,
+      tags: snippet.tags || [],
+      thumbnail: snippet.thumbnails?.maxres?.url || snippet.thumbnails?.high?.url || snippet.thumbnails?.default?.url,
+      viewCount: statistics.viewCount || '0',
+      likeCount: statistics.likeCount || '0',
+      commentCount: statistics.commentCount || '0'
+    };
+  } catch (error: any) {
+    console.error("Error extracting video metadata:", error);
+    throw error;
+  }
+};
+
+export const getYouTubeChannelId = async (url: string): Promise<string | null> => {
+  if (url.includes('/channel/')) {
+    return url.split('/channel/')[1].split('/')[0].split('?')[0];
+  }
+  
+  let handle = '';
+  if (url.includes('/@')) {
+    handle = '@' + url.split('/@')[1].split('/')[0].split('?')[0];
+  } else if (url.includes('/c/')) {
+    handle = url.split('/c/')[1].split('/')[0].split('?')[0];
+  } else if (url.includes('/user/')) {
+    handle = url.split('/user/')[1].split('/')[0].split('?')[0];
+  }
+
+  if (handle && YOUTUBE_API_KEY) {
+    try {
+      const res = await fetch(`https://www.googleapis.com/youtube/v3/search?part=snippet&type=channel&q=${encodeURIComponent(handle)}&key=${YOUTUBE_API_KEY}`);
+      const data = await res.json();
+      if (data.items && data.items.length > 0) {
+        return data.items[0].id.channelId;
+      }
+    } catch(e) {
+      console.error("Failed to fetch channel ID by handle", e);
+    }
+  }
+
+  return null;
+};
+
+export const extractChannelMetadata = async (url: string): Promise<YouTubeChannelMetadata | null> => {
+  if (!YOUTUBE_API_KEY) throw new Error("VITE_YOUTUBE_API_KEY is not configured.");
+  const channelId = await getYouTubeChannelId(url);
+  if (!channelId) throw new Error("Invalid YouTube Channel URL or Channel not found");
+
+  try {
+    const res = await fetch(`https://www.googleapis.com/youtube/v3/channels?part=snippet,statistics&id=${channelId}&key=${YOUTUBE_API_KEY}`);
+    const data = await res.json();
+
+    if (!data.items || data.items.length === 0) {
+      throw new Error("Channel not found");
+    }
+
+    const item = data.items[0];
+    const { snippet, statistics } = item;
+
+    return {
+      id: channelId,
+      title: snippet.title,
+      description: snippet.description,
+      customUrl: snippet.customUrl,
+      publishedAt: snippet.publishedAt,
+      thumbnail: snippet.thumbnails?.high?.url || snippet.thumbnails?.default?.url,
+      viewCount: statistics.viewCount || '0',
+      subscriberCount: statistics.subscriberCount || '0',
+      videoCount: statistics.videoCount || '0'
+    };
+  } catch (error: any) {
+    console.error("Error extracting channel metadata:", error);
+    throw error;
+  }
+};
