@@ -5,7 +5,7 @@ import {
   GraduationCap, Plus, Play, BookOpen, Clock, Trophy, Flame, Target, 
   Trash2, Award, Zap, Brain, Calendar as CalendarIcon, CheckCircle2,
   ChevronDown, Search, Filter, LayoutGrid, List as ListIcon,
-  ChevronRight, BookMarked, Sparkles, FileText, Library, CheckSquare,
+  ChevronRight, BookMarked, Book, Sparkles, FileText, Library, CheckSquare,
   TrendingUp, BarChart2, Video, PenTool, LayoutTemplate, Layers, AlertCircle,
   MoreVertical, Share2, Star, FolderOpen, ArrowLeft, Download, X, UploadCloud, Loader2, ExternalLink, Link as LinkIcon, Pause, XCircle, Edit2, Camera, Headphones, Music, CloudRain, Minimize2, Maximize2, ArrowUpRight
 } from "lucide-react";
@@ -68,6 +68,7 @@ export function PosStudies() {
   const [isAddingVideoToChannel, setIsAddingVideoToChannel] = useState<number | null>(null);
   const [newVideoUrl, setNewVideoUrl] = useState('');
   const [newVideoTitle, setNewVideoTitle] = useState('');
+  const [activeTopicVideo, setActiveTopicVideo] = useState<any>(null);
 
   const [activeTopicTimer, setActiveTopicTimer] = useState<string | number | null>(null);
   const [elapsedSeconds, setElapsedSeconds] = useState(0);
@@ -97,7 +98,13 @@ export function PosStudies() {
   const [isPreviewMinimized, setIsPreviewMinimized] = useState(false);
 
   useEffect(() => {
-    const handleRefClick = (e: any) => setPreviewReference(e.detail);
+    const handleRefClick = (e: any) => {
+      if (e.detail.refType === 'video') {
+         setActiveTopicVideo(e.detail);
+      } else {
+         setPreviewReference(e.detail);
+      }
+    };
     window.addEventListener('reference-click', handleRefClick as EventListener);
     return () => window.removeEventListener('reference-click', handleRefClick as EventListener);
   }, []);
@@ -559,34 +566,52 @@ export function PosStudies() {
     if (!selectedCourse) return null;
     const percent = selectedCourse.total_hours ? Math.min(100, Math.round((selectedCourse.completed_hours / selectedCourse.total_hours) * 100)) : 0;
     
+    let coverUrl = "";
+    try { const p = JSON.parse(selectedCourse.description || '{}'); coverUrl = p.cover_url || ""; } catch(e){}
+
     return (
       <div className="animate-in fade-in slide-in-from-right-8 duration-500">
-        <button onClick={() => setSelectedCourseId(null)} className="flex items-center gap-2 text-sm font-bold text-[#A1A1AA] hover:text-white mb-6 transition-colors">
-          <ArrowLeft className="size-4" /> Voltar para Cursos
-        </button>
-
         <div className="flex flex-col lg:flex-row gap-6 items-start">
           {/* Main Content */}
           <div className="flex-1 w-full">
-            <div className="bg-[#111113] border border-[rgba(255,255,255,0.04)] rounded-3xl p-6 md:p-10 shadow-xl mb-6 relative overflow-hidden">
-               <div className="absolute top-0 right-0 p-32 bg-cyan-500/5 blur-[120px] rounded-full pointer-events-none"></div>
-               <div className="relative z-10">
+            <div className="bg-[#111113] border border-[rgba(255,255,255,0.04)] rounded-3xl overflow-hidden shadow-2xl mb-6 relative group">
+               {/* Background Cover Image with Gradients */}
+               {coverUrl ? (
+                 <>
+                   <div className="absolute inset-0 z-0">
+                     <img src={coverUrl} alt="Cover" className="w-full h-full object-cover opacity-60" />
+                   </div>
+                   <div className="absolute inset-0 z-0 bg-gradient-to-t from-[#111113] via-[#111113]/80 to-transparent"></div>
+                   <div className="absolute inset-0 z-0 bg-gradient-to-r from-[#111113] to-transparent"></div>
+                 </>
+               ) : (
+                 <div className="absolute top-0 right-0 p-32 bg-cyan-500/10 blur-[120px] rounded-full pointer-events-none z-0"></div>
+               )}
+
+               <div className="relative z-10 p-6 md:p-10 pt-16 md:pt-20">
+                 {/* Floating Back Button */}
+                 <button onClick={() => setSelectedCourseId(null)} className="absolute top-6 left-6 flex items-center gap-2 text-xs font-bold text-white bg-white/10 hover:bg-white/20 backdrop-blur-md px-4 py-2 rounded-xl transition-all shadow-lg border border-white/10">
+                   <ArrowLeft className="size-4" /> Voltar
+                 </button>
+                 
+                 {/* Rest of Header Info */}
                  <div className="flex gap-2 mb-4">
-                   <span className="px-2.5 py-1 bg-[#1A1A1E] border border-white/5 rounded text-[10px] font-bold text-[#A1A1AA] uppercase tracking-widest">{selectedCourse.knowledge_area}</span>
-                   <span className="px-2.5 py-1 bg-[#1A1A1E] border border-white/5 rounded text-[10px] font-bold text-[#A1A1AA] uppercase tracking-widest">{selectedCourse.category}</span>
+                   <span className="px-3 py-1 bg-cyan-500/20 border border-cyan-500/30 text-cyan-400 rounded-lg text-[10px] font-bold uppercase tracking-widest backdrop-blur-sm shadow-lg">{selectedCourse.knowledge_area}</span>
+                   <span className="px-3 py-1 bg-black/50 border border-white/10 text-white rounded-lg text-[10px] font-bold uppercase tracking-widest backdrop-blur-sm shadow-lg">{selectedCourse.category}</span>
                  </div>
+                 
                  <div className="flex justify-between items-start gap-4">
-                   <h1 className="text-3xl md:text-5xl font-black text-white tracking-tight leading-tight mb-6 max-w-3xl">
+                   <h1 className="text-3xl md:text-5xl font-black text-white tracking-tight leading-tight mb-6 max-w-3xl drop-shadow-xl">
                      {selectedCourse.title}
                    </h1>
-                   <div className="flex items-center gap-2 relative z-20">
+                   <div className="flex items-center gap-2 relative z-20 shrink-0">
                      <button 
                        onClick={() => {
                          setNewCourse(selectedCourse as any);
                          setIsEditingCourse(true);
                          setIsCreatingCourse(true);
                        }} 
-                       className="p-2 bg-white/5 hover:bg-white/10 rounded-xl text-cyan-400 border border-white/5 transition-colors shadow-lg"
+                       className="p-2.5 bg-white/10 hover:bg-white/20 backdrop-blur-md rounded-xl text-cyan-400 border border-white/10 transition-colors shadow-lg"
                        title="Editar Curso"
                      >
                        <PenTool className="size-4" />
@@ -598,7 +623,7 @@ export function PosStudies() {
                            setSelectedCourseId(null);
                          }
                        }} 
-                       className="p-2 bg-white/5 hover:bg-white/10 rounded-xl text-rose-500 border border-white/5 transition-colors shadow-lg"
+                       className="p-2.5 bg-rose-500/20 hover:bg-rose-500/30 backdrop-blur-md rounded-xl text-rose-400 border border-rose-500/20 transition-colors shadow-lg"
                        title="Excluir Curso"
                      >
                        <Trash2 className="size-4" />
@@ -606,10 +631,10 @@ export function PosStudies() {
                    </div>
                  </div>
                  
-                 <div className="flex flex-wrap gap-6 mb-8">
-                   <div className="flex items-center gap-2 text-sm text-[#A1A1AA]"><PenTool className="size-4 text-cyan-500"/> {selectedCourse.instructor || "Sem instrutor"}</div>
-                   <div className="flex items-center gap-2 text-sm text-[#A1A1AA]"><LayoutTemplate className="size-4 text-emerald-500"/> {selectedCourse.platform || "Desconhecida"}</div>
-                   <div className="flex items-center gap-2 text-sm text-[#A1A1AA]"><Clock className="size-4 text-rose-500"/> {selectedCourse.total_hours}h totais</div>
+                 <div className="flex flex-wrap gap-4 mb-8">
+                   <div className="flex items-center gap-1.5 text-xs font-bold text-white bg-black/40 px-3 py-1.5 rounded-lg border border-white/5 backdrop-blur-sm"><PenTool className="size-3.5 text-cyan-500"/> {selectedCourse.instructor || "Sem instrutor"}</div>
+                   <div className="flex items-center gap-1.5 text-xs font-bold text-white bg-black/40 px-3 py-1.5 rounded-lg border border-white/5 backdrop-blur-sm"><LayoutTemplate className="size-3.5 text-emerald-500"/> {selectedCourse.platform || "Desconhecida"}</div>
+                   <div className="flex items-center gap-1.5 text-xs font-bold text-white bg-black/40 px-3 py-1.5 rounded-lg border border-white/5 backdrop-blur-sm"><Clock className="size-3.5 text-rose-500"/> {selectedCourse.total_hours}h totais</div>
                    {(() => {
                      try {
                        const sched = JSON.parse(selectedCourse.description || '{}');
@@ -617,33 +642,33 @@ export function PosStudies() {
                          const dayNames = ['Dom', 'Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb'];
                          const daysStr = sched.days.map((d:number) => dayNames[d]).join(', ');
                          return (
-                           <div className="flex items-center gap-2 text-sm text-purple-400 font-bold bg-purple-500/10 px-3 py-1 rounded-lg border border-purple-500/20 shadow-[0_0_15px_rgba(168,85,247,0.1)]">
-                             <CalendarIcon className="size-4"/> 
+                           <div className="flex items-center gap-1.5 text-xs font-bold text-purple-400 bg-purple-500/10 px-3 py-1.5 rounded-lg border border-purple-500/20 backdrop-blur-sm">
+                             <CalendarIcon className="size-3.5"/> 
                              {daysStr} às {sched.time || '19:00'}
                            </div>
                          );
                        }
                      } catch(e) {
                        if (selectedCourse.description) {
-                         return <div className="flex items-center gap-2 text-sm text-[#A1A1AA]"><CalendarIcon className="size-4 text-purple-500"/> {selectedCourse.description}</div>
+                         return <div className="flex items-center gap-1.5 text-xs font-bold text-white bg-black/40 px-3 py-1.5 rounded-lg border border-white/5 backdrop-blur-sm"><CalendarIcon className="size-3.5 text-purple-500"/> {selectedCourse.description}</div>
                        }
                      }
                      return null;
                    })()}
                    {selectedCourse.course_url && (
-                     <a href={selectedCourse.course_url} target="_blank" rel="noopener noreferrer" className="flex items-center gap-1 text-sm text-cyan-400 hover:underline font-bold z-20 relative">
-                       <Play className="size-4"/> Acessar Plataforma
+                     <a href={selectedCourse.course_url} target="_blank" rel="noopener noreferrer" className="flex items-center gap-1.5 text-xs text-white bg-black/40 hover:bg-black/60 px-3 py-1.5 rounded-lg border border-white/5 backdrop-blur-sm transition-colors font-bold z-20 relative">
+                       <Play className="size-3.5 text-cyan-400"/> Acessar Plataforma
                      </a>
                    )}
                  </div>
 
-                  <div className="flex items-center gap-4 bg-[#1A1A1E] p-4 rounded-2xl border border-white/5 flex-wrap">
+                  <div className="flex items-center gap-4 bg-black/50 p-4 rounded-2xl border border-white/10 backdrop-blur-md flex-wrap mt-auto">
                     <div className="flex-1 min-w-[200px]">
                       <div className="flex justify-between items-end mb-2">
-                        <span className="text-xs font-bold text-[#71717A] uppercase tracking-widest">Progresso Geral</span>
+                        <span className="text-[10px] font-bold text-[#A1A1AA] uppercase tracking-widest">Progresso Geral</span>
                         <span className="text-sm font-bold text-white">{percent}%</span>
                       </div>
-                      <div className="h-2 w-full bg-[#111113] rounded-full overflow-hidden">
+                      <div className="h-2 w-full bg-[#1A1A1E] rounded-full overflow-hidden shadow-inner border border-white/5">
                         <div className="h-full bg-cyan-500 rounded-full" style={{ width: `${percent}%` }}></div>
                       </div>
                     </div>
@@ -1045,12 +1070,16 @@ export function PosStudies() {
                                 Nenhum módulo cadastrado. Comece criando um módulo para estruturar seus tópicos.
                               </div>
                             ) : modules.map((mod: any, mIdx: number) => (
-                              <div key={mod.id || mIdx} className="bg-[#1A1A1E]/50 border border-[rgba(255,255,255,0.04)] rounded-2xl p-4 overflow-hidden">
-                                <div className="flex items-center justify-between mb-4 border-b border-white/5 pb-3">
-                                  <h4 className="text-sm font-bold text-white flex items-center gap-2">
-                                    <FolderOpen className="size-4 text-cyan-500" /> {mod.title}
+                              <div key={mod.id || mIdx} className="bg-[#111113] border border-white/5 rounded-2xl overflow-hidden shadow-lg mb-6 group transition-all hover:border-cyan-500/20">
+                                <div className="flex items-center justify-between p-5 bg-gradient-to-r from-[#1A1A1E] to-[#111113] border-b border-white/5 relative">
+                                  <div className="absolute left-0 top-0 bottom-0 w-1 bg-cyan-500 rounded-l-2xl opacity-50 group-hover:opacity-100 transition-opacity"></div>
+                                  <h4 className="text-base font-black text-white flex items-center gap-3">
+                                    <div className="bg-cyan-500/10 p-2 rounded-lg border border-cyan-500/20 shadow-inner">
+                                      <FolderOpen className="size-4 text-cyan-400" />
+                                    </div>
+                                    {mod.title}
                                   </h4>
-                                  <div className="flex items-center gap-2">
+                                  <div className="flex items-center gap-2 relative z-10">
                                     <button onClick={() => {
                                       const topicTitle = prompt("Nome do novo tópico/aula:");
                                       if (topicTitle) {
@@ -1058,7 +1087,7 @@ export function PosStudies() {
                                         updated[mIdx].topics = [...(updated[mIdx].topics || []), { id: Date.now(), title: topicTitle, status: 'pendente', source: '' }];
                                         updateCourse(selectedCourse.id, { next_topics: JSON.stringify(updated) });
                                       }
-                                    }} className="text-[10px] font-bold text-cyan-400 hover:bg-cyan-500/10 px-2 py-1 rounded transition-colors uppercase tracking-widest flex items-center gap-1">
+                                    }} className="text-[10px] font-bold text-cyan-400 hover:bg-cyan-500/10 px-2 py-1.5 rounded transition-colors uppercase tracking-widest flex items-center gap-1">
                                       <Plus className="size-3" /> Add Tópico
                                     </button>
                                     <button onClick={() => {
@@ -1072,14 +1101,14 @@ export function PosStudies() {
                                   </div>
                                 </div>
 
-                                <div className="space-y-2 pl-2 md:pl-6 border-l border-white/5">
+                                <div className="p-4 space-y-2 bg-[#0A0A0B]/50">
                                   {(!mod.topics || mod.topics.length === 0) ? (
-                                    <p className="text-xs text-[#71717A] italic">Módulo vazio. Adicione tópicos.</p>
+                                    <p className="text-xs text-[#71717A] italic px-2">Módulo vazio. Adicione tópicos.</p>
                                   ) : mod.topics.map((topic: any, tIdx: number) => (
-                                    <div key={topic.id || tIdx} className="group flex flex-col bg-[#111113] border border-[rgba(255,255,255,0.03)] hover:border-cyan-500/30 rounded-xl transition-all overflow-hidden">
+                                    <div key={topic.id || tIdx} className="group/topic flex flex-col bg-[#111113] hover:bg-[#1A1A1E] border border-[rgba(255,255,255,0.04)] hover:border-cyan-500/30 rounded-xl transition-all overflow-hidden shadow-sm">
                                       
-                                      <div className="flex flex-col sm:flex-row sm:items-center gap-3 p-3">
-                                        <div className="flex items-center gap-3 flex-1">
+                                      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 p-4">
+                                        <div className="flex items-center gap-4 flex-1 min-w-0">
                                           <button 
                                             onClick={(e) => {
                                               e.stopPropagation();
@@ -1087,14 +1116,14 @@ export function PosStudies() {
                                               updated[mIdx].topics[tIdx].status = cycleStatus(topic.status);
                                               updateCourse(selectedCourse.id, { next_topics: JSON.stringify(updated) });
                                             }}
-                                            className={`shrink-0 size-5 rounded border flex items-center justify-center transition-all ${getStatusColor(topic.status)} z-10`}
+                                            className={`shrink-0 size-5 rounded-full border-2 flex items-center justify-center transition-all ${getStatusColor(topic.status)} z-10`}
                                             title={`Status atual: ${getStatusLabel(topic.status)}. Clique para mudar.`}
                                           >
                                             {topic.status === 'concluido' && <CheckSquare className="size-3" />}
                                             {topic.status === 'avançando' && <Flame className="size-3" />}
                                             {topic.status === 'revisando' && <BookOpen className="size-3" />}
                                           </button>
-                                          <div className="flex flex-col cursor-pointer flex-1" onClick={() => {
+                                          <div className="flex flex-col cursor-pointer flex-1 min-w-0" onClick={() => {
                                              if (expandedTopicId === (topic.id || tIdx)) {
                                                 setExpandedTopicId(null);
                                              } else {
@@ -1103,8 +1132,8 @@ export function PosStudies() {
                                                 setLocalTags(topic.tags || '');
                                              }
                                           }}>
-                                            <span className={`text-sm font-medium ${topic.status === 'concluido' ? 'text-[#71717A] line-through' : 'text-white'}`}>{topic.title}</span>
-                                            <span className={`text-[9px] uppercase tracking-widest font-bold mt-0.5 ${
+                                            <span className={`text-sm font-bold truncate ${topic.status === 'concluido' ? 'text-[#71717A] line-through' : 'text-white'}`}>{topic.title}</span>
+                                            <span className={`text-[10px] uppercase tracking-widest font-bold mt-0.5 ${
                                               topic.status === 'concluido' ? 'text-emerald-500' :
                                               topic.status === 'avançando' ? 'text-cyan-400' :
                                               topic.status === 'revisando' ? 'text-yellow-400' : 'text-[#71717A]'
@@ -1112,7 +1141,7 @@ export function PosStudies() {
                                           </div>
                                         </div>
 
-                                        <div className="flex items-center gap-2 mt-2 sm:mt-0 ml-8 sm:ml-0">
+                                        <div className="flex items-center gap-2 mt-2 sm:mt-0 ml-9 sm:ml-0 shrink-0">
                                           {topic.source ? (
                                             <a href={topic.source.startsWith('http') ? topic.source : `https://${topic.source}`} target="_blank" rel="noopener noreferrer" className="text-[10px] font-bold text-cyan-400 bg-cyan-400/10 px-2 py-1 rounded border border-cyan-400/20 hover:bg-cyan-400/20 transition-colors flex items-center gap-1">
                                               <Share2 className="size-3" /> Fonte
@@ -1128,10 +1157,10 @@ export function PosStudies() {
                                               updated[mIdx].topics[tIdx].source = src;
                                               updateCourse(selectedCourse.id, { next_topics: JSON.stringify(updated) });
                                             }
-                                          }} className="opacity-0 group-hover:opacity-100 p-1.5 text-[#A1A1AA] hover:text-white bg-white/5 rounded-lg transition-all" title="Adicionar/Editar Link">
+                                          }} className="opacity-0 group-hover/topic:opacity-100 p-1.5 text-[#A1A1AA] hover:text-white bg-white/5 rounded-lg transition-all" title="Adicionar/Editar Link">
                                             <PenTool className="size-3.5" />
                                           </button>
-                                          <label className="opacity-0 group-hover:opacity-100 p-1.5 text-cyan-400 hover:text-white bg-cyan-500/10 hover:bg-cyan-500/30 rounded-lg transition-all cursor-pointer" title="Fazer Upload de PDF/Material">
+                                          <label className="opacity-0 group-hover/topic:opacity-100 p-1.5 text-cyan-400 hover:text-white bg-cyan-500/10 hover:bg-cyan-500/30 rounded-lg transition-all cursor-pointer" title="Fazer Upload de PDF/Material">
                                             {isUploading ? <Loader2 className="size-3.5 animate-spin" /> : <UploadCloud className="size-3.5" />}
                                             <input type="file" className="hidden" disabled={isUploading} onChange={(e) => handleMaterialUpload(e, mIdx, tIdx)} />
                                           </label>
@@ -1142,7 +1171,7 @@ export function PosStudies() {
                                               updated[mIdx].topics = updated[mIdx].topics.filter((_: any, i: number) => i !== tIdx);
                                               updateCourse(selectedCourse.id, { next_topics: JSON.stringify(updated) });
                                             }
-                                          }} className="opacity-0 group-hover:opacity-100 p-1.5 hover:bg-rose-500/10 text-rose-500 rounded-lg transition-all">
+                                          }} className="opacity-0 group-hover/topic:opacity-100 p-1.5 hover:bg-rose-500/10 text-rose-500 rounded-lg transition-all">
                                             <Trash2 className="size-3.5" />
                                           </button>
                                         </div>
@@ -1217,6 +1246,31 @@ export function PosStudies() {
                                             
                                             <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
                                               <div className="lg:col-span-2 flex flex-col h-full min-h-[500px]">
+                                                {activeTopicVideo && (
+                                                  <div className="mb-4 rounded-xl overflow-hidden bg-black border border-white/5 shadow-inner flex flex-col animate-in fade-in zoom-in-95 duration-300">
+                                                    <div className="flex items-center justify-between p-2 bg-[#1A1A1E] border-b border-white/5">
+                                                      <span className="text-[10px] font-bold text-white uppercase tracking-widest px-2 truncate flex-1">{activeTopicVideo.title}</span>
+                                                      <div className="flex items-center gap-1">
+                                                        <button onClick={() => {
+                                                          window.dispatchEvent(new CustomEvent('global-pip', { detail: activeTopicVideo }));
+                                                          setActiveTopicVideo(null);
+                                                        }} className="p-1.5 bg-cyan-500/10 hover:bg-cyan-500/20 text-cyan-400 rounded-lg transition-colors flex items-center gap-1" title="Minimizar (PiP)">
+                                                          <Minimize2 className="size-3" />
+                                                        </button>
+                                                        <button onClick={() => setActiveTopicVideo(null)} className="p-1.5 bg-rose-500/10 hover:bg-rose-500/20 text-rose-500 rounded-lg transition-colors" title="Fechar Vídeo">
+                                                          <X className="size-3" />
+                                                        </button>
+                                                      </div>
+                                                    </div>
+                                                    <div className="w-full aspect-video relative">
+                                                      <iframe 
+                                                        src={getSafeEmbedUrl(activeTopicVideo.url, activeTopicVideo.extra)}
+                                                        className="w-full h-full border-0"
+                                                        allow="autoplay; fullscreen; picture-in-picture"
+                                                      ></iframe>
+                                                    </div>
+                                                  </div>
+                                                )}
                                                 <div className="flex flex-col sm:flex-row sm:items-center justify-between mb-2 gap-2">
                                                   <label className="text-[10px] uppercase tracking-widest text-[#71717A] font-bold flex items-center gap-2">
                                                     <Edit2 className="size-3 text-purple-500" /> Anotações / Resumo (Salvas Automático)
@@ -1290,7 +1344,7 @@ export function PosStudies() {
                                                   <RichTextEditor 
                                                     content={localNotes}
                                                     onChange={(content) => setLocalNotes(content)}
-                                                    availableBooks={availableBookQuotes}
+                                                    availableBooks={availableBookQuotes.filter(q => (topic.books || []).includes(q.id.replace('quote-', '')))}
                                                     availableVideos={availableVideos}
                                                     availableMaterials={topic.materials || []}
                                                   />
@@ -1311,6 +1365,68 @@ export function PosStudies() {
                                                     }}
                                                     className="w-full bg-[#1A1A1E] border border-[rgba(255,255,255,0.04)] rounded-xl p-3 text-sm text-white focus:outline-none focus:border-cyan-500/50 transition-colors"
                                                   />
+                                                </div>
+
+                                                <div>
+                                                  <label className="text-[10px] text-[#A1A1AA] uppercase tracking-widest font-bold mb-1.5 flex items-center gap-1">
+                                                    <Book className="size-3 text-emerald-500"/> Referências Literárias
+                                                  </label>
+                                                  <div className="flex flex-col gap-2">
+                                                    <div className="relative">
+                                                      <select 
+                                                        className="w-full appearance-none bg-[#1A1A1E] hover:bg-[#27272A] border border-[rgba(255,255,255,0.08)] rounded-xl p-3 pr-10 text-sm font-bold text-white focus:outline-none focus:border-emerald-500/50 focus:ring-1 focus:ring-emerald-500/50 transition-all cursor-pointer shadow-sm"
+                                                        onChange={(e) => {
+                                                          const val = e.target.value;
+                                                          if (!val) return;
+                                                          const updated = [...modules];
+                                                          if (!updated[mIdx].topics[tIdx].books) updated[mIdx].topics[tIdx].books = [];
+                                                          if (!updated[mIdx].topics[tIdx].books.includes(val)) {
+                                                             updated[mIdx].topics[tIdx].books.push(val);
+                                                             updateCourse(selectedCourse.id, { next_topics: JSON.stringify(updated) }, false);
+                                                          }
+                                                          e.target.value = "";
+                                                        }}
+                                                      >
+                                                        <option value="" className="bg-[#111113] text-[#A1A1AA] font-normal">+ Escolher Livro do Acervo...</option>
+                                                        {readingSessions.map(rs => (
+                                                          <option key={rs.id} value={rs.id} className="bg-[#111113] text-white py-2">{rs.book_title}</option>
+                                                        ))}
+                                                      </select>
+                                                      <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 size-4 text-[#A1A1AA] pointer-events-none" />
+                                                    </div>
+                                                    
+                                                    {topic.books && topic.books.length > 0 && (
+                                                      <div className="flex flex-col gap-2 mt-1">
+                                                        {topic.books.map((bookId: string) => {
+                                                           const rs = readingSessions.find(r => r.id === bookId);
+                                                           if (!rs) return null;
+                                                           return (
+                                                             <div key={bookId} className="flex items-center justify-between p-3 bg-[#1A1A1E] border border-[rgba(255,255,255,0.08)] rounded-xl group hover:border-emerald-500/40 hover:bg-emerald-500/5 transition-all shadow-sm">
+                                                               <div className="flex items-center gap-3 overflow-hidden flex-1 cursor-pointer" onClick={() => {
+                                                                  const event = new CustomEvent('reference-click', { detail: { refType: 'book', title: rs.book_title, id: rs.id } });
+                                                                  window.dispatchEvent(event);
+                                                               }}>
+                                                                 <div className="w-9 h-9 rounded-lg shrink-0 bg-[#111113] flex items-center justify-center border border-emerald-500/20 shadow-inner group-hover:bg-emerald-500/10 transition-colors">
+                                                                   <Book className="size-4 text-emerald-400" />
+                                                                 </div>
+                                                                 <div className="flex flex-col">
+                                                                   <span className="text-xs font-bold text-white group-hover:text-emerald-400 transition-colors truncate">{rs.book_title}</span>
+                                                                   <span className="text-[10px] text-[#A1A1AA] mt-0.5">Clique para ver citações</span>
+                                                                 </div>
+                                                               </div>
+                                                               <button onClick={() => {
+                                                                  const updated = [...modules];
+                                                                  updated[mIdx].topics[tIdx].books = updated[mIdx].topics[tIdx].books.filter((id: string) => id !== bookId);
+                                                                  updateCourse(selectedCourse.id, { next_topics: JSON.stringify(updated) }, false);
+                                                               }} className="p-2 text-rose-500/50 hover:text-rose-500 hover:bg-rose-500/10 rounded-lg transition-colors shrink-0" title="Remover livro">
+                                                                 <Trash2 className="size-4" />
+                                                               </button>
+                                                             </div>
+                                                           );
+                                                        })}
+                                                      </div>
+                                                    )}
+                                                  </div>
                                                 </div>
 
                                                 <div>
@@ -1713,7 +1829,8 @@ export function PosStudies() {
     <div className="p-4 md:p-8 max-w-[1600px] mx-auto pb-24 text-white font-sans">
       
       {/* HERO HEADER */}
-      <div className="flex flex-col gap-4 bg-[#0A0A0A] p-6 md:p-10 rounded-3xl border border-[rgba(255,255,255,0.04)] shadow-2xl relative overflow-hidden mb-8">
+      {!selectedCourseId && (
+        <div className="flex flex-col gap-4 bg-[#0A0A0A] p-6 md:p-10 rounded-3xl border border-[rgba(255,255,255,0.04)] shadow-2xl relative overflow-hidden mb-8">
         <div className="absolute -top-20 -right-20 p-32 bg-cyan-500/10 blur-[100px] w-96 h-96 rounded-full pointer-events-none"></div>
         <div className="flex flex-col md:flex-row md:justify-between md:items-start gap-6 z-10 relative">
           <div>
@@ -1792,6 +1909,7 @@ export function PosStudies() {
           ))}
         </div>
       </div>
+      )}
 
       {/* MODAL CRIAÇÃO REAL */}
       {isCreatingCourse && (
