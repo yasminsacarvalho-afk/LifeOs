@@ -113,7 +113,10 @@ export function PosStudies() {
   const availableBookQuotes = (() => {
     const quotes: any[] = [];
     readingSessions.forEach(rs => {
-      if (rs.notes) quotes.push({ id: `quote-${rs.id}`, title: rs.book_title, text: rs.notes });
+      if (rs.notes) {
+        const b = books.find(book => book.id === rs.book_id);
+        quotes.push({ id: `quote-${rs.id}`, book_id: rs.book_id, title: b ? b.title : 'Desconhecido', text: rs.notes });
+      }
     });
     return quotes;
   })();
@@ -570,132 +573,170 @@ export function PosStudies() {
     try { const p = JSON.parse(selectedCourse.description || '{}'); coverUrl = p.cover_url || ""; } catch(e){}
 
     return (
-      <div className="animate-in fade-in slide-in-from-right-8 duration-500">
-        <div className="flex flex-col lg:flex-row gap-6 items-start">
-          {/* Main Content */}
-          <div className="flex-1 w-full">
-            <div className="bg-[#111113] border border-[rgba(255,255,255,0.04)] rounded-3xl overflow-hidden shadow-2xl mb-6 relative group">
-               {/* Background Cover Image with Gradients */}
-               {coverUrl ? (
-                 <>
-                   <div className="absolute inset-0 z-0">
-                     <img src={coverUrl} alt="Cover" className="w-full h-full object-cover opacity-60" />
-                   </div>
-                   <div className="absolute inset-0 z-0 bg-gradient-to-t from-[#111113] via-[#111113]/80 to-transparent"></div>
-                   <div className="absolute inset-0 z-0 bg-gradient-to-r from-[#111113] to-transparent"></div>
-                 </>
-               ) : (
-                 <div className="absolute top-0 right-0 p-32 bg-cyan-500/10 blur-[120px] rounded-full pointer-events-none z-0"></div>
-               )}
+      <div className="animate-in fade-in slide-in-from-right-8 duration-500 flex flex-col min-h-screen">
+        
+        {/* Universal Top Controls: Back Button and Sub-tabs */}
+        <div className="flex flex-col gap-4 mb-6">
+           <button onClick={() => setSelectedCourseId(null)} className="flex items-center gap-2 text-xs font-bold text-[#A1A1AA] hover:text-white transition-colors w-fit">
+             <ArrowLeft className="size-4" /> Voltar para Trilha
+           </button>
+           <div className="flex items-center gap-2 border-b border-[rgba(255,255,255,0.06)] pb-2 overflow-x-auto hide-scrollbar">
+              {["Visão Geral", "Módulos", "Videoteca", "Diário de Bordo", "Inteligência Artificial"].map(tab => (
+                <button 
+                  key={tab}
+                  onClick={() => setCourseTab(tab)}
+                  className={cn("px-4 py-2 rounded-lg text-sm font-bold transition-all whitespace-nowrap", courseTab === tab ? "bg-white/10 text-white" : "text-[#71717A] hover:text-white")}
+                >
+                  {tab === "Inteligência Artificial" ? <span className="flex items-center gap-2"><Sparkles className="size-4 text-cyan-400" /> IA</span> : 
+                   tab === "Videoteca" ? <span className="flex items-center gap-2"><Video className="size-4 text-rose-500" /> {tab}</span> : tab}
+                </button>
+              ))}
+           </div>
+        </div>
 
-               <div className="relative z-10 p-6 md:p-10 pt-16 md:pt-20">
-                 {/* Floating Back Button */}
-                 <button onClick={() => setSelectedCourseId(null)} className="absolute top-6 left-6 flex items-center gap-2 text-xs font-bold text-white bg-white/10 hover:bg-white/20 backdrop-blur-md px-4 py-2 rounded-xl transition-all shadow-lg border border-white/10">
-                   <ArrowLeft className="size-4" /> Voltar
-                 </button>
-                 
-                 {/* Rest of Header Info */}
-                 <div className="flex gap-2 mb-4">
-                   <span className="px-3 py-1 bg-cyan-500/20 border border-cyan-500/30 text-cyan-400 rounded-lg text-[10px] font-bold uppercase tracking-widest backdrop-blur-sm shadow-lg">{selectedCourse.knowledge_area}</span>
-                   <span className="px-3 py-1 bg-black/50 border border-white/10 text-white rounded-lg text-[10px] font-bold uppercase tracking-widest backdrop-blur-sm shadow-lg">{selectedCourse.category}</span>
+        <div className={courseTab === "Visão Geral" ? "w-full" : "flex flex-col lg:flex-row gap-6 items-start"}>
+          <div className="flex-1 w-full flex flex-col gap-6">
+            {courseTab !== "Visão Geral" && (
+          <div className="bg-[#111113] border border-[rgba(255,255,255,0.04)] rounded-3xl overflow-hidden shadow-2xl mb-6 relative group">
+             {/* Background Cover Image with Gradients */}
+             {coverUrl ? (
+               <>
+                 <div className="absolute inset-0 z-0">
+                   <img src={coverUrl} alt="Cover" className="w-full h-full object-cover opacity-60" />
                  </div>
-                 
-                 <div className="flex justify-between items-start gap-4">
-                   <h1 className="text-3xl md:text-5xl font-black text-white tracking-tight leading-tight mb-6 max-w-3xl drop-shadow-xl">
-                     {selectedCourse.title}
-                   </h1>
-                   <div className="flex items-center gap-2 relative z-20 shrink-0">
-                     <button 
-                       onClick={() => {
-                         setNewCourse(selectedCourse as any);
-                         setIsEditingCourse(true);
-                         setIsCreatingCourse(true);
-                       }} 
-                       className="p-2.5 bg-white/10 hover:bg-white/20 backdrop-blur-md rounded-xl text-cyan-400 border border-white/10 transition-colors shadow-lg"
-                       title="Editar Curso"
-                     >
-                       <PenTool className="size-4" />
-                     </button>
-                     <button 
-                       onClick={async () => {
-                         if (confirm("Tem certeza que deseja excluir este curso?")) {
-                           await deleteCourse(selectedCourse.id);
-                           setSelectedCourseId(null);
-                         }
-                       }} 
-                       className="p-2.5 bg-rose-500/20 hover:bg-rose-500/30 backdrop-blur-md rounded-xl text-rose-400 border border-rose-500/20 transition-colors shadow-lg"
-                       title="Excluir Curso"
-                     >
-                       <Trash2 className="size-4" />
-                     </button>
-                   </div>
-                 </div>
-                 
-                 <div className="flex flex-wrap gap-4 mb-8">
-                   <div className="flex items-center gap-1.5 text-xs font-bold text-white bg-black/40 px-3 py-1.5 rounded-lg border border-white/5 backdrop-blur-sm"><PenTool className="size-3.5 text-cyan-500"/> {selectedCourse.instructor || "Sem instrutor"}</div>
-                   <div className="flex items-center gap-1.5 text-xs font-bold text-white bg-black/40 px-3 py-1.5 rounded-lg border border-white/5 backdrop-blur-sm"><LayoutTemplate className="size-3.5 text-emerald-500"/> {selectedCourse.platform || "Desconhecida"}</div>
-                   <div className="flex items-center gap-1.5 text-xs font-bold text-white bg-black/40 px-3 py-1.5 rounded-lg border border-white/5 backdrop-blur-sm"><Clock className="size-3.5 text-rose-500"/> {selectedCourse.total_hours}h totais</div>
-                   {(() => {
-                     try {
-                       const sched = JSON.parse(selectedCourse.description || '{}');
-                       if (sched.days && sched.days.length > 0) {
-                         const dayNames = ['Dom', 'Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb'];
-                         const daysStr = sched.days.map((d:number) => dayNames[d]).join(', ');
-                         return (
-                           <div className="flex items-center gap-1.5 text-xs font-bold text-purple-400 bg-purple-500/10 px-3 py-1.5 rounded-lg border border-purple-500/20 backdrop-blur-sm">
-                             <CalendarIcon className="size-3.5"/> 
-                             {daysStr} às {sched.time || '19:00'}
-                           </div>
-                         );
-                       }
-                     } catch(e) {
-                       if (selectedCourse.description) {
-                         return <div className="flex items-center gap-1.5 text-xs font-bold text-white bg-black/40 px-3 py-1.5 rounded-lg border border-white/5 backdrop-blur-sm"><CalendarIcon className="size-3.5 text-purple-500"/> {selectedCourse.description}</div>
-                       }
-                     }
-                     return null;
-                   })()}
-                   {selectedCourse.course_url && (
-                     <a href={selectedCourse.course_url} target="_blank" rel="noopener noreferrer" className="flex items-center gap-1.5 text-xs text-white bg-black/40 hover:bg-black/60 px-3 py-1.5 rounded-lg border border-white/5 backdrop-blur-sm transition-colors font-bold z-20 relative">
-                       <Play className="size-3.5 text-cyan-400"/> Acessar Plataforma
-                     </a>
-                   )}
-                 </div>
+                 <div className="absolute inset-0 z-0 bg-gradient-to-t from-[#111113] via-[#111113]/80 to-transparent"></div>
+                 <div className="absolute inset-0 z-0 bg-gradient-to-r from-[#111113] to-transparent"></div>
+               </>
+             ) : (
+               <div className="absolute top-0 right-0 p-32 bg-cyan-500/10 blur-[120px] rounded-full pointer-events-none z-0"></div>
+             )}
 
-                  <div className="flex items-center gap-4 bg-black/50 p-4 rounded-2xl border border-white/10 backdrop-blur-md flex-wrap mt-auto">
-                    <div className="flex-1 min-w-[200px]">
-                      <div className="flex justify-between items-end mb-2">
-                        <span className="text-[10px] font-bold text-[#A1A1AA] uppercase tracking-widest">Progresso Geral</span>
-                        <span className="text-sm font-bold text-white">{percent}%</span>
-                      </div>
-                      <div className="h-2 w-full bg-[#1A1A1E] rounded-full overflow-hidden shadow-inner border border-white/5">
-                        <div className="h-full bg-cyan-500 rounded-full" style={{ width: `${percent}%` }}></div>
-                      </div>
-                    </div>
-                    <button onClick={() => setIsLoggingSession(true)} className="shrink-0 w-full sm:w-auto px-6 py-3 bg-cyan-600 hover:bg-cyan-500 text-white rounded-xl text-sm font-bold shadow-lg shadow-cyan-500/20 flex items-center justify-center gap-2 transition-all">
-                      <Play className="size-4 fill-white" /> Registrar Sessão
-                    </button>
-                  </div>
+             <div className="relative z-10 p-6 md:p-10 pt-16 md:pt-20">
+               {/* Rest of Header Info */}
+               <div className="flex gap-2 mb-4">
+                 <span className="px-3 py-1 bg-cyan-500/20 border border-cyan-500/30 text-cyan-400 rounded-lg text-[10px] font-bold uppercase tracking-widest backdrop-blur-sm shadow-lg">{selectedCourse.knowledge_area}</span>
+                 <span className="px-3 py-1 bg-black/50 border border-white/10 text-white rounded-lg text-[10px] font-bold uppercase tracking-widest backdrop-blur-sm shadow-lg">{selectedCourse.category}</span>
                </div>
-            </div>
+               
+               <div className="flex justify-between items-start gap-4">
+                 <h1 className="text-3xl md:text-5xl font-black text-white tracking-tight leading-tight mb-6 max-w-3xl drop-shadow-xl">
+                   {selectedCourse.title}
+                 </h1>
+                 <div className="flex items-center gap-2 relative z-20 shrink-0">
+                   <button 
+                     onClick={() => {
+                       setNewCourse(selectedCourse as any);
+                       setIsEditingCourse(true);
+                       setIsCreatingCourse(true);
+                     }} 
+                     className="p-2.5 bg-white/10 hover:bg-white/20 backdrop-blur-md rounded-xl text-cyan-400 border border-white/10 transition-colors shadow-lg"
+                     title="Editar Curso"
+                   >
+                     <PenTool className="size-4" />
+                   </button>
+                   <button 
+                     onClick={async () => {
+                       if (confirm("Tem certeza que deseja excluir este curso?")) {
+                         await deleteCourse(selectedCourse.id);
+                         setSelectedCourseId(null);
+                       }
+                     }} 
+                     className="p-2.5 bg-rose-500/20 hover:bg-rose-500/30 backdrop-blur-md rounded-xl text-rose-400 border border-rose-500/20 transition-colors shadow-lg"
+                     title="Excluir Curso"
+                   >
+                     <Trash2 className="size-4" />
+                   </button>
+                 </div>
+               </div>
+               
+               <div className="flex flex-wrap gap-4 mb-8">
+                 <div className="flex items-center gap-1.5 text-xs font-bold text-white bg-black/40 px-3 py-1.5 rounded-lg border border-white/5 backdrop-blur-sm"><PenTool className="size-3.5 text-cyan-500"/> {selectedCourse.instructor || "Sem instrutor"}</div>
+                 <div className="flex items-center gap-1.5 text-xs font-bold text-white bg-black/40 px-3 py-1.5 rounded-lg border border-white/5 backdrop-blur-sm"><LayoutTemplate className="size-3.5 text-emerald-500"/> {selectedCourse.platform || "Desconhecida"}</div>
+                 <div className="flex items-center gap-1.5 text-xs font-bold text-white bg-black/40 px-3 py-1.5 rounded-lg border border-white/5 backdrop-blur-sm"><Clock className="size-3.5 text-rose-500"/> {selectedCourse.total_hours}h totais</div>
+                 {(() => {
+                   try {
+                     const sched = JSON.parse(selectedCourse.description || '{}');
+                     if (sched.days && sched.days.length > 0) {
+                       const dayNames = ['Dom', 'Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb'];
+                       const daysStr = sched.days.map((d:number) => dayNames[d]).join(', ');
+                       return (
+                         <div className="flex items-center gap-1.5 text-xs font-bold text-purple-400 bg-purple-500/10 px-3 py-1.5 rounded-lg border border-purple-500/20 backdrop-blur-sm">
+                           <CalendarIcon className="size-3.5"/> 
+                           {daysStr} às {sched.time || '19:00'}
+                         </div>
+                       );
+                     }
+                   } catch(e) {
+                     if (selectedCourse.description) {
+                       return <div className="flex items-center gap-1.5 text-xs font-bold text-white bg-black/40 px-3 py-1.5 rounded-lg border border-white/5 backdrop-blur-sm"><CalendarIcon className="size-3.5 text-purple-500"/> {selectedCourse.description}</div>
+                     }
+                   }
+                   return null;
+                 })()}
+                 {selectedCourse.course_url && (
+                   <a href={selectedCourse.course_url} target="_blank" rel="noopener noreferrer" className="flex items-center gap-1.5 text-xs text-white bg-black/40 hover:bg-black/60 px-3 py-1.5 rounded-lg border border-white/5 backdrop-blur-sm transition-colors font-bold z-20 relative">
+                     <Play className="size-3.5 text-cyan-400"/> Acessar Plataforma
+                   </a>
+                 )}
+               </div>
 
-            {/* Sub-tabs */}
-            <div className="flex items-center gap-2 mb-6 border-b border-[rgba(255,255,255,0.06)] pb-2 overflow-x-auto hide-scrollbar">
-               {["Visão Geral", "Módulos", "Videoteca", "Diário de Bordo", "Inteligência Artificial"].map(tab => (
-                 <button 
-                   key={tab}
-                   onClick={() => setCourseTab(tab)}
-                   className={cn("px-4 py-2 rounded-lg text-sm font-bold transition-all whitespace-nowrap", courseTab === tab ? "bg-white/10 text-white" : "text-[#71717A] hover:text-white")}
-                 >
-                   {tab === "Inteligência Artificial" ? <span className="flex items-center gap-2"><Sparkles className="size-4 text-cyan-400" /> IA</span> : 
-                    tab === "Videoteca" ? <span className="flex items-center gap-2"><Video className="size-4 text-rose-500" /> {tab}</span> : tab}
-                 </button>
-               ))}
-            </div>
+                <div className="flex items-center gap-4 bg-black/50 p-4 rounded-2xl border border-white/10 backdrop-blur-md flex-wrap mt-auto">
+                  <div className="flex-1 min-w-[200px]">
+                    <div className="flex justify-between items-end mb-2">
+                      <span className="text-[10px] font-bold text-[#A1A1AA] uppercase tracking-widest">Progresso Geral</span>
+                      <span className="text-sm font-bold text-white">{percent}%</span>
+                    </div>
+                    <div className="h-2 w-full bg-[#1A1A1E] rounded-full overflow-hidden shadow-inner border border-white/5">
+                      <div className="h-full bg-cyan-500 rounded-full" style={{ width: `${percent}%` }}></div>
+                    </div>
+                  </div>
+                  <button onClick={() => setIsLoggingSession(true)} className="shrink-0 w-full sm:w-auto px-6 py-3 bg-cyan-600 hover:bg-cyan-500 text-white rounded-xl text-sm font-bold shadow-lg shadow-cyan-500/20 flex items-center justify-center gap-2 transition-all">
+                    <Play className="size-4 fill-white" /> Registrar Sessão
+                  </button>
+                </div>
+             </div>
+          </div>
+        )}
 
             {/* Sub-tab content real sessions */}
              {courseTab === "Visão Geral" && (
                <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-300">
+                  {/* Minimal Header for Visão Geral Context */}
+                  <div className="flex flex-col md:flex-row justify-between md:items-end gap-4 pb-4 border-b border-white/5">
+                    <div>
+                      <h1 className="text-3xl font-black text-white drop-shadow-md">{selectedCourse.title}</h1>
+                      <div className="flex gap-2 mt-3">
+                         <span className="px-2.5 py-1 bg-cyan-500/20 text-cyan-400 rounded-lg text-[10px] font-bold uppercase tracking-widest">{selectedCourse.knowledge_area}</span>
+                         <span className="px-2.5 py-1 bg-[#1A1A1E] text-[#A1A1AA] rounded-lg text-[10px] font-bold uppercase tracking-widest border border-white/5">{selectedCourse.category}</span>
+                      </div>
+                    </div>
+                    <div className="flex gap-2">
+                      <button 
+                        onClick={() => {
+                          setNewCourse(selectedCourse as any);
+                          setIsEditingCourse(true);
+                          setIsCreatingCourse(true);
+                        }} 
+                        className="p-2 bg-[#1A1A1E] hover:bg-[#27272A] rounded-xl text-cyan-400 border border-white/5 transition-colors shadow-sm"
+                        title="Editar Curso"
+                      >
+                        <PenTool className="size-4" />
+                      </button>
+                      <button 
+                        onClick={async () => {
+                          if (confirm("Tem certeza que deseja excluir este curso?")) {
+                            await deleteCourse(selectedCourse.id);
+                            setSelectedCourseId(null);
+                          }
+                        }} 
+                        className="p-2 bg-rose-500/10 hover:bg-rose-500/20 rounded-xl text-rose-500 border border-rose-500/10 transition-colors shadow-sm"
+                        title="Excluir Curso"
+                      >
+                        <Trash2 className="size-4" />
+                      </button>
+                    </div>
+                  </div>
+
                   {/* Top Metrics Grid */}
                   <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
                      {/* Metric 1: Tempo Investido */}
@@ -736,9 +777,9 @@ export function PosStudies() {
                      </div>
                   </div>
 
-                  <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                  <div className="flex flex-col gap-6">
                     {/* Left Column: O que já aprendi */}
-                    <div className="lg:col-span-2 space-y-6">
+                    <div className="flex flex-col space-y-6">
                       <div className="bg-[#111113] border border-[rgba(255,255,255,0.04)] rounded-2xl p-6 shadow-lg">
                          <h4 className="text-sm font-bold text-white uppercase tracking-widest mb-4 flex items-center gap-2">
                            <Brain className="size-4 text-cyan-500" /> Conhecimento Adquirido (O que já aprendi)
@@ -814,7 +855,7 @@ export function PosStudies() {
                     </div>
                     
                     {/* Right Column: Setup & Info */}
-                    <div className="space-y-6">
+                    <div className="flex flex-col space-y-6">
                       
                       {(() => {
                          let goals = "";
@@ -985,6 +1026,57 @@ export function PosStudies() {
                       </div>
                     </div>
                   </div>
+                  
+                  {/* Canais e Vídeos Consumidos (Videoteca Resumo) */}
+                  <div className="bg-[#111113] border border-[rgba(255,255,255,0.04)] rounded-2xl p-6 shadow-lg mt-6">
+                    <h4 className="text-sm font-bold text-white uppercase tracking-widest mb-6 flex items-center gap-2">
+                      <Video className="size-4 text-rose-500" /> Videoteca (Canais & Vídeos Consumidos)
+                    </h4>
+                    <div className="space-y-4">
+                      {(() => {
+                        let channels: any[] = [];
+                        try { channels = JSON.parse(selectedCourse.description || '{}').youtube_channels || []; } catch(e){}
+                        
+                        if (channels.length === 0) {
+                          return <span className="text-xs text-[#A1A1AA] italic block p-3 bg-[#1A1A1E] rounded-lg border border-[rgba(255,255,255,0.02)]">Nenhum canal adicionado à videoteca deste curso.</span>;
+                        }
+
+                        return channels.map((ch, idx) => (
+                          <div key={ch.id || idx} className="bg-[#1A1A1E] border border-[rgba(255,255,255,0.06)] rounded-xl overflow-hidden">
+                            <div className="p-4 flex items-center gap-4 bg-[#111113]/50">
+                               <div className="size-10 rounded-lg bg-black/40 border border-white/5 overflow-hidden flex items-center justify-center shrink-0">
+                                 {ch.cover_url ? <img src={ch.cover_url} alt={ch.name} className="w-full h-full object-cover" /> : <Video className="size-5 text-rose-500/50" />}
+                               </div>
+                               <div>
+                                 <h5 className="font-bold text-white text-sm">{ch.name}</h5>
+                                 <span className="text-[10px] text-[#A1A1AA] font-bold uppercase tracking-widest">{ch.videos?.length || 0} vídeos salvos</span>
+                               </div>
+                            </div>
+                            {ch.videos && ch.videos.length > 0 && (
+                               <div className="p-4 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+                                 {ch.videos.map((vid: any, vIdx: number) => {
+                                   const thumb = getThumbnail(vid.url);
+                                   return (
+                                     <a key={vid.id || vIdx} href={vid.url} target="_blank" rel="noopener noreferrer" className="group block relative rounded-lg overflow-hidden border border-[rgba(255,255,255,0.04)] aspect-video bg-black/40">
+                                        {thumb ? (
+                                          <img src={thumb} alt={vid.title} className="w-full h-full object-cover opacity-70 group-hover:opacity-100 group-hover:scale-105 transition-all duration-500" />
+                                        ) : (
+                                          <div className="w-full h-full flex items-center justify-center"><Play className="size-8 text-white/20" /></div>
+                                        )}
+                                        <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/30 to-transparent flex items-end p-3">
+                                          <span className="text-xs font-bold text-white line-clamp-2 leading-tight group-hover:text-rose-400 transition-colors">{vid.title}</span>
+                                        </div>
+                                     </a>
+                                   );
+                                 })}
+                               </div>
+                            )}
+                          </div>
+                        ));
+                      })()}
+                    </div>
+                  </div>
+
                </div>
              )}
 
@@ -1344,7 +1436,7 @@ export function PosStudies() {
                                                   <RichTextEditor 
                                                     content={localNotes}
                                                     onChange={(content) => setLocalNotes(content)}
-                                                    availableBooks={availableBookQuotes.filter(q => (topic.books || []).includes(q.id.replace('quote-', '')))}
+                                                    availableBooks={availableBookQuotes.filter(q => (topic.books || []).includes(q.book_id))}
                                                     availableVideos={availableVideos}
                                                     availableMaterials={topic.materials || []}
                                                   />
@@ -1388,8 +1480,8 @@ export function PosStudies() {
                                                         }}
                                                       >
                                                         <option value="" className="bg-[#111113] text-[#A1A1AA] font-normal">+ Escolher Livro do Acervo...</option>
-                                                        {readingSessions.map(rs => (
-                                                          <option key={rs.id} value={rs.id} className="bg-[#111113] text-white py-2">{rs.book_title}</option>
+                                                        {books.map(b => (
+                                                          <option key={b.id} value={b.id} className="bg-[#111113] text-white py-2">{b.title}</option>
                                                         ))}
                                                       </select>
                                                       <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 size-4 text-[#A1A1AA] pointer-events-none" />
@@ -1398,19 +1490,19 @@ export function PosStudies() {
                                                     {topic.books && topic.books.length > 0 && (
                                                       <div className="flex flex-col gap-2 mt-1">
                                                         {topic.books.map((bookId: string) => {
-                                                           const rs = readingSessions.find(r => r.id === bookId);
-                                                           if (!rs) return null;
+                                                           const b = books.find(r => r.id === bookId);
+                                                           if (!b) return null;
                                                            return (
                                                              <div key={bookId} className="flex items-center justify-between p-3 bg-[#1A1A1E] border border-[rgba(255,255,255,0.08)] rounded-xl group hover:border-emerald-500/40 hover:bg-emerald-500/5 transition-all shadow-sm">
                                                                <div className="flex items-center gap-3 overflow-hidden flex-1 cursor-pointer" onClick={() => {
-                                                                  const event = new CustomEvent('reference-click', { detail: { refType: 'book', title: rs.book_title, id: rs.id } });
+                                                                  const event = new CustomEvent('reference-click', { detail: { refType: 'book', title: b.title, id: b.id } });
                                                                   window.dispatchEvent(event);
                                                                }}>
                                                                  <div className="w-9 h-9 rounded-lg shrink-0 bg-[#111113] flex items-center justify-center border border-emerald-500/20 shadow-inner group-hover:bg-emerald-500/10 transition-colors">
                                                                    <Book className="size-4 text-emerald-400" />
                                                                  </div>
                                                                  <div className="flex flex-col">
-                                                                   <span className="text-xs font-bold text-white group-hover:text-emerald-400 transition-colors truncate">{rs.book_title}</span>
+                                                                   <span className="text-xs font-bold text-white group-hover:text-emerald-400 transition-colors truncate">{b.title}</span>
                                                                    <span className="text-[10px] text-[#A1A1AA] mt-0.5">Clique para ver citações</span>
                                                                  </div>
                                                                </div>
@@ -1792,7 +1884,8 @@ export function PosStudies() {
           </div>
 
           {/* Sidebar */}
-          <div className="w-full lg:w-80 shrink-0 space-y-6">
+          {courseTab !== "Visão Geral" && (
+            <div className="w-full lg:w-80 shrink-0 space-y-6">
              <div className="bg-[#111113] border border-[rgba(255,255,255,0.04)] rounded-3xl p-6">
                 <h3 className="text-sm font-bold text-white mb-4 uppercase tracking-widest">Informações</h3>
                 <div className="space-y-4">
@@ -1820,6 +1913,7 @@ export function PosStudies() {
                 </div>
              </div>
           </div>
+          )}
         </div>
       </div>
     );
