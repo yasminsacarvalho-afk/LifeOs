@@ -345,8 +345,8 @@ export function PosAgenda() {
           <p className="text-[#A1A1AA] mt-1 text-sm">Visão unificada de compromissos e prazos operacionais.</p>
         </div>
         
-        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
-          <div className="flex bg-[#111113] border border-[rgba(255,255,255,0.06)] rounded-xl p-1 mr-2">
+        <div className="flex flex-wrap items-center gap-3">
+          <div className="flex bg-[#111113] border border-[rgba(255,255,255,0.06)] rounded-xl p-1">
             <button onClick={() => setViewMode('semana')} className={cn("px-4 py-1.5 text-[11px] font-bold uppercase tracking-widest rounded-lg transition-colors", viewMode === 'semana' ? "bg-[#1A1A1E] text-white shadow-sm" : "text-[#71717A] hover:text-[#A1A1AA]")}>Semana</button>
             <button onClick={() => setViewMode('mes')} className={cn("px-4 py-1.5 text-[11px] font-bold uppercase tracking-widest rounded-lg transition-colors", viewMode === 'mes' ? "bg-[#1A1A1E] text-white shadow-sm" : "text-[#71717A] hover:text-[#A1A1AA]")}>Mês</button>
           </div>
@@ -360,7 +360,7 @@ export function PosAgenda() {
           <button onClick={() => setCurrentDate(new Date())} className="px-4 py-2 text-xs font-bold uppercase tracking-widest text-[#A1A1AA] hover:text-white bg-[#111113] border border-[rgba(255,255,255,0.06)] rounded-xl hover:bg-[#1A1A1E] transition-colors">
             Hoje
           </button>
-          <div className="flex gap-2 border-l border-white/10 pl-4 ml-2">
+          <div className="flex gap-2 w-full md:w-auto border-t md:border-t-0 md:border-l border-[rgba(255,255,255,0.1)] pt-3 md:pt-0 md:pl-3 md:ml-1 mt-1 md:mt-0">
             <button 
               onClick={() => setShowConfig(true)}
               className="size-10 rounded-xl bg-[#111113] border border-[rgba(255,255,255,0.06)] flex items-center justify-center text-[#A1A1AA] hover:text-white hover:bg-[#1A1A1E] transition-colors"
@@ -393,29 +393,29 @@ export function PosAgenda() {
           <div className="w-[90vw] h-[90vh] max-w-[1200px] bg-[#070707] border border-[rgba(255,255,255,0.06)] rounded-[28px] shadow-2xl overflow-hidden flex flex-col relative animate-in zoom-in-95 duration-200">
             
             {/* Modal Header */}
-            <div className="h-[88px] md:h-[96px] px-8 border-b border-[rgba(255,255,255,0.05)] flex justify-between items-center shrink-0">
+            <div className="h-auto md:h-[96px] py-5 md:py-0 px-6 md:px-8 border-b border-[rgba(255,255,255,0.05)] flex justify-between items-center shrink-0">
               <div className="flex items-center gap-4">
-                <div className="size-12 rounded-[14px] bg-[#EEF4FF] flex items-center justify-center shrink-0">
-                  <CalendarIcon className="size-6 text-[#3B82F6]" />
+                <div className="size-10 md:size-12 rounded-[14px] bg-[#EEF4FF] flex items-center justify-center shrink-0">
+                  <CalendarIcon className="size-5 md:size-6 text-[#3B82F6]" />
                 </div>
                 <div>
-                  <h3 className="text-[24px] font-bold text-white leading-tight">Novo Compromisso</h3>
-                  <p className="text-[15px] font-normal text-[#A1A1AA]">Agende um novo evento</p>
+                  <h3 className="text-[20px] md:text-[24px] font-bold text-white leading-tight">Novo Compromisso</h3>
+                  <p className="text-[13px] md:text-[15px] font-normal text-[#A1A1AA]">Agende um novo evento</p>
                 </div>
               </div>
               <button 
                 type="button" 
                 onClick={() => setIsCreating(false)} 
-                className="size-10 rounded-full bg-[rgba(255,255,255,0.08)] hover:bg-[rgba(255,255,255,0.14)] flex items-center justify-center transition-colors shrink-0"
+                className="size-8 md:size-10 rounded-full bg-[rgba(255,255,255,0.08)] hover:bg-[rgba(255,255,255,0.14)] flex items-center justify-center transition-colors shrink-0"
               >
-                <X className="size-5 text-white" />
+                <X className="size-4 md:size-5 text-white" />
               </button>
             </div>
 
             {/* Modal Body */}
-            <div className="flex-1 overflow-y-auto custom-scrollbar p-8">
+            <div className="flex-1 overflow-y-auto custom-scrollbar p-6 md:p-8">
               <form onSubmit={handleCreate} className="h-full flex flex-col">
-                <div className="flex flex-col lg:flex-row gap-10 flex-1">
+                <div className="flex flex-col lg:flex-row gap-8 lg:gap-10 flex-1">
                   
                   {/* Left Column (65%) */}
                   <div className="w-full lg:w-[65%] flex flex-col gap-7">
@@ -679,31 +679,33 @@ export function PosAgenda() {
 
       {/* MONTH CALENDAR */}
       {viewMode === 'mes' && (
-         <div className="grid grid-cols-7 gap-2 md:gap-4 overflow-x-auto custom-scrollbar pb-4 min-w-[700px]">
-           {['Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb', 'Dom'].map(d => <div key={d} className="text-center text-[10px] md:text-xs font-bold text-[#71717A] uppercase tracking-widest py-2 border-b border-white/5">{d}</div>)}
-           {displayDays.map(day => {
-             const items = getDayItems(day);
-             const isTodayFlag = isToday(day);
-             const isCurrentMonth = isSameMonth(day, currentDate);
-             return (
-               <div key={day.toISOString()} className={cn("min-h-[140px] rounded-2xl border flex flex-col overflow-hidden transition-all hover:border-white/10 group", isTodayFlag ? "border-rose-500/50 bg-rose-500/5 shadow-[0_0_15px_rgba(225,29,72,0.1)]" : isCurrentMonth ? "bg-[#111113]/80 border-[rgba(255,255,255,0.04)]" : "bg-transparent border-[rgba(255,255,255,0.01)] opacity-30")}>
-                  <div className="flex justify-between items-center p-2 border-b border-transparent group-hover:border-white/5 transition-colors">
-                    <span className="text-[9px] font-bold text-[#A1A1AA] uppercase tracking-widest opacity-0 group-hover:opacity-100 transition-opacity">
-                       {items.length} {items.length === 1 ? 'item' : 'itens'}
-                    </span>
-                    <span className={cn("inline-flex items-center justify-center size-7 rounded-full text-xs font-black shadow-inner", isTodayFlag ? "bg-rose-500 text-white border border-rose-400" : "text-[#E4E4E7] bg-[#1A1A1E] border border-[rgba(255,255,255,0.05)]")}>{format(day, 'd')}</span>
-                  </div>
-                  <div className="flex flex-col gap-1.5 px-2 pb-2 flex-1 overflow-y-auto custom-scrollbar">
-                     {items.slice(0, 5).map(item => (
-                       <div key={item.id} className={cn("text-[9px] md:text-[10px] font-bold px-2 py-1.5 rounded-lg truncate border backdrop-blur-sm transition-colors", getTypeColor(item.itemType, item.type), item.itemType === 'curso' ? "shadow-[0_0_10px_rgba(99,102,241,0.1)]" : "")} title={item.title}>
-                         {item.title}
-                       </div>
-                     ))}
-                     {items.length > 5 && <div className="text-[9px] text-center text-[#71717A] font-bold bg-[#1A1A1E] rounded-md py-1 border border-white/5">+{items.length - 5} mais</div>}
-                  </div>
-               </div>
-             );
-           })}
+         <div className="w-full overflow-x-auto custom-scrollbar pb-4 -mx-4 px-4 md:mx-0 md:px-0">
+           <div className="grid grid-cols-7 gap-2 md:gap-4 min-w-[800px]">
+             {['Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb', 'Dom'].map(d => <div key={d} className="text-center text-[10px] md:text-xs font-bold text-[#71717A] uppercase tracking-widest py-2 border-b border-white/5">{d}</div>)}
+             {displayDays.map(day => {
+               const items = getDayItems(day);
+               const isTodayFlag = isToday(day);
+               const isCurrentMonth = isSameMonth(day, currentDate);
+               return (
+                 <div key={day.toISOString()} className={cn("min-h-[140px] rounded-2xl border flex flex-col overflow-hidden transition-all hover:border-white/10 group", isTodayFlag ? "border-rose-500/50 bg-rose-500/5 shadow-[0_0_15px_rgba(225,29,72,0.1)]" : isCurrentMonth ? "bg-[#111113]/80 border-[rgba(255,255,255,0.04)]" : "bg-transparent border-[rgba(255,255,255,0.01)] opacity-30")}>
+                    <div className="flex justify-between items-center p-2 border-b border-transparent group-hover:border-white/5 transition-colors">
+                      <span className="text-[9px] font-bold text-[#A1A1AA] uppercase tracking-widest opacity-0 group-hover:opacity-100 transition-opacity">
+                         {items.length} {items.length === 1 ? 'item' : 'itens'}
+                      </span>
+                      <span className={cn("inline-flex items-center justify-center size-7 rounded-full text-xs font-black shadow-inner", isTodayFlag ? "bg-rose-500 text-white border border-rose-400" : "text-[#E4E4E7] bg-[#1A1A1E] border border-[rgba(255,255,255,0.05)]")}>{format(day, 'd')}</span>
+                    </div>
+                    <div className="flex flex-col gap-1.5 px-2 pb-2 flex-1 overflow-y-auto custom-scrollbar max-h-[150px]">
+                       {items.slice(0, 5).map(item => (
+                         <div key={item.id} className={cn("text-[9px] md:text-[10px] font-bold px-2 py-1.5 rounded-lg truncate border backdrop-blur-sm transition-colors", getTypeColor(item.itemType, item.type), item.itemType === 'curso' ? "shadow-[0_0_10px_rgba(99,102,241,0.1)]" : "")} title={item.title}>
+                           {item.title}
+                         </div>
+                       ))}
+                       {items.length > 5 && <div className="text-[9px] text-center text-[#71717A] font-bold bg-[#1A1A1E] rounded-md py-1 border border-white/5">+{items.length - 5} mais</div>}
+                    </div>
+                 </div>
+               );
+             })}
+           </div>
          </div>
       )}
 

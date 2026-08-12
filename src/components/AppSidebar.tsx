@@ -148,39 +148,31 @@ export function AppSidebar() {
       />
 
       {/* Mobile Bottom Navigation Bar */}
-      <div className="md:hidden fixed bottom-0 left-0 right-0 h-16 bg-[#0A0A0C]/95 backdrop-blur-sm border-t border-[rgba(255,255,255,0.08)] z-[90] flex items-center justify-between px-6 pb-safe shadow-[0_-10px_30px_rgba(0,0,0,0.5)]">
-        {/* Left side icons */}
-        <div className="flex gap-7">
-          <Link to="/" className={cn("flex flex-col items-center gap-1 transition-colors", pathname === '/' ? "text-rose-500" : "text-[#71717A] hover:text-white")}>
-            <LayoutDashboard className={cn("size-5", pathname === '/' && "fill-rose-500/20")} />
-            <span className="text-[9px] font-bold uppercase tracking-widest">Início</span>
-          </Link>
-          <Link to="/personal-os" search={{ tab: 'geral' }} className={cn("flex flex-col items-center gap-1 transition-colors", pathname === '/personal-os' && searchParams.tab === 'geral' ? "text-rose-500" : "text-[#71717A] hover:text-white")}>
-            <Cpu className={cn("size-5", pathname === '/personal-os' && searchParams.tab === 'geral' && "fill-rose-500/20")} />
-            <span className="text-[9px] font-bold uppercase tracking-widest">Geral</span>
-          </Link>
-        </div>
+      <div className="md:hidden fixed bottom-0 left-0 right-0 h-[calc(4rem+env(safe-area-inset-bottom))] pb-[env(safe-area-inset-bottom)] bg-[#0A0A0C]/95 backdrop-blur-sm border-t border-[rgba(255,255,255,0.08)] z-[90] flex items-center justify-around px-1 shadow-[0_-10px_30px_rgba(0,0,0,0.5)]">
+        <Link to="/" className={cn("flex flex-col items-center justify-center gap-1 transition-colors flex-1 h-full", pathname === '/' ? "text-rose-500" : "text-[#71717A] hover:text-white")}>
+          <LayoutDashboard className={cn("size-5", pathname === '/' && "fill-rose-500/20")} />
+          <span className="text-[8px] xs:text-[9px] font-bold uppercase tracking-wider">Início</span>
+        </Link>
+        
+        <Link to="/personal-os" search={{ tab: 'geral' }} className={cn("flex flex-col items-center justify-center gap-1 transition-colors flex-1 h-full", pathname === '/personal-os' && searchParams.tab === 'geral' ? "text-rose-500" : "text-[#71717A] hover:text-white")}>
+          <Cpu className={cn("size-5", pathname === '/personal-os' && searchParams.tab === 'geral' && "fill-rose-500/20")} />
+          <span className="text-[8px] xs:text-[9px] font-bold uppercase tracking-wider">Geral</span>
+        </Link>
 
-        {/* Center space for Voice Assistant Button */}
-        <div className="w-16 flex items-center justify-center pointer-events-none">
-          <div className="absolute -top-5 w-16 h-16 rounded-full bg-[#0A0A0C]/95 backdrop-blur-sm border-t border-[rgba(255,255,255,0.08)] -z-10 shadow-[0_-10px_30px_rgba(0,0,0,0.5)] hidden"></div>
-        </div>
+        <Link to="/personal-os" search={{ tab: 'conteudo' }} className={cn("flex flex-col items-center justify-center gap-1 transition-colors flex-1 h-full", pathname === '/personal-os' && searchParams.tab === 'conteudo' ? "text-rose-500" : "text-[#71717A] hover:text-white")}>
+          <PlaySquare className={cn("size-5", pathname === '/personal-os' && searchParams.tab === 'conteudo' && "fill-rose-500/20")} />
+          <span className="text-[8px] xs:text-[9px] font-bold uppercase tracking-wider">Mídia</span>
+        </Link>
 
-        {/* Right side icons */}
-        <div className="flex gap-5 md:gap-7">
-          <Link to="/personal-os" search={{ tab: 'conteudo' }} className={cn("flex flex-col items-center gap-1 transition-colors", pathname === '/personal-os' && searchParams.tab === 'conteudo' ? "text-rose-500" : "text-[#71717A] hover:text-white")}>
-            <PlaySquare className={cn("size-5", pathname === '/personal-os' && searchParams.tab === 'conteudo' && "fill-rose-500/20")} />
-            <span className="text-[9px] font-bold uppercase tracking-widest">Conteúdo</span>
-          </Link>
-          <Link to="/personal-os" search={{ tab: 'leitura' }} className={cn("flex flex-col items-center gap-1 transition-colors", pathname === '/personal-os' && searchParams.tab === 'leitura' ? "text-rose-500" : "text-[#71717A] hover:text-white")}>
-            <BookOpen className={cn("size-5", pathname === '/personal-os' && searchParams.tab === 'leitura' && "fill-rose-500/20")} />
-            <span className="text-[9px] font-bold uppercase tracking-widest">Leitura</span>
-          </Link>
-          <button onClick={() => { if (isPinned) setIsHovered(false); setIsPinned(!isPinned); }} className={cn("flex flex-col items-center gap-1 transition-colors", isPinned ? "text-rose-500" : "text-[#71717A] hover:text-white")}>
-            <Menu className="size-5" />
-            <span className="text-[9px] font-bold uppercase tracking-widest">Menu</span>
-          </button>
-        </div>
+        <Link to="/personal-os" search={{ tab: 'leitura' }} className={cn("flex flex-col items-center justify-center gap-1 transition-colors flex-1 h-full", pathname === '/personal-os' && searchParams.tab === 'leitura' ? "text-rose-500" : "text-[#71717A] hover:text-white")}>
+          <BookOpen className={cn("size-5", pathname === '/personal-os' && searchParams.tab === 'leitura' && "fill-rose-500/20")} />
+          <span className="text-[8px] xs:text-[9px] font-bold uppercase tracking-wider">Livros</span>
+        </Link>
+
+        <button onClick={() => { if (isPinned) setIsHovered(false); setIsPinned(!isPinned); }} className={cn("flex flex-col items-center justify-center gap-1 transition-colors flex-1 h-full", isPinned ? "text-rose-500" : "text-[#71717A] hover:text-white")}>
+          <Menu className="size-5" />
+          <span className="text-[8px] xs:text-[9px] font-bold uppercase tracking-wider">Menu</span>
+        </button>
       </div>
 
       {/* Dock (Desktop) / Menu Sheet (Mobile) */}
@@ -188,7 +180,7 @@ export function AppSidebar() {
         className={cn(
           "fixed z-40 transition-all duration-300 ease-out flex justify-center",
           "md:bottom-6 md:left-1/2 md:-translate-x-1/2 w-full md:max-w-4xl",
-          "bottom-20 left-0 px-2 md:px-0",
+          "bottom-[calc(5rem+env(safe-area-inset-bottom))] left-0 px-2 md:px-0",
           isVisible ? "translate-y-0 opacity-100 pointer-events-auto" : "translate-y-[150%] opacity-0 pointer-events-none"
         )}
         onMouseEnter={() => setIsHovered(true)}

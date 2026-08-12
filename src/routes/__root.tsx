@@ -125,28 +125,32 @@ function RootShell({ children }: { children: ReactNode }) {
   );
 }
 
+import { GlobalPiPPlayer } from "@/components/GlobalPiPPlayer";
+
 function AuthGuard({ children }: { children: ReactNode }) {
   const { session, loading } = useAuth();
   const routerState = useRouterState();
   const isLoginPage = routerState.location.pathname === "/login";
+  const isPublicRoute = routerState.location.pathname.startsWith("/public/");
 
   if (loading) {
     return <div className="min-h-screen bg-background flex items-center justify-center">Carregando...</div>;
   }
 
-  if (!session && !isLoginPage) {
+  if (!session && !isLoginPage && !isPublicRoute) {
     return <Navigate to="/login" replace />;
   }
 
   return (
-    <div className="min-h-screen bg-background text-foreground pb-24 md:pb-0">
+    <div className="min-h-screen bg-background text-foreground pb-[calc(6rem+env(safe-area-inset-bottom))] md:pb-0">
       <div className="w-full">
         {children}
       </div>
-      {!isLoginPage && (
+      {(!isLoginPage && !isPublicRoute) && (
         <>
           <AppSidebar />
           <VoiceAssistantWidget />
+          <GlobalPiPPlayer />
         </>
       )}
     </div>

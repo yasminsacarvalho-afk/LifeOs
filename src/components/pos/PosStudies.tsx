@@ -1,16 +1,18 @@
 import { useState, useEffect } from "react";
 import { usePosStudies } from "@/hooks/use-pos-studies";
+import { usePosLibrary } from "@/hooks/use-pos-library";
 import { 
   GraduationCap, Plus, Play, BookOpen, Clock, Trophy, Flame, Target, 
   Trash2, Award, Zap, Brain, Calendar as CalendarIcon, CheckCircle2,
   ChevronDown, Search, Filter, LayoutGrid, List as ListIcon,
   ChevronRight, BookMarked, Sparkles, FileText, Library, CheckSquare,
   TrendingUp, BarChart2, Video, PenTool, LayoutTemplate, Layers, AlertCircle,
-  MoreVertical, Share2, Star, FolderOpen, ArrowLeft, Download, X, UploadCloud, Loader2, ExternalLink, Link as LinkIcon, Pause, XCircle, Edit2, Camera, Headphones, Music, CloudRain
+  MoreVertical, Share2, Star, FolderOpen, ArrowLeft, Download, X, UploadCloud, Loader2, ExternalLink, Link as LinkIcon, Pause, XCircle, Edit2, Camera, Headphones, Music, CloudRain, Minimize2, Maximize2, ArrowUpRight
 } from "lucide-react";
 import { format, isToday, parseISO } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { cn } from "@/lib/utils";
+import { getSafeEmbedUrl } from "@/lib/youtube";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { RichTextEditor } from "./RichTextEditor";
@@ -41,6 +43,7 @@ const getThumbnail = (url: string) => {
 
 export function PosStudies() {
   const { courses, sessions, loading, addCourse, updateCourse, deleteCourse, addSession } = usePosStudies();
+  const { books, sessions: readingSessions } = usePosLibrary();
   const [activeTab, setActiveTab] = useState("Visão Geral");
   const [selectedCourseId, setSelectedCourseId] = useState<string | null>(null);
   const [courseTab, setCourseTab] = useState("Módulos");
@@ -59,11 +62,55 @@ export function PosStudies() {
     summary: ''
   });
 
+  const [expandedChannelId, setExpandedChannelId] = useState<number | null>(null);
+  const [isAddingChannel, setIsAddingChannel] = useState(false);
+  const [newChannel, setNewChannel] = useState({ name: '', cover_url: '' });
+  const [isAddingVideoToChannel, setIsAddingVideoToChannel] = useState<number | null>(null);
+  const [newVideoUrl, setNewVideoUrl] = useState('');
+  const [newVideoTitle, setNewVideoTitle] = useState('');
+
   const [activeTopicTimer, setActiveTopicTimer] = useState<string | number | null>(null);
   const [elapsedSeconds, setElapsedSeconds] = useState(0);
   const [isTimerPaused, setIsTimerPaused] = useState(false);
   const [localNotes, setLocalNotes] = useState("");
   const [localTags, setLocalTags] = useState("");
+
+  const selectedCourse = courses.find(c => c.id === selectedCourseId);
+
+  const availableVideos = (() => {
+    let vids: any[] = [];
+    if (selectedCourse?.description) {
+      try {
+        const p = JSON.parse(selectedCourse.description);
+        if (p.youtube_channels) {
+          p.youtube_channels.forEach((ch:any) => {
+            if (ch.videos) vids.push(...ch.videos.map((v:any) => ({...v, channelName: ch.name})));
+          });
+        }
+      } catch(e){}
+    }
+    return vids;
+  })();
+
+
+  const [previewReference, setPreviewReference] = useState<any>(null);
+  const [isPreviewMinimized, setIsPreviewMinimized] = useState(false);
+
+  useEffect(() => {
+    const handleRefClick = (e: any) => setPreviewReference(e.detail);
+    window.addEventListener('reference-click', handleRefClick as EventListener);
+    return () => window.removeEventListener('reference-click', handleRefClick as EventListener);
+  }, []);
+
+
+  const availableBookQuotes = (() => {
+    const quotes: any[] = [];
+    readingSessions.forEach(rs => {
+      if (rs.notes) quotes.push({ id: `quote-${rs.id}`, title: rs.book_title, text: rs.notes });
+    });
+    return quotes;
+  })();
+
 
   useEffect(() => {
     let interval: NodeJS.Timeout;
@@ -183,7 +230,6 @@ export function PosStudies() {
   const activeCoursesCount = courses.filter(c => c.status !== 'concluido').length;
   const completedCoursesCount = courses.filter(c => c.status === 'concluido').length;
 
-  const selectedCourse = courses.find(c => c.id === selectedCourseId);
   const activeCourses = courses.filter(c => c.status !== 'concluido');
   const recentCourses = activeCourses.filter(c => c.status === 'em_andamento');
 
@@ -610,13 +656,14 @@ export function PosStudies() {
 
             {/* Sub-tabs */}
             <div className="flex items-center gap-2 mb-6 border-b border-[rgba(255,255,255,0.06)] pb-2 overflow-x-auto hide-scrollbar">
-               {["Visão Geral", "Módulos", "Diário de Bordo", "Inteligência Artificial"].map(tab => (
+               {["Visão Geral", "Módulos", "Videoteca", "Diário de Bordo", "Inteligência Artificial"].map(tab => (
                  <button 
                    key={tab}
                    onClick={() => setCourseTab(tab)}
                    className={cn("px-4 py-2 rounded-lg text-sm font-bold transition-all whitespace-nowrap", courseTab === tab ? "bg-white/10 text-white" : "text-[#71717A] hover:text-white")}
                  >
-                   {tab === "Inteligência Artificial" ? <span className="flex items-center gap-2"><Sparkles className="size-4 text-cyan-400" /> IA</span> : tab}
+                   {tab === "Inteligência Artificial" ? <span className="flex items-center gap-2"><Sparkles className="size-4 text-cyan-400" /> IA</span> : 
+                    tab === "Videoteca" ? <span className="flex items-center gap-2"><Video className="size-4 text-rose-500" /> {tab}</span> : tab}
                  </button>
                ))}
             </div>
@@ -1243,6 +1290,9 @@ export function PosStudies() {
                                                   <RichTextEditor 
                                                     content={localNotes}
                                                     onChange={(content) => setLocalNotes(content)}
+                                                    availableBooks={availableBookQuotes}
+                                                    availableVideos={availableVideos}
+                                                    availableMaterials={topic.materials || []}
                                                   />
                                                 </div>
                                               </div>
@@ -1332,6 +1382,39 @@ export function PosStudies() {
 
                                                 <div>
                                                   <label className="text-[10px] text-[#A1A1AA] uppercase tracking-widest font-bold mb-1.5 flex items-center gap-1">
+                                                    <Video className="size-3 text-cyan-500"/> Videoteca (Trilha)
+                                                  </label>
+                                                  <div className="flex flex-col gap-2">
+                                                    {availableVideos && availableVideos.length > 0 ? (
+                                                      <div className="flex gap-3 overflow-x-auto pb-2 hide-scrollbar w-[240px]">
+                                                        {availableVideos.map((vid: any, idx: number) => {
+                                                          const thumb = getThumbnail(vid.url);
+                                                          return (
+                                                            <div key={idx} className="w-32 shrink-0 bg-[#1A1A1E] border border-[rgba(255,255,255,0.04)] hover:border-cyan-500/30 rounded-xl overflow-hidden group cursor-pointer transition-colors" onClick={() => {
+                                                               const event = new CustomEvent('reference-click', { detail: { refType: 'video', title: vid.title, url: vid.url, id: vid.id } });
+                                                               window.dispatchEvent(event);
+                                                            }}>
+                                                              <div className="h-20 relative bg-black">
+                                                                {thumb ? <img src={thumb} alt="thumb" className="w-full h-full object-cover opacity-70 group-hover:opacity-100 transition-opacity" /> : <Play className="size-6 text-white/20 absolute inset-0 m-auto" />}
+                                                                <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 bg-black/40 transition-opacity">
+                                                                  <Play className="size-6 text-white" />
+                                                                </div>
+                                                              </div>
+                                                              <div className="p-2">
+                                                                <p className="text-[10px] font-bold text-white line-clamp-2 leading-tight" title={vid.title}>{vid.title}</p>
+                                                              </div>
+                                                            </div>
+                                                          );
+                                                        })}
+                                                      </div>
+                                                    ) : (
+                                                       <div className="text-[10px] text-[#71717A] italic py-2 border border-dashed border-white/5 rounded-lg text-center bg-[#111113]">Nenhum vídeo salvo na Videoteca.</div>
+                                                    )}
+                                                  </div>
+                                                </div>
+
+                                                <div>
+                                                  <label className="text-[10px] text-[#A1A1AA] uppercase tracking-widest font-bold mb-1.5 flex items-center gap-1">
                                                     <Sparkles className="size-3 text-cyan-500"/> Laboratório I.A.
                                                   </label>
                                                   <div className="flex flex-col gap-2">
@@ -1376,6 +1459,155 @@ export function PosStudies() {
                     })()}
                   </div>
                </div>
+             )}
+
+             {courseTab === "Videoteca" && (
+                <div className="space-y-4 animate-in fade-in slide-in-from-bottom-4 duration-300">
+                  <div className="flex justify-between items-center mb-4">
+                    <h4 className="text-sm font-bold text-white uppercase tracking-widest flex items-center gap-2">
+                      <Video className="size-4 text-rose-500" /> Canais e Playlists
+                    </h4>
+                    <button onClick={() => setIsAddingChannel(!isAddingChannel)} className="px-4 py-2 bg-rose-500/10 text-rose-400 hover:bg-rose-500/20 border border-rose-500/20 rounded-xl text-xs font-bold flex items-center gap-2 transition-colors shadow-sm">
+                      <Plus className="size-3" /> Adicionar Canal
+                    </button>
+                  </div>
+                  
+                  {isAddingChannel && (
+                    <div className="bg-[#111113] border border-[rgba(255,255,255,0.06)] p-4 rounded-xl flex gap-4 animate-in fade-in slide-in-from-top-2 mb-4">
+                      <input 
+                        type="text" placeholder="Nome do Canal (Ex: Curso em Vídeo)"
+                        value={newChannel.name} onChange={e => setNewChannel({...newChannel, name: e.target.value})}
+                        className="flex-1 bg-[#1A1A1E] border border-[rgba(255,255,255,0.04)] rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:border-rose-500/50"
+                      />
+                      <input 
+                        type="url" placeholder="Capa do Canal (URL da Imagem) - Opcional"
+                        value={newChannel.cover_url} onChange={e => setNewChannel({...newChannel, cover_url: e.target.value})}
+                        className="flex-1 bg-[#1A1A1E] border border-[rgba(255,255,255,0.04)] rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:border-rose-500/50"
+                      />
+                      <button onClick={() => {
+                        if (!newChannel.name) return;
+                        let s: any = {};
+                        try { s = JSON.parse(selectedCourse.description || '{}'); } catch(e){}
+                        if (!s.youtube_channels) s.youtube_channels = [];
+                        s.youtube_channels.push({ id: Date.now(), name: newChannel.name, cover_url: newChannel.cover_url, videos: [] });
+                        updateCourse(selectedCourse.id, { description: JSON.stringify(s) }, false);
+                        setNewChannel({ name: '', cover_url: '' });
+                        setIsAddingChannel(false);
+                      }} className="bg-rose-600 hover:bg-rose-500 text-white rounded-lg px-4 py-2 text-xs font-bold transition-colors">
+                        Salvar
+                      </button>
+                    </div>
+                  )}
+
+                  <div className="grid grid-cols-1 gap-4">
+                    {(() => {
+                      let channels: any[] = [];
+                      try { channels = JSON.parse(selectedCourse.description || '{}').youtube_channels || []; } catch(e){}
+                      
+                      if (channels.length === 0 && !isAddingChannel) {
+                        return <div className="p-8 text-center border border-dashed border-[rgba(255,255,255,0.06)] rounded-2xl text-[#A1A1AA] text-sm bg-[#1A1A1E]">Nenhum canal adicionado. Registre canais do YouTube para integrar vídeos diretamente às suas anotações.</div>;
+                      }
+
+                      return channels.map((ch, idx) => (
+                        <div key={ch.id || idx} className={cn("bg-[#1A1A1E] border rounded-xl overflow-hidden transition-all duration-300", expandedChannelId === (ch.id || idx) ? "border-rose-500/30 shadow-[0_0_20px_rgba(244,63,94,0.1)]" : "border-[rgba(255,255,255,0.06)]")}>
+                           <div 
+                             onClick={() => setExpandedChannelId(expandedChannelId === (ch.id || idx) ? null : (ch.id || idx))}
+                             className="p-4 flex items-center justify-between cursor-pointer hover:bg-white/5 transition-colors"
+                           >
+                             <div className="flex items-center gap-4">
+                               <div className="size-12 rounded-lg bg-black/40 border border-white/5 overflow-hidden flex items-center justify-center shrink-0">
+                                 {ch.cover_url ? <img src={ch.cover_url} alt={ch.name} className="w-full h-full object-cover" /> : <Video className="size-5 text-rose-500/50" />}
+                               </div>
+                               <div>
+                                 <h5 className="font-bold text-white text-base leading-tight">{ch.name}</h5>
+                                 <span className="text-[10px] text-[#A1A1AA] font-bold uppercase tracking-widest">{ch.videos?.length || 0} vídeos salvos</span>
+                               </div>
+                             </div>
+                             <div className="flex items-center gap-3">
+                               <button onClick={(e) => {
+                                 e.stopPropagation();
+                                 if(confirm("Excluir este canal e todos os vídeos dele?")) {
+                                   let s: any = {};
+                                   try { s = JSON.parse(selectedCourse.description || '{}'); } catch(e){}
+                                   if (s.youtube_channels) {
+                                     s.youtube_channels = s.youtube_channels.filter((_:any, i:number) => i !== idx);
+                                     updateCourse(selectedCourse.id, { description: JSON.stringify(s) }, false);
+                                   }
+                                 }
+                               }} className="p-2 text-rose-500 hover:bg-rose-500/20 rounded-lg transition-colors">
+                                 <Trash2 className="size-4" />
+                               </button>
+                               <ChevronDown className={cn("size-5 text-[#A1A1AA] transition-transform duration-300", expandedChannelId === (ch.id || idx) && "rotate-180 text-rose-400")} />
+                             </div>
+                           </div>
+
+                           <div className={cn("grid transition-all duration-300 ease-in-out", expandedChannelId === (ch.id || idx) ? "grid-rows-[1fr] opacity-100" : "grid-rows-[0fr] opacity-0")}>
+                             <div className="overflow-hidden">
+                               <div className="p-4 pt-0 border-t border-[rgba(255,255,255,0.06)] bg-[#111113]/50">
+                                 <div className="flex justify-between items-center my-4">
+                                   <span className="text-[10px] uppercase font-bold text-[#A1A1AA] tracking-widest">Vídeos do Canal</span>
+                                   <button onClick={() => setIsAddingVideoToChannel(isAddingVideoToChannel === idx ? null : idx)} className="px-3 py-1.5 bg-cyan-500/10 text-cyan-400 hover:bg-cyan-500/20 border border-cyan-500/20 rounded-lg text-xs font-bold transition-colors">
+                                     + Adicionar Vídeo
+                                   </button>
+                                 </div>
+                                 
+                                 {isAddingVideoToChannel === idx && (
+                                   <div className="flex gap-3 mb-4 p-3 bg-[#1A1A1E] border border-cyan-500/20 rounded-xl">
+                                     <input type="text" placeholder="Título (Ex: Aula 1 - Base)" value={newVideoTitle} onChange={e => setNewVideoTitle(e.target.value)} className="flex-1 bg-[#111113] border border-white/5 rounded-lg px-3 py-2 text-xs text-white focus:outline-none focus:border-cyan-500/50" />
+                                     <input type="url" placeholder="URL do Vídeo" value={newVideoUrl} onChange={e => setNewVideoUrl(e.target.value)} className="flex-1 bg-[#111113] border border-white/5 rounded-lg px-3 py-2 text-xs text-white focus:outline-none focus:border-cyan-500/50" />
+                                     <button onClick={() => {
+                                       if (!newVideoTitle || !newVideoUrl) return;
+                                       let s: any = {};
+                                       try { s = JSON.parse(selectedCourse.description || '{}'); } catch(e){}
+                                       if (s.youtube_channels && s.youtube_channels[idx]) {
+                                         if (!s.youtube_channels[idx].videos) s.youtube_channels[idx].videos = [];
+                                         s.youtube_channels[idx].videos.push({ id: Date.now().toString(), title: newVideoTitle, url: newVideoUrl });
+                                         updateCourse(selectedCourse.id, { description: JSON.stringify(s) }, false);
+                                         setNewVideoTitle(''); setNewVideoUrl(''); setIsAddingVideoToChannel(null);
+                                       }
+                                     }} className="px-4 py-2 bg-cyan-600 hover:bg-cyan-500 text-white font-bold text-xs rounded-lg transition-colors">Salvar</button>
+                                   </div>
+                                 )}
+
+                                 <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3">
+                                   {ch.videos?.map((vid: any, vIdx: number) => {
+                                     const thumb = getThumbnail(vid.url);
+                                     return (
+                                       <div key={vid.id || vIdx} className="bg-[#1A1A1E] border border-white/5 rounded-xl overflow-hidden group hover:border-cyan-500/30 transition-colors shadow-sm">
+                                         <div className="h-24 bg-black relative flex items-center justify-center group-hover:opacity-90 cursor-pointer" onClick={() => window.open(vid.url.startsWith('http') ? vid.url : `https://${vid.url}`, '_blank')}>
+                                           {thumb ? <img src={thumb} alt="thumb" className="w-full h-full object-cover opacity-60 group-hover:opacity-100 transition-opacity" /> : <Play className="size-6 text-white/20" />}
+                                           <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity bg-black/40">
+                                              <Play className="size-8 text-white drop-shadow-lg" />
+                                           </div>
+                                         </div>
+                                         <div className="p-3 flex items-start justify-between">
+                                           <span className="text-xs font-bold text-white line-clamp-2 pr-2">{vid.title}</span>
+                                           <button onClick={() => {
+                                             let s: any = {};
+                                             try { s = JSON.parse(selectedCourse.description || '{}'); } catch(e){}
+                                             if (s.youtube_channels && s.youtube_channels[idx] && s.youtube_channels[idx].videos) {
+                                               s.youtube_channels[idx].videos = s.youtube_channels[idx].videos.filter((_:any, i:number) => i !== vIdx);
+                                               updateCourse(selectedCourse.id, { description: JSON.stringify(s) }, false);
+                                             }
+                                           }} className="text-rose-500/50 hover:text-rose-500 transition-colors">
+                                             <Trash2 className="size-3.5" />
+                                           </button>
+                                         </div>
+                                       </div>
+                                     );
+                                   })}
+                                   {(!ch.videos || ch.videos.length === 0) && (
+                                     <div className="col-span-full py-4 text-center text-[10px] text-[#71717A] uppercase font-bold tracking-widest">Nenhum vídeo salvo neste canal.</div>
+                                   )}
+                                 </div>
+                               </div>
+                             </div>
+                           </div>
+                        </div>
+                      ));
+                    })()}
+                  </div>
+                </div>
              )}
 
              {courseTab === "Diário de Bordo" && (
@@ -1804,6 +2036,65 @@ export function PosStudies() {
               </button>
             </div>
           </form>
+        </div>
+      )}
+
+
+      {/* Preview Reference Overlay */}
+      {previewReference && (
+        <div className={`fixed z-[9999] transition-all duration-300 ${isPreviewMinimized ? 'bottom-4 right-4 w-[384px] rounded-xl shadow-2xl border border-white/10' : 'inset-0 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm'}`}>
+          <div className={`bg-[#111113] w-full max-w-4xl rounded-2xl overflow-hidden shadow-2xl border border-[rgba(255,255,255,0.08)] ${isPreviewMinimized ? 'h-[216px]' : ''}`}>
+            <div className="flex items-center justify-between p-3 border-b border-white/5 bg-[#1A1A1E]">
+              <div className="flex items-center gap-2">
+                <span className="text-[10px] uppercase font-bold tracking-widest text-[#71717A] bg-white/5 px-2 py-1 rounded">
+                  {previewReference.refType === 'book' ? 'Citação' : 'Vídeo'}
+                </span>
+                <span className="text-sm font-bold text-white truncate max-w-[200px]">{previewReference.title}</span>
+              </div>
+              <div className="flex items-center gap-1">
+                {previewReference.refType === 'video' && (
+                   <button onClick={() => {
+                     window.dispatchEvent(new CustomEvent('global-pip', { detail: previewReference }));
+                     setPreviewReference(null);
+                     setIsPreviewMinimized(false);
+                   }} title="Global PiP" className="p-1.5 bg-white/5 hover:bg-cyan-500/20 text-cyan-400 rounded-lg transition-colors text-xs font-bold px-3">
+                     Puxar para Global
+                   </button>
+                )}
+                <button 
+                  onClick={() => setIsPreviewMinimized(!isPreviewMinimized)} 
+                  title={isPreviewMinimized ? "Maximizar" : "Minimizar (Picture-in-Picture)"}
+                  className="p-1.5 bg-white/5 hover:bg-white/10 text-[#A1A1AA] hover:text-white rounded-lg transition-colors"
+                >
+                  {isPreviewMinimized ? <Maximize2 className="size-4" /> : <Minimize2 className="size-4" />}
+                </button>
+                <button 
+                  onClick={() => { setPreviewReference(null); setIsPreviewMinimized(false); }}
+                  className="p-1.5 bg-rose-500/10 hover:bg-rose-500/20 text-rose-500 rounded-lg transition-colors"
+                >
+                  <X className="size-4" />
+                </button>
+              </div>
+            </div>
+            
+            <div className={`p-6 overflow-y-auto ${isPreviewMinimized ? 'hidden' : 'max-h-[70vh]'}`}>
+              {previewReference.refType === 'video' ? (
+                <div className="aspect-video w-full rounded-xl overflow-hidden bg-black border border-white/5 shadow-inner relative">
+                  <iframe 
+                    src={getSafeEmbedUrl(previewReference.url, previewReference.extra)}
+                    className="w-full h-full border-0"
+                    allow="autoplay; fullscreen; picture-in-picture"
+                  ></iframe>
+                </div>
+              ) : (
+                <div className="bg-[#1A1A1E] p-6 rounded-xl border border-white/5">
+                  <blockquote className="text-lg text-white font-medium italic border-l-4 border-emerald-500 pl-4">
+                    <div dangerouslySetInnerHTML={{ __html: previewReference.extra }} />
+                  </blockquote>
+                </div>
+              )}
+            </div>
+          </div>
         </div>
       )}
 

@@ -20,6 +20,8 @@ export interface PosStudyCourse {
   course_url: string | null;
   xp_awarded: number;
   created_at?: string;
+  share_token?: string | null;
+  is_public?: boolean;
 }
 
 export interface PosStudySession {

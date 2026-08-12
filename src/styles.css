@@ -284,3 +284,99 @@
 .theme-light *, .theme-minimal-white * {
   scrollbar-color: rgba(0, 0, 0, 0.2) transparent;
 }
+
+/* ============================
+   NOTION-STYLE EDITOR (.prose-notion)
+   ============================ */
+.prose-notion {
+  line-height: 1.6;
+}
+.prose-notion p {
+  margin-top: 0.3em !important;
+  margin-bottom: 0.3em !important;
+  color: rgba(255, 255, 255, 0.85);
+}
+.prose-notion h1 {
+  font-size: 1.875rem !important;
+  font-weight: 700 !important;
+  margin-top: 1.5em !important;
+  margin-bottom: 0.5em !important;
+  line-height: 1.3 !important;
+  letter-spacing: -0.02em;
+}
+.prose-notion h2 {
+  font-size: 1.5rem !important;
+  font-weight: 600 !important;
+  margin-top: 1.25em !important;
+  margin-bottom: 0.5em !important;
+  line-height: 1.3 !important;
+  letter-spacing: -0.01em;
+}
+.prose-notion h3 {
+  font-size: 1.25rem !important;
+  font-weight: 600 !important;
+  margin-top: 1em !important;
+  margin-bottom: 0.5em !important;
+  line-height: 1.3 !important;
+}
+.prose-notion ul[data-type="taskList"] {
+  list-style: none !important;
+  padding: 0 !important;
+}
+.prose-notion ul[data-type="taskList"] li {
+  display: flex;
+  align-items: flex-start;
+  margin-bottom: 0.25em !important;
+  padding-left: 0 !important;
+}
+.prose-notion ul[data-type="taskList"] li > label {
+  margin-right: 0.5rem;
+  margin-top: 0.3rem;
+  user-select: none;
+}
+.prose-notion ul[data-type="taskList"] li > div {
+  flex: 1;
+}
+.prose-notion ul:not([data-type="taskList"]), .prose-notion ol {
+  padding-left: 1.25rem !important;
+  margin-top: 0.3em !important;
+  margin-bottom: 0.3em !important;
+}
+.prose-notion li p {
+  margin-top: 0.1em !important;
+  margin-bottom: 0.1em !important;
+}
+.prose-notion mark {
+  background-color: rgba(234, 179, 8, 0.2) !important;
+  color: #facc15 !important;
+  border-radius: 3px;
+  padding: 0.1em 0.3em !important;
+}
+.prose-notion a {
+  color: #38bdf8 !important;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+  text-decoration-color: rgba(56, 189, 248, 0.3) !important;
+  transition: text-decoration-color 0.2s;
+}
+.prose-notion a:hover {
+  text-decoration-color: #38bdf8 !important;
+}
+.prose-notion hr {
+  border-color: rgba(255, 255, 255, 0.1) !important;
+  margin-top: 1.5em !important;
+  margin-bottom: 1.5em !important;
+}
+.prose-notion blockquote {
+  border-left: 3px solid rgba(255, 255, 255, 0.3) !important;
+  padding-left: 1rem !important;
+  margin-left: 0 !important;
+  font-style: italic;
+  color: rgba(255, 255, 255, 0.6) !important;
+}
+.prose-notion img {
+  border-radius: 8px;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  margin-top: 0.5em !important;
+  margin-bottom: 0.5em !important;
+}

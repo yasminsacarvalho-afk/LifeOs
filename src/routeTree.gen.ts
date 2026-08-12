@@ -33,6 +33,7 @@ import { Route as AdminRouteImport } from './routes/admin'
 import { Route as AccessRouteImport } from './routes/access'
 import { Route as AcademyRouteImport } from './routes/academy'
 import { Route as IndexRouteImport } from './routes/index'
+import { Route as PublicCourseTokenRouteImport } from './routes/public.course.$token'
 
 const TasksRoute = TasksRouteImport.update({
   id: '/tasks',
@@ -154,6 +155,11 @@ const IndexRoute = IndexRouteImport.update({
   path: '/',
   getParentRoute: () => rootRouteImport,
 } as any)
+const PublicCourseTokenRoute = PublicCourseTokenRouteImport.update({
+  id: '/public/course/$token',
+  path: '/public/course/$token',
+  getParentRoute: () => rootRouteImport,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
@@ -180,6 +186,7 @@ export interface FileRoutesByFullPath {
   '/sellers': typeof SellersRoute
   '/simulator': typeof SimulatorRoute
   '/tasks': typeof TasksRoute
+  '/public/course/$token': typeof PublicCourseTokenRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
@@ -206,6 +213,7 @@ export interface FileRoutesByTo {
   '/sellers': typeof SellersRoute
   '/simulator': typeof SimulatorRoute
   '/tasks': typeof TasksRoute
+  '/public/course/$token': typeof PublicCourseTokenRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -233,6 +241,7 @@ export interface FileRoutesById {
   '/sellers': typeof SellersRoute
   '/simulator': typeof SimulatorRoute
   '/tasks': typeof TasksRoute
+  '/public/course/$token': typeof PublicCourseTokenRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -261,6 +270,7 @@ export interface FileRouteTypes {
     | '/sellers'
     | '/simulator'
     | '/tasks'
+    | '/public/course/$token'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
@@ -287,6 +297,7 @@ export interface FileRouteTypes {
     | '/sellers'
     | '/simulator'
     | '/tasks'
+    | '/public/course/$token'
   id:
     | '__root__'
     | '/'
@@ -313,6 +324,7 @@ export interface FileRouteTypes {
     | '/sellers'
     | '/simulator'
     | '/tasks'
+    | '/public/course/$token'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -340,6 +352,7 @@ export interface RootRouteChildren {
   SellersRoute: typeof SellersRoute
   SimulatorRoute: typeof SimulatorRoute
   TasksRoute: typeof TasksRoute
+  PublicCourseTokenRoute: typeof PublicCourseTokenRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -512,6 +525,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof IndexRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/public/course/$token': {
+      id: '/public/course/$token'
+      path: '/public/course/$token'
+      fullPath: '/public/course/$token'
+      preLoaderRoute: typeof PublicCourseTokenRouteImport
+      parentRoute: typeof rootRouteImport
+    }
   }
 }
 
@@ -540,6 +560,7 @@ const rootRouteChildren: RootRouteChildren = {
   SellersRoute: SellersRoute,
   SimulatorRoute: SimulatorRoute,
   TasksRoute: TasksRoute,
+  PublicCourseTokenRoute: PublicCourseTokenRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
