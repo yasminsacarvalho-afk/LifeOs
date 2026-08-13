@@ -1776,23 +1776,20 @@ export function PosStudies() {
                                                     <Play className="size-4 fill-black" /> Iniciar Sessão
                                                   </button>
                                                 )}
-                                                  {/* LAYOUT TOGGLE */}
-                                                  <button onClick={() => setWorkspaceLayoutMode(workspaceLayoutMode === "horizontal" ? "vertical" : "horizontal")} className="p-2.5 bg-white/5 hover:bg-white/10 rounded-full transition-colors text-white backdrop-blur-md" title="Alternar Layout">
-                                                    {workspaceLayoutMode === "horizontal" ? <LayoutPanelTop className="size-5" /> : <LayoutPanelLeft className="size-5" />}
-                                                  </button>
+                                                  
                                                   <button onClick={() => setExpandedTopicId(null)} className="p-2.5 bg-white/5 hover:bg-white/10 rounded-full transition-colors text-white backdrop-blur-md">
                                                     <X className="size-5" />
                                                   </button>
                                               </div>
                                             </div>
                                             
-                                            <PanelGroup direction={workspaceLayoutMode} className="flex-1 min-h-0 w-full pb-6">
-                                              <Panel defaultSize={70} minSize={30} className="flex flex-col relative h-full gap-4 overflow-y-auto custom-scrollbar pr-2">
+                                            <div className="flex-1 min-h-0 w-full pb-6 flex flex-col lg:flex-row gap-6">
+                                              <div className="flex-1 flex flex-col relative h-full gap-4 overflow-y-auto custom-scrollbar pr-2">
                                                 {activeTopicVideos.length > 0 && (
-                                                  <PanelGroup direction="horizontal" className="h-full min-h-[300px]">
+                                                  <div className="flex flex-col md:flex-row w-full gap-4 overflow-x-auto min-h-[300px] pb-2">
                                                     {activeTopicVideos.map((video, idx) => (
-                                                      <Fragment key={idx}>
-                                                        <Panel minSize={20} className="rounded-xl overflow-hidden bg-black border border-white/5 shadow-inner flex flex-col animate-in fade-in zoom-in-95 duration-300">
+                                                      
+                                                        <div key={`video-${idx}`} className="flex-1 rounded-xl overflow-hidden bg-black border border-white/5 shadow-inner flex flex-col animate-in fade-in zoom-in-95 duration-300 min-w-[300px]">
                                                         <div className="flex items-center justify-between p-2 bg-[#1A1A1E] border-b border-white/5">
                                                           <span className="text-[10px] font-bold text-white uppercase tracking-widest px-2 truncate flex-1">{video.title}</span>
                                                           <div className="flex items-center gap-1">
@@ -1847,13 +1844,11 @@ export function PosStudies() {
                                                              );
                                                           })()}
                                                         </div>
-                                                        </Panel>
-                                                        {idx < activeTopicVideos.length - 1 && (
-                                                          <PanelResizeHandle className="w-2 rounded-full bg-white/5 hover:bg-cyan-500/50 transition-colors cursor-col-resize active:bg-cyan-500 mx-2" />
-                                                        )}
-                                                      </Fragment>
+                                                        </div>
+
+                                                      
                                                     ))}
-                                                  </PanelGroup>
+                                                  </div>
                                                 )}
                                                 <div className="flex flex-col sm:flex-row sm:items-center justify-between mb-2 gap-2">
                                                   <label className="text-[10px] uppercase tracking-widest text-[#71717A] font-bold flex items-center gap-2">
@@ -1933,11 +1928,11 @@ export function PosStudies() {
                                                     availableMaterials={topic.materials || []}
                                                   />
                                                 </div>
-                                              </Panel>
+                                              </div>
                                               
-                                              <PanelResizeHandle className={cn("rounded-full bg-white/5 hover:bg-cyan-500/50 transition-colors active:bg-cyan-500 shrink-0", workspaceLayoutMode === 'horizontal' ? 'w-2 h-full cursor-col-resize mx-4' : 'h-2 w-full cursor-row-resize my-4')} />
                                               
-                                              <Panel defaultSize={30} minSize={20} className="space-y-6 bg-black/20 p-5 rounded-3xl border border-white/5 overflow-y-auto custom-scrollbar">
+                                              
+                                              <div className="w-full lg:w-[350px] shrink-0 space-y-6 bg-black/20 p-5 rounded-3xl border border-white/5 overflow-y-auto custom-scrollbar">
                                                 <div>
                                                   <label className="text-[10px] text-[#A1A1AA] uppercase tracking-widest font-bold mb-1.5 block">Tags da Aula</label>
                                                   <div className="w-full bg-[#1A1A1E] border border-[rgba(255,255,255,0.04)] rounded-xl p-2 min-h-[46px] flex flex-wrap items-center gap-2 focus-within:border-cyan-500/50 transition-colors">
@@ -2264,8 +2259,8 @@ export function PosStudies() {
                                                     </button>
                                                   </div>
                                                 </div>
-                                                </Panel>
-                                            </PanelGroup>
+                                                </div>
+                                            </div>
                                           </div>
                                         </div>
                                       )}

@@ -1825,7 +1825,7 @@ Link original: ${book.buy_link || ''}`;
                   const progressUnit = book?.progress_unit || 'páginas';
                   
                   return (
-                    <div key={session.id} className="bg-[#111113] border border-rose-500/50 rounded-3xl p-6 md:p-8 shadow-[0_0_50px_rgba(225,29,72,0.15)] flex flex-col gap-8 relative overflow-hidden">
+                    <div key={session.id} className="bg-[#111113] border border-rose-500/50 rounded-3xl p-6 md:p-8 shadow-[0_0_50px_rgba(225,29,72,0.15)] flex flex-col gap-8 ">
                        {/* Efeito de brilho no fundo */}
                        <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[200%] h-32 bg-rose-500/10 blur-[50px] pointer-events-none rounded-full"></div>
 
@@ -1867,7 +1867,7 @@ Link original: ${book.buy_link || ''}`;
                          </div>
                        </div>
                        
-                       <div className="border-t border-[rgba(255,255,255,0.06)] pt-6 relative z-10 space-y-5">
+                       <div className="border-t border-[rgba(255,255,255,0.06)] pt-6  z-10 space-y-5">
                           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                              <div>
                                <label className="text-[10px] uppercase tracking-widest text-[#71717A] font-bold mb-2 flex items-center gap-2"><BookOpen className="size-3 text-rose-500" /> Ponto Atual ({progressUnit})</label>
@@ -2003,7 +2003,7 @@ Link original: ${book.buy_link || ''}`;
                                 />
                               </div>
                             </div>
-                            <div className="rounded-xl overflow-hidden border border-[rgba(255,255,255,0.06)] focus-within:border-purple-500/50 transition-colors bg-[#1A1A1E]">
+                            <div className="rounded-xl border border-[rgba(255,255,255,0.06)] focus-within:border-purple-500/50 transition-colors bg-[#1A1A1E]">
                               <RichTextEditor 
                                 content={session.notes || ""}
                                 onChange={(content) => saveActiveSessions(activeSessions.map(s => s.id === session.id ? { ...s, notes: content } : s))}
