@@ -2082,13 +2082,27 @@ export function PosStudies() {
                                                           )}
                                                           <span className="text-xs font-bold text-gray-300 group-hover:text-cyan-400 truncate pr-2">{mat.name || "Material Anexo"}</span>
                                                         </button>
-                                                        <button onClick={() => {
-                                                           const updated = [...modules];
-                                                           updated[mIdx].topics[tIdx].materials = updated[mIdx].topics[tIdx].materials.filter((_: any, idx: number) => idx !== i);
-                                                           updateCourse(selectedCourse.id, { next_topics: JSON.stringify(updated) }, false);
-                                                        }} className="text-rose-500/50 hover:text-rose-500 hover:bg-rose-500/10 p-2 rounded transition-colors shrink-0" title="Remover anexo">
-                                                          <Trash2 className="size-3.5" />
-                                                        </button>
+                                                        <div className="flex items-center gap-1 shrink-0">
+                                                          <button onClick={(e) => {
+                                                             e.stopPropagation();
+                                                             const newName = window.prompt("Novo nome para o material:", mat.name || "");
+                                                             if (newName && newName.trim()) {
+                                                                const updated = [...modules];
+                                                                updated[mIdx].topics[tIdx].materials[i].name = newName.trim();
+                                                                updateCourse(selectedCourse.id, { next_topics: JSON.stringify(updated) }, false);
+                                                             }
+                                                          }} className="text-purple-400/50 hover:text-purple-400 hover:bg-purple-500/10 p-1.5 rounded transition-colors" title="Renomear anexo">
+                                                            <Edit2 className="size-3.5" />
+                                                          </button>
+                                                          <button onClick={(e) => {
+                                                             e.stopPropagation();
+                                                             const updated = [...modules];
+                                                             updated[mIdx].topics[tIdx].materials = updated[mIdx].topics[tIdx].materials.filter((_: any, idx: number) => idx !== i);
+                                                             updateCourse(selectedCourse.id, { next_topics: JSON.stringify(updated) }, false);
+                                                          }} className="text-rose-500/50 hover:text-rose-500 hover:bg-rose-500/10 p-1.5 rounded transition-colors" title="Remover anexo">
+                                                            <Trash2 className="size-3.5" />
+                                                          </button>
+                                                        </div>
                                                       </div>
                                                     )})}
 

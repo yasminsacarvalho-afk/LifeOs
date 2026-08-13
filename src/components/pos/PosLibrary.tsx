@@ -778,7 +778,7 @@ Link original: ${book.buy_link || ''}`;
   const [newBook, setNewBook] = useState({
     title: "", author: "", category: "Negócios", knowledge_area: "Estratégia",
     format: "fisico", status: "quero_ler", total_pages: 0, language: "pt-br", start_date: format(new Date(), 'yyyy-MM-dd'), end_date: "", goal_id: "", buy_link: "",
-    tags_input: "", collections_input: "", progress_unit: "pages", resource_link: "", youtube_link: "", badges: [] as string[]
+    tags_input: "", collections_input: "", progress_unit: "pages", resource_link: "", youtube_link: "", badges: [] as string[], summary: ""
   });
 
   const getSafeDate = (dateStr: string | null | undefined) => {
@@ -820,7 +820,7 @@ Link original: ${book.buy_link || ''}`;
       const createdBook = await addBook(payload);
       if (createdBook) {
         setIsCreating(false);
-        setNewBook({ ...newBook, title: "", author: "", total_pages: 0, start_date: format(new Date(), 'yyyy-MM-dd'), end_date: "", goal_id: "", cover_url: "", tags_input: "", collections_input: "", progress_unit: "pages", resource_link: "", youtube_link: "", buy_link: "" });
+        setNewBook({ ...newBook, title: "", author: "", total_pages: 0, start_date: format(new Date(), 'yyyy-MM-dd'), end_date: "", goal_id: "", cover_url: "", tags_input: "", collections_input: "", progress_unit: "pages", resource_link: "", youtube_link: "", buy_link: "", summary: "" });
         if (payload.status === 'lendo') {
           setTimeout(() => handleStartReading(createdBook), 500);
         }
@@ -1295,6 +1295,15 @@ Link original: ${book.buy_link || ''}`;
                       className="w-full bg-[#1A1A1E] border border-[rgba(255,255,255,0.06)] rounded-xl px-4 py-3 text-white focus:border-rose-500 focus:outline-none transition-colors"
                     />
                   </div>
+                  <div className="md:col-span-2">
+                    <label className="text-[11px] uppercase tracking-widest text-[#71717A] font-bold mb-1 block">Sumário / Citações Base</label>
+                    <textarea 
+                      placeholder="Cole aqui o índice do livro ou suas principais citações..." 
+                      value={newBook.summary || ''} 
+                      onChange={e => setNewBook({...newBook, summary: e.target.value})}
+                      className="w-full bg-[#1A1A1E] border border-[rgba(255,255,255,0.06)] rounded-xl px-4 py-3 text-white focus:border-rose-500 focus:outline-none transition-colors min-h-[120px] custom-scrollbar"
+                    />
+                  </div>
                 </div>
 
                 <div className="flex flex-col-reverse md:flex-row justify-end gap-3 mt-8 pt-6 border-t border-[rgba(255,255,255,0.04)]">
@@ -1512,6 +1521,15 @@ Link original: ${book.buy_link || ''}`;
                   <div className="md:col-span-1">
                     <label className="text-[11px] uppercase font-bold text-[#71717A] mb-1 block">YouTube Review</label>
                     <input type="url" value={editBookData.youtube_link || ''} onChange={e => setEditBookData({...editBookData, youtube_link: e.target.value})} className="w-full bg-[#1A1A1E] border border-[rgba(255,255,255,0.06)] rounded-lg text-sm px-3 py-3 text-white focus:outline-none focus:border-rose-500" placeholder="https://youtube.com/..." />
+                  </div>
+                  <div className="md:col-span-2">
+                    <label className="text-[11px] uppercase font-bold text-[#71717A] mb-1 block">Sumário / Citações Base</label>
+                    <textarea 
+                      value={editBookData.summary || ''} 
+                      onChange={e => setEditBookData({...editBookData, summary: e.target.value})} 
+                      className="w-full bg-[#1A1A1E] border border-[rgba(255,255,255,0.06)] rounded-lg text-sm px-3 py-3 text-white focus:outline-none focus:border-rose-500 min-h-[120px] custom-scrollbar" 
+                      placeholder="Cole aqui o índice do livro ou suas principais citações..." 
+                    />
                   </div>
                 </div>
                 <div className="flex flex-col-reverse md:flex-row justify-end gap-3 mt-8 pt-6 border-t border-[rgba(255,255,255,0.04)]">
