@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import React, { useState, useEffect, Fragment } from "react";
 import { usePosStudies } from "@/hooks/use-pos-studies";
 import { usePosLibrary } from "@/hooks/use-pos-library";
 import { 
@@ -7,7 +7,7 @@ import {
   ChevronDown, Search, Filter, LayoutGrid, List as ListIcon,
   ChevronRight, BookMarked, Book, Sparkles, FileText, Library, CheckSquare,
   TrendingUp, BarChart2, Video, PenTool, LayoutTemplate, Layers, AlertCircle,
-  MoreVertical, Share2, Star, FolderOpen, ArrowLeft, Download, X, UploadCloud, Loader2, ExternalLink, Link as LinkIcon, Pause, XCircle, Edit2, Camera, Headphones, Music, CloudRain, Minimize2, Maximize2, ArrowUpRight, Tag
+  MoreVertical, Share2, Star, FolderOpen, ArrowLeft, Download, X, UploadCloud, Loader2, ExternalLink, Link as LinkIcon, Pause, XCircle, Edit2, Camera, Headphones, Music, CloudRain, Minimize2, Maximize2, ArrowUpRight, Tag, LayoutPanelLeft, LayoutPanelTop, GripVertical, GripHorizontal
 } from "lucide-react";
 import { format, isToday, parseISO } from "date-fns";
 import { ptBR } from "date-fns/locale";
@@ -18,6 +18,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { RichTextEditor } from "./RichTextEditor";
 import { VoiceRecordButton } from "@/components/ui/VoiceRecordButton";
 import { YouTubeMetadataCard } from "./YouTubeMetadataCard";
+import { Panel, Group as PanelGroup, Separator as PanelResizeHandle } from "react-resizable-panels";
 
 const KpiCard = ({ icon, label, value, sub }: any) => (
   <div className="bg-[#111113] p-4 rounded-2xl border border-[rgba(255,255,255,0.04)] shadow-lg hover:border-[rgba(255,255,255,0.1)] transition-colors flex flex-col">
@@ -69,6 +70,7 @@ export function PosStudies() {
   const [filterArea, setFilterArea] = useState("todas");
   const [showFilterMenu, setShowFilterMenu] = useState(false);
   const [expandedTopicId, setExpandedTopicId] = useState<number | string | null>(null);
+  const [workspaceLayoutMode, setWorkspaceLayoutMode] = useState<"horizontal" | "vertical">("horizontal");
   const [isLoggingSession, setIsLoggingSession] = useState(false);
   const [newSession, setNewSession] = useState({
     duration_minutes: 60,
@@ -1713,7 +1715,7 @@ export function PosStudies() {
                                       {/* EXPANDED WORKSPACE MODAL */}
                                       {expandedTopicId === (topic.id || tIdx) && (
                                         <div className="fixed inset-0 z-[100] flex items-center justify-center p-2 md:p-4 bg-black/90 backdrop-blur-xl animate-in fade-in zoom-in-95 duration-200" onClick={(e) => { e.stopPropagation(); setExpandedTopicId(null); }}>
-                                          <div className="bg-[#0A0A0C] border border-white/5 rounded-3xl p-6 md:p-8 w-full max-w-[98vw] lg:max-w-[90vw] h-[98vh] flex flex-col gap-6 shadow-2xl relative overflow-y-auto custom-scrollbar shadow-cyan-900/20" onClick={(e) => e.stopPropagation()}>
+                                          <div className="bg-[#0A0A0C] border border-white/5 rounded-3xl p-6 md:p-8 w-full max-w-[98vw] lg:max-w-[90vw] h-[98vh] flex flex-col gap-6 shadow-2xl relative overflow-hidden shadow-cyan-900/20" onClick={(e) => e.stopPropagation()}>
                                             
                                             <div className="absolute top-0 left-0 w-full h-32 bg-gradient-to-b from-cyan-900/20 to-transparent pointer-events-none rounded-t-3xl"></div>
 
@@ -1774,18 +1776,23 @@ export function PosStudies() {
                                                     <Play className="size-4 fill-black" /> Iniciar Sessão
                                                   </button>
                                                 )}
-                                                <button onClick={() => setExpandedTopicId(null)} className="p-2.5 bg-white/5 hover:bg-white/10 rounded-full transition-colors text-white backdrop-blur-md">
-                                                  <X className="size-5" />
-                                                </button>
+                                                  {/* LAYOUT TOGGLE */}
+                                                  <button onClick={() => setWorkspaceLayoutMode(workspaceLayoutMode === "horizontal" ? "vertical" : "horizontal")} className="p-2.5 bg-white/5 hover:bg-white/10 rounded-full transition-colors text-white backdrop-blur-md" title="Alternar Layout">
+                                                    {workspaceLayoutMode === "horizontal" ? <LayoutPanelTop className="size-5" /> : <LayoutPanelLeft className="size-5" />}
+                                                  </button>
+                                                  <button onClick={() => setExpandedTopicId(null)} className="p-2.5 bg-white/5 hover:bg-white/10 rounded-full transition-colors text-white backdrop-blur-md">
+                                                    <X className="size-5" />
+                                                  </button>
                                               </div>
                                             </div>
                                             
-                                            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 pb-20">
-                                              <div className="lg:col-span-2 flex flex-col h-[65vh] lg:h-auto lg:min-h-[600px] relative">
+                                            <PanelGroup direction={workspaceLayoutMode} className="flex-1 min-h-0 w-full pb-6">
+                                              <Panel defaultSize={70} minSize={30} className="flex flex-col relative h-full gap-4 overflow-y-auto custom-scrollbar pr-2">
                                                 {activeTopicVideos.length > 0 && (
-                                                  <div className={cn("grid gap-4 mb-4", activeTopicVideos.length > 1 ? "grid-cols-2" : "grid-cols-1")}>
+                                                  <PanelGroup direction="horizontal" className="h-full min-h-[300px]">
                                                     {activeTopicVideos.map((video, idx) => (
-                                                      <div key={idx} className="rounded-xl overflow-hidden bg-black border border-white/5 shadow-inner flex flex-col animate-in fade-in zoom-in-95 duration-300">
+                                                      <Fragment key={idx}>
+                                                        <Panel minSize={20} className="rounded-xl overflow-hidden bg-black border border-white/5 shadow-inner flex flex-col animate-in fade-in zoom-in-95 duration-300">
                                                         <div className="flex items-center justify-between p-2 bg-[#1A1A1E] border-b border-white/5">
                                                           <span className="text-[10px] font-bold text-white uppercase tracking-widest px-2 truncate flex-1">{video.title}</span>
                                                           <div className="flex items-center gap-1">
@@ -1840,9 +1847,13 @@ export function PosStudies() {
                                                              );
                                                           })()}
                                                         </div>
-                                                      </div>
+                                                        </Panel>
+                                                        {idx < activeTopicVideos.length - 1 && (
+                                                          <PanelResizeHandle className="w-2 rounded-full bg-white/5 hover:bg-cyan-500/50 transition-colors cursor-col-resize active:bg-cyan-500 mx-2" />
+                                                        )}
+                                                      </Fragment>
                                                     ))}
-                                                  </div>
+                                                  </PanelGroup>
                                                 )}
                                                 <div className="flex flex-col sm:flex-row sm:items-center justify-between mb-2 gap-2">
                                                   <label className="text-[10px] uppercase tracking-widest text-[#71717A] font-bold flex items-center gap-2">
@@ -1922,9 +1933,11 @@ export function PosStudies() {
                                                     availableMaterials={topic.materials || []}
                                                   />
                                                 </div>
-                                              </div>
+                                              </Panel>
                                               
-                                              <div className="space-y-6 bg-black/20 p-5 rounded-3xl border border-white/5 h-fit">
+                                              <PanelResizeHandle className={cn("rounded-full bg-white/5 hover:bg-cyan-500/50 transition-colors active:bg-cyan-500 shrink-0", workspaceLayoutMode === 'horizontal' ? 'w-2 h-full cursor-col-resize mx-4' : 'h-2 w-full cursor-row-resize my-4')} />
+                                              
+                                              <Panel defaultSize={30} minSize={20} className="space-y-6 bg-black/20 p-5 rounded-3xl border border-white/5 overflow-y-auto custom-scrollbar">
                                                 <div>
                                                   <label className="text-[10px] text-[#A1A1AA] uppercase tracking-widest font-bold mb-1.5 block">Tags da Aula</label>
                                                   <div className="w-full bg-[#1A1A1E] border border-[rgba(255,255,255,0.04)] rounded-xl p-2 min-h-[46px] flex flex-wrap items-center gap-2 focus-within:border-cyan-500/50 transition-colors">
@@ -2251,8 +2264,8 @@ export function PosStudies() {
                                                     </button>
                                                   </div>
                                                 </div>
-                                              </div>
-                                            </div>
+                                                </Panel>
+                                            </PanelGroup>
                                           </div>
                                         </div>
                                       )}
