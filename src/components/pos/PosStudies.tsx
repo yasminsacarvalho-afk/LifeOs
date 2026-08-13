@@ -1933,8 +1933,13 @@ export function PosStudies() {
                                               
                                               
                                               <div className="w-full lg:w-[350px] shrink-0 space-y-6 bg-black/20 p-5 rounded-3xl border border-white/5 overflow-y-auto custom-scrollbar">
-                                                <div>
-                                                  <label className="text-[10px] text-[#A1A1AA] uppercase tracking-widest font-bold mb-1.5 block">Tags da Aula</label>
+                                                <details open className="group [&_summary::-webkit-details-marker]:hidden">
+                                                  <summary className="text-[10px] text-[#A1A1AA] hover:text-white uppercase tracking-widest font-bold mb-2 flex items-center justify-between cursor-pointer list-none transition-colors">
+                                                    <div className="flex items-center gap-1">
+                                                      <Tag className="size-3 text-cyan-500" /> Tags da Aula
+                                                    </div>
+                                                    <ChevronDown className="size-3 transition-transform group-open:rotate-180" />
+                                                  </summary>
                                                   <div className="w-full bg-[#1A1A1E] border border-[rgba(255,255,255,0.04)] rounded-xl p-2 min-h-[46px] flex flex-wrap items-center gap-2 focus-within:border-cyan-500/50 transition-colors">
                                                     {localTags.split(',').map(t => t.trim()).filter(Boolean).map((tag, idx) => (
                                                       <span key={idx} className="bg-cyan-500/10 text-cyan-400 px-2 py-1 rounded-md text-xs font-bold flex items-center gap-1.5 border border-cyan-500/20">
@@ -1974,12 +1979,15 @@ export function PosStudies() {
                                                       className="flex-1 min-w-[120px] bg-transparent border-none focus:outline-none focus:ring-0 text-sm text-white p-1 placeholder:text-zinc-600"
                                                     />
                                                   </div>
-                                                </div>
+                                                </details>
 
-                                                <div>
-                                                  <label className="text-[10px] text-[#A1A1AA] uppercase tracking-widest font-bold mb-1.5 flex items-center gap-1">
-                                                    <Book className="size-3 text-emerald-500"/> Referências Literárias
-                                                  </label>
+                                                <details open className="group [&_summary::-webkit-details-marker]:hidden">
+                                                  <summary className="text-[10px] text-[#A1A1AA] hover:text-white uppercase tracking-widest font-bold mb-2 flex items-center justify-between cursor-pointer list-none transition-colors">
+                                                    <div className="flex items-center gap-1">
+                                                      <Book className="size-3 text-emerald-500"/> Referências Literárias
+                                                    </div>
+                                                    <ChevronDown className="size-3 transition-transform group-open:rotate-180" />
+                                                  </summary>
                                                   <div className="flex flex-col gap-2">
                                                     <div className="relative">
                                                       <select 
@@ -2036,12 +2044,15 @@ export function PosStudies() {
                                                       </div>
                                                     )}
                                                   </div>
-                                                </div>
+                                                </details>
 
-                                                <div>
-                                                  <label className="text-[10px] text-[#A1A1AA] uppercase tracking-widest font-bold mb-1.5 flex items-center gap-1">
-                                                    <FolderOpen className="size-3 text-cyan-500"/> Materiais Anexos
-                                                  </label>
+                                                <details open className="group [&_summary::-webkit-details-marker]:hidden">
+                                                  <summary className="text-[10px] text-[#A1A1AA] hover:text-white uppercase tracking-widest font-bold mb-2 flex items-center justify-between cursor-pointer list-none transition-colors">
+                                                    <div className="flex items-center gap-1">
+                                                      <FolderOpen className="size-3 text-cyan-500"/> Materiais Anexos
+                                                    </div>
+                                                    <ChevronDown className="size-3 transition-transform group-open:rotate-180" />
+                                                  </summary>
                                                   <div className="flex flex-col gap-2">
                                                     {topic.source && !(topic.materials && topic.materials.length > 0) && (
                                                       <div className="flex items-center justify-between p-3 bg-[#1A1A1E] border border-[rgba(255,255,255,0.04)] rounded-xl">
@@ -2136,12 +2147,15 @@ export function PosStudies() {
                                                       </button>
                                                     </div>
                                                   </div>
-                                                </div>
+                                                </details>
 
-                                                <div>
-                                                  <label className="text-[10px] text-[#A1A1AA] uppercase tracking-widest font-bold mb-1.5 flex items-center gap-1">
-                                                    <Video className="size-3 text-cyan-500"/> Videoteca (Trilha)
-                                                  </label>
+                                                <details open className="group [&_summary::-webkit-details-marker]:hidden">
+                                                  <summary className="text-[10px] text-[#A1A1AA] hover:text-white uppercase tracking-widest font-bold mb-2 flex items-center justify-between cursor-pointer list-none transition-colors">
+                                                    <div className="flex items-center gap-1">
+                                                      <Video className="size-3 text-cyan-500"/> Videoteca (Trilha)
+                                                    </div>
+                                                    <ChevronDown className="size-3 transition-transform group-open:rotate-180" />
+                                                  </summary>
                                                   <div className="flex flex-col gap-2">
                                                     {availableVideos && availableVideos.length > 0 ? (
                                                       <div className="flex gap-3 overflow-x-auto pb-2 hide-scrollbar w-[100%]">
@@ -2169,13 +2183,16 @@ export function PosStudies() {
                                                        <div className="text-[10px] text-[#71717A] italic py-2 border border-dashed border-white/5 rounded-lg text-center bg-[#111113]">Nenhum vídeo salvo na Videoteca.</div>
                                                     )}
                                                   </div>
-                                                </div>
+                                                </details>
 
                                                 {/* NOVA SESSÃO DE PESQUISA */}
-                                                <div>
-                                                  <label className="text-[10px] text-[#A1A1AA] uppercase tracking-widest font-bold mb-2 flex items-center gap-1">
-                                                    <Search className="size-3 text-emerald-500"/> Pesquisa Rápida
-                                                  </label>
+                                                <details open className="group [&_summary::-webkit-details-marker]:hidden">
+                                                  <summary className="text-[10px] text-[#A1A1AA] hover:text-white uppercase tracking-widest font-bold mb-2 flex items-center justify-between cursor-pointer list-none transition-colors">
+                                                    <div className="flex items-center gap-1">
+                                                      <Search className="size-3 text-emerald-500"/> Pesquisa Rápida
+                                                    </div>
+                                                    <ChevronDown className="size-3 transition-transform group-open:rotate-180" />
+                                                  </summary>
                                                   <div className="flex flex-col gap-2">
                                                     <div className="flex bg-[#1A1A1E] border border-[rgba(255,255,255,0.04)] rounded-xl overflow-hidden focus-within:border-emerald-500/50 transition-colors">
                                                       <div className="flex-1 px-3 flex items-center gap-2">
@@ -2221,12 +2238,15 @@ export function PosStudies() {
                                                       </button>
                                                     </div>
                                                   </div>
-                                                </div>
+                                                </details>
 
-                                                <div>
-                                                  <label className="text-[10px] text-[#A1A1AA] uppercase tracking-widest font-bold mb-1.5 flex items-center gap-1">
-                                                    <Sparkles className="size-3 text-cyan-500"/> Laboratório I.A.
-                                                  </label>
+                                                <details open className="group [&_summary::-webkit-details-marker]:hidden">
+                                                  <summary className="text-[10px] text-[#A1A1AA] hover:text-white uppercase tracking-widest font-bold mb-2 flex items-center justify-between cursor-pointer list-none transition-colors">
+                                                    <div className="flex items-center gap-1">
+                                                      <Sparkles className="size-3 text-cyan-500"/> Laboratório I.A.
+                                                    </div>
+                                                    <ChevronDown className="size-3 transition-transform group-open:rotate-180" />
+                                                  </summary>
                                                   <div className="flex flex-col gap-2">
                                                     <button onClick={() => window.open('https://notebooklm.google.com/', '_blank')} className="w-full py-3 bg-cyan-900/20 hover:bg-cyan-900/40 border border-cyan-500/20 hover:border-cyan-500/50 rounded-xl text-xs font-bold text-cyan-400 transition-colors flex items-center justify-center gap-1.5" title="Abrir NotebookLM para gerar resumos/slides">
                                                       <LayoutTemplate className="size-3.5" /> NotebookLM (Slides)
@@ -2235,12 +2255,15 @@ export function PosStudies() {
                                                       <Brain className="size-3.5" /> NotebookLM (Quiz)
                                                     </button>
                                                   </div>
-                                                </div>
+                                                </details>
 
-                                                <div>
-                                                  <label className="text-[10px] text-[#A1A1AA] uppercase tracking-widest font-bold mb-1.5 flex items-center gap-1">
-                                                    <Headphones className="size-3 text-cyan-500"/> Músicas (Foco)
-                                                  </label>
+                                                <details open className="group [&_summary::-webkit-details-marker]:hidden">
+                                                  <summary className="text-[10px] text-[#A1A1AA] hover:text-white uppercase tracking-widest font-bold mb-2 flex items-center justify-between cursor-pointer list-none transition-colors">
+                                                    <div className="flex items-center gap-1">
+                                                      <Headphones className="size-3 text-cyan-500"/> Músicas (Foco)
+                                                    </div>
+                                                    <ChevronDown className="size-3 transition-transform group-open:rotate-180" />
+                                                  </summary>
                                                   <div className="flex flex-col gap-2">
                                                     <button onClick={() => {
                                                         window.dispatchEvent(new CustomEvent('reference-click', { detail: { refType: 'video', title: 'Lofi Gospel', url: 'https://www.youtube.com/watch?v=srxN4L1n5p4', id: 'srxN4L1n5p4' } }));
@@ -2258,7 +2281,7 @@ export function PosStudies() {
                                                       <Headphones className="size-3.5 text-emerald-400" /> <span className="flex-1 truncate">Som Ambiente</span>
                                                     </button>
                                                   </div>
-                                                </div>
+                                                </details>
                                                 </div>
                                             </div>
                                           </div>
