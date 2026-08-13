@@ -4,7 +4,7 @@ import { usePosLibrary } from "@/hooks/use-pos-library";
 import { 
   GraduationCap, Plus, Play, BookOpen, Clock, Trophy, Flame, Target, 
   Trash2, Award, Zap, Brain, Calendar as CalendarIcon, CheckCircle2,
-  ChevronDown, Search, Filter, LayoutGrid, List as ListIcon,
+  ChevronDown, ChevronUp, Search, Filter, LayoutGrid, List as ListIcon,
   ChevronRight, BookMarked, Book, Sparkles, FileText, Library, CheckSquare,
   TrendingUp, BarChart2, Video, PenTool, LayoutTemplate, Layers, AlertCircle,
   MoreVertical, Share2, Star, FolderOpen, ArrowLeft, Download, X, UploadCloud, Loader2, ExternalLink, Link as LinkIcon, Pause, XCircle, Edit2, Camera, Headphones, Music, CloudRain, Minimize2, Maximize2, ArrowUpRight, Tag, LayoutPanelLeft, LayoutPanelTop, GripVertical, GripHorizontal
@@ -87,6 +87,7 @@ export function PosStudies() {
   const [newVideoTitle, setNewVideoTitle] = useState('');
   const [activeTopicVideos, setActiveTopicVideos] = useState<any[]>([]);
   const [isSidebarOpen, setIsSidebarOpen] = useState(true);
+  const [isWorkspaceHeaderOpen, setIsWorkspaceHeaderOpen] = useState(true);
   
   // Videoteca Workspace States
   const [activeVideotecaVideos, setActiveVideotecaVideos] = useState<any[]>([]); // max 2
@@ -1721,71 +1722,91 @@ export function PosStudies() {
                                             <div className="absolute top-0 left-0 w-full h-32 bg-gradient-to-b from-cyan-900/20 to-transparent pointer-events-none rounded-t-3xl"></div>
 
                                             {/* Header do Modal */}
-                                            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-white/5 pb-6 relative z-10">
-                                              <div>
-                                                <div className="flex items-center gap-3 mb-2">
-                                                   <span className="px-2 py-1 bg-cyan-500/10 text-cyan-400 text-[10px] uppercase font-black tracking-widest rounded border border-cyan-500/20 flex items-center gap-1.5 shadow-[0_0_10px_rgba(6,182,212,0.15)]"><Layers className="size-3" /> WORKSPACE</span>
-                                                   <span className="text-[10px] text-[#A1A1AA] font-bold uppercase tracking-widest flex items-center gap-1.5"><FolderOpen className="size-3" /> {mod.title}</span>
-                                                </div>
-                                                <h2 className="text-2xl md:text-3xl font-black text-white tracking-tight drop-shadow-md">{topic.title}</h2>
-                                              </div>
-                                              <div className="flex flex-wrap items-center gap-3 w-full sm:w-auto mt-4 sm:mt-0 justify-end">
-                                                {activeTopicTimer === (topic.id || tIdx) ? (
-                                                  <div className="flex flex-wrap items-center justify-center gap-2 bg-black/40 p-1.5 rounded-2xl sm:rounded-full border border-white/5 backdrop-blur-md w-full sm:w-auto">
-                                                    <div className="px-4 py-1.5 bg-cyan-900/30 rounded-full flex items-center justify-center min-w-[95px] shadow-[inset_0_0_10px_rgba(6,182,212,0.1)]">
-                                                       <span className={cn("text-lg font-mono font-bold tracking-wider", isTimerPaused ? "text-[#71717A] animate-pulse" : "text-cyan-400 drop-shadow-[0_0_8px_rgba(6,182,212,0.5)]")}>
-                                                         {String(Math.floor(elapsedSeconds / 3600)).padStart(2, '0')}:
-                                                         {String(Math.floor((elapsedSeconds % 3600) / 60)).padStart(2, '0')}:
-                                                         {String(elapsedSeconds % 60).padStart(2, '0')}
-                                                       </span>
-                                                    </div>
-                                                    <button onClick={() => setIsTimerPaused(!isTimerPaused)} className="p-2.5 hover:bg-white/10 rounded-full text-white transition-colors" title={isTimerPaused ? "Retomar" : "Pausar"}>
-                                                      {isTimerPaused ? <Play className="size-4 fill-white" /> : <Pause className="size-4 fill-white" />}
-                                                    </button>
-                                                    <button onClick={() => {
-                                                       if (confirm("Cancelar a sessão atual? O tempo não será salvo.")) {
-                                                          setActiveTopicTimer(null);
-                                                          setElapsedSeconds(0);
-                                                          setIsTimerPaused(false);
-                                                       }
-                                                    }} className="p-2.5 hover:bg-rose-500/20 text-rose-500 rounded-full transition-colors" title="Cancelar">
-                                                      <XCircle className="size-4" />
-                                                    </button>
-                                                    <button onClick={async () => {
-                                                       const durationMinutes = Math.max(1, Math.ceil(elapsedSeconds / 60));
-                                                       await addSession({
-                                                          course_id: selectedCourse.id,
-                                                          session_date: format(new Date(), 'yyyy-MM-dd'),
-                                                          duration_minutes: durationMinutes,
-                                                          module_name: mod.title,
-                                                          class_name: topic.title,
-                                                          summary: topic.notes || 'Sessão focada na ferramenta Topic Workspace.'
-                                                       });
-                                                       setActiveTopicTimer(null);
-                                                       setElapsedSeconds(0);
-                                                       setIsTimerPaused(false);
-                                                    }} className="px-5 py-2 bg-emerald-500 hover:bg-emerald-400 text-black rounded-full text-sm font-bold flex items-center gap-2 shadow-[0_0_15px_rgba(16,185,129,0.3)] transition-all">
-                                                      <CheckCircle2 className="size-4" /> Concluir
-                                                    </button>
+                                            <div className={cn("flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-white/5 relative z-10 transition-all duration-300", isWorkspaceHeaderOpen ? "pb-6" : "pb-3 mt-[-10px]")}>
+                                              {isWorkspaceHeaderOpen ? (
+                                                <div className="animate-in fade-in slide-in-from-top-2 duration-300">
+                                                  <div className="flex items-center gap-3 mb-2">
+                                                     <span className="px-2 py-1 bg-cyan-500/10 text-cyan-400 text-[10px] uppercase font-black tracking-widest rounded border border-cyan-500/20 flex items-center gap-1.5 shadow-[0_0_10px_rgba(6,182,212,0.15)]"><Layers className="size-3" /> WORKSPACE</span>
+                                                     <span className="text-[10px] text-[#A1A1AA] font-bold uppercase tracking-widest flex items-center gap-1.5"><FolderOpen className="size-3" /> {mod.title}</span>
                                                   </div>
-                                                ) : (
-                                                  <button onClick={() => {
-                                                     setActiveTopicTimer(topic.id || tIdx);
-                                                     setElapsedSeconds(0);
-                                                     setIsTimerPaused(false);
-                                                  }} className="px-5 py-2.5 bg-cyan-500 hover:bg-cyan-400 text-black rounded-full text-sm font-bold flex items-center justify-center gap-2 shadow-[0_0_15px_rgba(6,182,212,0.3)] transition-all">
-                                                    <Play className="size-4 fill-black" /> Iniciar Sessão
-                                                  </button>
+                                                  <h2 className="text-2xl md:text-3xl font-black text-white tracking-tight drop-shadow-md">{topic.title}</h2>
+                                                </div>
+                                              ) : (
+                                                <div className="flex items-center gap-3 animate-in fade-in slide-in-from-left-2 duration-300">
+                                                  <span className="px-2 py-1 bg-cyan-500/10 text-cyan-400 text-[10px] uppercase font-black tracking-widest rounded border border-cyan-500/20"><Layers className="size-3" /></span>
+                                                  <span className="text-sm font-bold text-white truncate max-w-[200px] sm:max-w-[400px]">{topic.title}</span>
+                                                  {activeTopicTimer === (topic.id || tIdx) && (
+                                                    <span className={cn("text-[10px] font-mono font-bold tracking-wider px-2 py-1 bg-black/40 rounded-md border border-white/5", isTimerPaused ? "text-[#71717A] animate-pulse" : "text-cyan-400")}>
+                                                      {String(Math.floor(elapsedSeconds / 3600)).padStart(2, '0')}:{String(Math.floor((elapsedSeconds % 3600) / 60)).padStart(2, '0')}:{String(elapsedSeconds % 60).padStart(2, '0')}
+                                                    </span>
+                                                  )}
+                                                </div>
+                                              )}
+                                              <div className="flex flex-wrap items-center gap-2 sm:gap-3 w-full sm:w-auto mt-4 sm:mt-0 justify-end">
+                                                {isWorkspaceHeaderOpen && (
+                                                  <div className="flex flex-wrap items-center gap-2 mr-0 sm:mr-2 border-r-0 sm:border-r border-white/10 pr-0 sm:pr-4 w-full sm:w-auto justify-end">
+                                                    {activeTopicTimer === (topic.id || tIdx) ? (
+                                                      <div className="flex flex-wrap items-center justify-center gap-2 bg-black/40 p-1.5 rounded-2xl sm:rounded-full border border-white/5 backdrop-blur-md w-full sm:w-auto">
+                                                        <div className="px-4 py-1.5 bg-cyan-900/30 rounded-full flex items-center justify-center min-w-[95px] shadow-[inset_0_0_10px_rgba(6,182,212,0.1)]">
+                                                           <span className={cn("text-lg font-mono font-bold tracking-wider", isTimerPaused ? "text-[#71717A] animate-pulse" : "text-cyan-400 drop-shadow-[0_0_8px_rgba(6,182,212,0.5)]")}>
+                                                             {String(Math.floor(elapsedSeconds / 3600)).padStart(2, '0')}:
+                                                             {String(Math.floor((elapsedSeconds % 3600) / 60)).padStart(2, '0')}:
+                                                             {String(elapsedSeconds % 60).padStart(2, '0')}
+                                                           </span>
+                                                        </div>
+                                                        <button onClick={() => setIsTimerPaused(!isTimerPaused)} className="p-2.5 hover:bg-white/10 rounded-full text-white transition-colors" title={isTimerPaused ? "Retomar" : "Pausar"}>
+                                                          {isTimerPaused ? <Play className="size-4 fill-white" /> : <Pause className="size-4 fill-white" />}
+                                                        </button>
+                                                        <button onClick={() => {
+                                                           if (confirm("Cancelar a sessão atual? O tempo não será salvo.")) {
+                                                              setActiveTopicTimer(null);
+                                                              setElapsedSeconds(0);
+                                                              setIsTimerPaused(false);
+                                                           }
+                                                        }} className="p-2.5 hover:bg-rose-500/20 text-rose-500 rounded-full transition-colors" title="Cancelar">
+                                                          <XCircle className="size-4" />
+                                                        </button>
+                                                        <button onClick={async () => {
+                                                           const durationMinutes = Math.max(1, Math.ceil(elapsedSeconds / 60));
+                                                           await addSession({
+                                                              course_id: selectedCourse.id,
+                                                              session_date: format(new Date(), 'yyyy-MM-dd'),
+                                                              duration_minutes: durationMinutes,
+                                                              module_name: mod.title,
+                                                              class_name: topic.title,
+                                                              summary: topic.notes || 'Sessão focada na ferramenta Topic Workspace.'
+                                                           });
+                                                           setActiveTopicTimer(null);
+                                                           setElapsedSeconds(0);
+                                                           setIsTimerPaused(false);
+                                                        }} className="px-5 py-2 bg-emerald-500 hover:bg-emerald-400 text-black rounded-full text-sm font-bold flex items-center gap-2 shadow-[0_0_15px_rgba(16,185,129,0.3)] transition-all">
+                                                          <CheckCircle2 className="size-4" /> Concluir
+                                                        </button>
+                                                      </div>
+                                                    ) : (
+                                                      <button onClick={() => {
+                                                         setActiveTopicTimer(topic.id || tIdx);
+                                                         setElapsedSeconds(0);
+                                                         setIsTimerPaused(false);
+                                                      }} className="px-5 py-2.5 bg-cyan-500 hover:bg-cyan-400 text-black rounded-full text-sm font-bold flex items-center justify-center gap-2 shadow-[0_0_15px_rgba(6,182,212,0.3)] transition-all">
+                                                        <Play className="size-4 fill-black" /> Iniciar Sessão
+                                                      </button>
+                                                    )}
+                                                  </div>
                                                 )}
                                                   
+                                                <div className="flex items-center gap-2 ml-auto sm:ml-0">
+                                                  <button onClick={() => setIsWorkspaceHeaderOpen(!isWorkspaceHeaderOpen)} className="p-2 bg-white/5 hover:bg-white/10 rounded-full transition-colors text-white backdrop-blur-md" title={isWorkspaceHeaderOpen ? "Ocultar Cabeçalho" : "Mostrar Cabeçalho"}>
+                                                    {isWorkspaceHeaderOpen ? <ChevronUp className="size-4" /> : <ChevronDown className="size-4" />}
+                                                  </button>
                                                   <button onClick={() => setIsSidebarOpen(!isSidebarOpen)} className={cn("px-4 py-2 bg-black/40 border border-white/10 hover:bg-white/10 text-white rounded-full text-xs font-bold flex items-center gap-2 backdrop-blur-md transition-all shadow-[0_0_10px_rgba(0,0,0,0.5)]")} title="Recursos e Ferramentas">
                                                     <LayoutPanelLeft className={cn("size-4", isSidebarOpen ? "text-cyan-500" : "text-[#A1A1AA]")} />
                                                     <span className="hidden sm:inline">{isSidebarOpen ? "Ocultar" : "Recursos"}</span>
                                                   </button>
-                                                  
-                                                  <button onClick={() => setExpandedTopicId(null)} className="p-2.5 bg-white/5 hover:bg-white/10 rounded-full transition-colors text-white backdrop-blur-md">
+                                                  <button onClick={() => setExpandedTopicId(null)} className="p-2 bg-white/5 hover:bg-white/10 rounded-full transition-colors text-white backdrop-blur-md">
                                                     <X className="size-5" />
                                                   </button>
+                                                </div>
                                               </div>
                                             </div>
                                             
