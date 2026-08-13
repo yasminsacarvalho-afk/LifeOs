@@ -86,6 +86,7 @@ export function PosStudies() {
   const [newVideoUrl, setNewVideoUrl] = useState('');
   const [newVideoTitle, setNewVideoTitle] = useState('');
   const [activeTopicVideos, setActiveTopicVideos] = useState<any[]>([]);
+  const [isSidebarOpen, setIsSidebarOpen] = useState(true);
   
   // Videoteca Workspace States
   const [activeVideotecaVideos, setActiveVideotecaVideos] = useState<any[]>([]); // max 2
@@ -1777,6 +1778,11 @@ export function PosStudies() {
                                                   </button>
                                                 )}
                                                   
+                                                  <button onClick={() => setIsSidebarOpen(!isSidebarOpen)} className={cn("px-4 py-2 bg-black/40 border border-white/10 hover:bg-white/10 text-white rounded-full text-xs font-bold flex items-center gap-2 backdrop-blur-md transition-all shadow-[0_0_10px_rgba(0,0,0,0.5)]")} title="Recursos e Ferramentas">
+                                                    <LayoutPanelLeft className={cn("size-4", isSidebarOpen ? "text-cyan-500" : "text-[#A1A1AA]")} />
+                                                    <span className="hidden sm:inline">{isSidebarOpen ? "Ocultar" : "Recursos"}</span>
+                                                  </button>
+                                                  
                                                   <button onClick={() => setExpandedTopicId(null)} className="p-2.5 bg-white/5 hover:bg-white/10 rounded-full transition-colors text-white backdrop-blur-md">
                                                     <X className="size-5" />
                                                   </button>
@@ -1786,10 +1792,10 @@ export function PosStudies() {
                                             <div className="flex-1 min-h-0 w-full pb-6 flex flex-col lg:flex-row gap-6">
                                               <div className="flex-1 flex flex-col relative h-full gap-4 overflow-y-auto custom-scrollbar pr-2">
                                                 {activeTopicVideos.length > 0 && (
-                                                  <div className="flex flex-col md:flex-row w-full gap-4 overflow-x-auto min-h-[300px] pb-2">
+                                                  <div className="flex flex-col md:flex-row w-full gap-4 overflow-x-auto min-h-[300px] pb-2 shrink-0">
                                                     {activeTopicVideos.map((video, idx) => (
                                                       
-                                                        <div key={`video-${idx}`} className="flex-1 rounded-xl overflow-hidden bg-black border border-white/5 shadow-inner flex flex-col animate-in fade-in zoom-in-95 duration-300 min-w-[300px]">
+                                                        <div key={`video-${idx}`} className="flex-1 rounded-xl overflow-hidden bg-black border border-white/5 shadow-inner flex flex-col animate-in fade-in zoom-in-95 duration-300 min-w-[300px] shrink-0">
                                                         <div className="flex items-center justify-between p-2 bg-[#1A1A1E] border-b border-white/5">
                                                           <span className="text-[10px] font-bold text-white uppercase tracking-widest px-2 truncate flex-1">{video.title}</span>
                                                           <div className="flex items-center gap-1">
@@ -1805,7 +1811,7 @@ export function PosStudies() {
                                                             </button>
                                                           </div>
                                                         </div>
-                                                        <div className="w-full aspect-video relative bg-black flex items-center justify-center">
+                                                        <div className="w-full aspect-video relative mx-auto bg-black flex items-center justify-center" style={{ maxHeight: '65vh', maxWidth: 'calc(65vh * 1.7778)' }}>
                                                           {(() => {
                                                              const u = video.url.toLowerCase();
                                                              const t = (video.title || "").toLowerCase();
@@ -1932,7 +1938,17 @@ export function PosStudies() {
                                               
                                               
                                               
-                                              <div className="w-full lg:w-[350px] shrink-0 space-y-6 bg-black/20 p-5 rounded-3xl border border-white/5 overflow-y-auto custom-scrollbar">
+                                              {isSidebarOpen && (
+                                                <div className="w-full lg:w-[350px] shrink-0 bg-black/20 p-5 rounded-3xl border border-white/5 overflow-y-auto custom-scrollbar animate-in slide-in-from-right-4 fade-in duration-300">
+                                                  <div className="flex items-center justify-between mb-6">
+                                                    <div className="flex items-center gap-2 text-xs font-bold text-white">
+                                                      <LayoutPanelLeft className="size-4 text-cyan-500" /> Recursos e Ferramentas
+                                                    </div>
+                                                    <button onClick={() => setIsSidebarOpen(false)} className="p-1.5 hover:bg-white/10 rounded-lg text-[#A1A1AA] hover:text-white transition-colors" title="Esconder">
+                                                      <X className="size-3.5" />
+                                                    </button>
+                                                  </div>
+                                                  <div className="space-y-6">
                                                 <details open className="group [&_summary::-webkit-details-marker]:hidden">
                                                   <summary className="text-[10px] text-[#A1A1AA] hover:text-white uppercase tracking-widest font-bold mb-2 flex items-center justify-between cursor-pointer list-none transition-colors">
                                                     <div className="flex items-center gap-1">
@@ -2283,6 +2299,8 @@ export function PosStudies() {
                                                   </div>
                                                 </details>
                                                 </div>
+                                                </div>
+                                              )}
                                             </div>
                                           </div>
                                         </div>
@@ -2346,7 +2364,7 @@ export function PosStudies() {
                                   </button>
                                 </div>
                               )}
-                              <div className="aspect-video w-full relative bg-black flex items-center justify-center">
+                              <div className="w-full aspect-video relative mx-auto bg-black flex items-center justify-center" style={{ maxHeight: '70vh', maxWidth: 'calc(70vh * 1.7778)' }}>
                                 {(() => {
                                    const u = av.video.url.toLowerCase();
                                    if (u.endsWith('.mp3') || (u.includes('drive.google.com') && u.includes('audio'))) {
