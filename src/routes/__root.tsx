@@ -126,6 +126,7 @@ function RootShell({ children }: { children: ReactNode }) {
 }
 
 import { GlobalPiPPlayer } from "@/components/GlobalPiPPlayer";
+import { GlobalAudioPlayer } from "@/components/GlobalAudioPlayer";
 
 function AuthGuard({ children }: { children: ReactNode }) {
   const { session, loading } = useAuth();
@@ -151,6 +152,7 @@ function AuthGuard({ children }: { children: ReactNode }) {
           <AppSidebar />
           <VoiceAssistantWidget />
           <GlobalPiPPlayer />
+          <GlobalAudioPlayer />
         </>
       )}
     </div>

@@ -7,7 +7,7 @@ import {
   ChevronDown, Search, Filter, LayoutGrid, List as ListIcon,
   ChevronRight, BookMarked, Book, Sparkles, FileText, Library, CheckSquare,
   TrendingUp, BarChart2, Video, PenTool, LayoutTemplate, Layers, AlertCircle,
-  MoreVertical, Share2, Star, FolderOpen, ArrowLeft, Download, X, UploadCloud, Loader2, ExternalLink, Link as LinkIcon, Pause, XCircle, Edit2, Camera, Headphones, Music, CloudRain, Minimize2, Maximize2, ArrowUpRight
+  MoreVertical, Share2, Star, FolderOpen, ArrowLeft, Download, X, UploadCloud, Loader2, ExternalLink, Link as LinkIcon, Pause, XCircle, Edit2, Camera, Headphones, Music, CloudRain, Minimize2, Maximize2, ArrowUpRight, Tag
 } from "lucide-react";
 import { format, isToday, parseISO } from "date-fns";
 import { ptBR } from "date-fns/locale";
@@ -54,6 +54,12 @@ export function PosStudies() {
     setActiveModuleIndex(null);
   }, [selectedCourseId, courseTab]);
 
+  useEffect(() => {
+    // Reset workspace states when switching between courses/tracks
+    setExpandedTopicId(null);
+    setActiveTopicVideos([]);
+  }, [selectedCourseId]);
+
   const [isCreatingCourse, setIsCreatingCourse] = useState(false);
   const [isEditingCourse, setIsEditingCourse] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
@@ -77,7 +83,7 @@ export function PosStudies() {
   const [isAddingVideoToChannel, setIsAddingVideoToChannel] = useState<number | null>(null);
   const [newVideoUrl, setNewVideoUrl] = useState('');
   const [newVideoTitle, setNewVideoTitle] = useState('');
-  const [activeTopicVideo, setActiveTopicVideo] = useState<any>(null);
+  const [activeTopicVideos, setActiveTopicVideos] = useState<any[]>([]);
   
   // Videoteca Workspace States
   const [activeVideotecaVideos, setActiveVideotecaVideos] = useState<any[]>([]); // max 2
@@ -99,6 +105,7 @@ export function PosStudies() {
   const [isTimerPaused, setIsTimerPaused] = useState(false);
   const [localNotes, setLocalNotes] = useState("");
   const [localTags, setLocalTags] = useState("");
+  const [tagInput, setTagInput] = useState("");
 
   const selectedCourse = courses.find(c => c.id === selectedCourseId);
 
@@ -121,6 +128,38 @@ export function PosStudies() {
   const [previewReference, setPreviewReference] = useState<any>(null);
   const [isPreviewMinimized, setIsPreviewMinimized] = useState(false);
 
+  // Auto-save debounced for localNotes (Google Docs style)
+  useEffect(() => {
+    if (expandedTopicId === null || !selectedCourse) return;
+    
+    const timeoutId = setTimeout(() => {
+       let currentMIdx = -1;
+       let currentTIdx = -1;
+       
+       let mods: any[] = [];
+       try { mods = typeof selectedCourse.next_topics === 'string' ? JSON.parse(selectedCourse.next_topics) : (selectedCourse.next_topics || []); } catch(e){}
+       
+       mods.forEach((mod: any, m: number) => {
+         mod.topics?.forEach((top: any, t: number) => {
+           if ((top.id || t) === expandedTopicId) {
+             currentMIdx = m;
+             currentTIdx = t;
+           }
+         });
+       });
+       
+       if (currentMIdx !== -1 && currentTIdx !== -1) {
+         const currentNotes = mods[currentMIdx].topics[currentTIdx].notes || "";
+         if (currentNotes !== localNotes) {
+            mods[currentMIdx].topics[currentTIdx].notes = localNotes;
+            updateCourse(selectedCourse.id, { next_topics: JSON.stringify(mods) }, false);
+         }
+       }
+    }, 1500);
+    
+    return () => clearTimeout(timeoutId);
+  }, [localNotes, expandedTopicId, selectedCourse]);
+
   const handleSaveVideotecaNotes = () => {
      if (!selectedCourse || activeVideotecaVideos.length === 0) return;
      const primary = activeVideotecaVideos[0];
@@ -139,7 +178,7 @@ export function PosStudies() {
   useEffect(() => {
     const handleRefClick = (e: any) => {
       if (e.detail.refType === 'video') {
-         setActiveTopicVideo(e.detail);
+         setActiveTopicVideos(prev => prev.some(v => v.url === e.detail.url) ? prev : [...prev, e.detail]);
       } else {
          setPreviewReference(e.detail);
       }
@@ -1380,6 +1419,45 @@ export function PosStudies() {
                     </div>
                   </div>
 
+                  
+                  {/* Tags do Curso */}
+                  <div className="bg-[#111113] border border-[rgba(255,255,255,0.04)] rounded-2xl p-6 shadow-lg mt-6">
+                    <h4 className="text-sm font-bold text-white uppercase tracking-widest mb-6 flex items-center gap-2">
+                      <Tag className="size-4 text-purple-500" /> Tags do Curso
+                    </h4>
+                    {(() => {
+                      let mods = [];
+                      try {
+                        const parsed = JSON.parse(selectedCourse.next_topics || '[]');
+                        mods = (parsed.length > 0 && !parsed[0].topics) ? [{ id: 'default', title: 'Módulo Geral', topics: parsed }] : parsed;
+                      } catch(e) {}
+                      
+                      const allTags = new Set<string>();
+                      mods.forEach((m: any) => {
+                        m.topics?.forEach((t: any) => {
+                          if (t.tags) {
+                            t.tags.split(',').map((tag: string) => tag.trim()).filter(Boolean).forEach((tag: string) => allTags.add(tag));
+                          }
+                        });
+                      });
+                      
+                      const tagsArray = Array.from(allTags);
+                      
+                      if (tagsArray.length === 0) {
+                        return <span className="text-xs text-[#A1A1AA] italic block p-3 bg-[#1A1A1E] rounded-lg border border-[rgba(255,255,255,0.02)]">Nenhuma tag criada neste curso ainda.</span>;
+                      }
+                      
+                      return (
+                        <div className="flex flex-wrap gap-2">
+                          {tagsArray.map((tag, idx) => (
+                            <span key={idx} className="bg-purple-500/10 text-purple-400 border border-purple-500/20 px-3 py-1.5 rounded-lg text-xs font-bold shadow-sm">
+                              {tag}
+                            </span>
+                          ))}
+                        </div>
+                      );
+                    })()}
+                  </div>
                </div>
              )}
 
@@ -1704,49 +1782,66 @@ export function PosStudies() {
                                             
                                             <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 pb-20">
                                               <div className="lg:col-span-2 flex flex-col h-[65vh] lg:h-auto lg:min-h-[600px] relative">
-                                                {activeTopicVideo && (
-                                                  <div className="mb-4 rounded-xl overflow-hidden bg-black border border-white/5 shadow-inner flex flex-col animate-in fade-in zoom-in-95 duration-300">
-                                                    <div className="flex items-center justify-between p-2 bg-[#1A1A1E] border-b border-white/5">
-                                                      <span className="text-[10px] font-bold text-white uppercase tracking-widest px-2 truncate flex-1">{activeTopicVideo.title}</span>
-                                                      <div className="flex items-center gap-1">
-                                                        <button onClick={() => {
-                                                          window.dispatchEvent(new CustomEvent('global-pip', { detail: activeTopicVideo }));
-                                                          setActiveTopicVideo(null);
-                                                        }} className="p-1.5 bg-cyan-500/10 hover:bg-cyan-500/20 text-cyan-400 rounded-lg transition-colors flex items-center gap-1" title="Minimizar (PiP)">
-                                                          <Minimize2 className="size-3" />
-                                                        </button>
-                                                        <button onClick={() => setActiveTopicVideo(null)} className="p-1.5 bg-rose-500/10 hover:bg-rose-500/20 text-rose-500 rounded-lg transition-colors" title="Fechar Vídeo">
-                                                          <X className="size-3" />
-                                                        </button>
+                                                {activeTopicVideos.length > 0 && (
+                                                  <div className={cn("grid gap-4 mb-4", activeTopicVideos.length > 1 ? "grid-cols-2" : "grid-cols-1")}>
+                                                    {activeTopicVideos.map((video, idx) => (
+                                                      <div key={idx} className="rounded-xl overflow-hidden bg-black border border-white/5 shadow-inner flex flex-col animate-in fade-in zoom-in-95 duration-300">
+                                                        <div className="flex items-center justify-between p-2 bg-[#1A1A1E] border-b border-white/5">
+                                                          <span className="text-[10px] font-bold text-white uppercase tracking-widest px-2 truncate flex-1">{video.title}</span>
+                                                          <div className="flex items-center gap-1">
+                                                            <button onClick={() => {
+                                                              const isAudio = video.url.toLowerCase().endsWith('.mp3') || (video.title || "").toLowerCase().endsWith('.mp3') || (video.url.includes('drive.google.com') && (video.title || "").toLowerCase().includes('audio'));
+                                                              window.dispatchEvent(new CustomEvent(isAudio ? 'global-audio' : 'global-pip', { detail: video }));
+                                                              setActiveTopicVideos(prev => prev.filter((_, i) => i !== idx));
+                                                            }} className="p-1.5 bg-cyan-500/10 hover:bg-cyan-500/20 text-cyan-400 rounded-lg transition-colors flex items-center gap-1" title="Minimizar (PiP)">
+                                                              <Minimize2 className="size-3" />
+                                                            </button>
+                                                            <button onClick={() => setActiveTopicVideos(prev => prev.filter((_, i) => i !== idx))} className="p-1.5 bg-rose-500/10 hover:bg-rose-500/20 text-rose-500 rounded-lg transition-colors" title="Fechar Vídeo">
+                                                              <X className="size-3" />
+                                                            </button>
+                                                          </div>
+                                                        </div>
+                                                        <div className="w-full aspect-video relative bg-black flex items-center justify-center">
+                                                          {(() => {
+                                                             const u = video.url.toLowerCase();
+                                                             const t = (video.title || "").toLowerCase();
+                                                             let finalUrl = video.url;
+                                                             const isDrive = finalUrl.includes('drive.google.com');
+                                                             
+                                                             if (isDrive && finalUrl.includes('/view')) {
+                                                                finalUrl = finalUrl.replace(/\/view.*/, '/preview');
+                                                             }
+                                                             
+                                                             const isAudio = u.endsWith('.mp3') || t.endsWith('.mp3') || (isDrive && (t.includes('audio') || u.includes('audio')));
+                                                             
+                                                             if (isAudio && !isDrive) {
+                                                               return (
+                                                                 <div className="w-full h-full flex flex-col items-center justify-center gap-6 bg-gradient-to-b from-[#111] to-black">
+                                                                    <div className="size-24 rounded-full bg-cyan-500/10 border border-cyan-500/30 flex items-center justify-center shadow-[0_0_30px_rgba(6,182,212,0.1)]">
+                                                                      <Music className="size-10 text-cyan-400" />
+                                                                    </div>
+                                                                    <CustomAudioPlayer src={finalUrl} className="w-full max-w-md" />
+                                                                 </div>
+                                                               );
+                                                             }
+                                                             
+                                                             if (isDrive || u.endsWith('.pdf')) {
+                                                               return (
+                                                                  <iframe src={finalUrl} className="absolute inset-0 w-full h-full border-0 bg-white" allow="autoplay; fullscreen; picture-in-picture" />
+                                                               );
+                                                             }
+                                                             
+                                                             return (
+                                                               <iframe 
+                                                                 src={getSafeEmbedUrl(finalUrl, video.extra)}
+                                                                 className="absolute inset-0 w-full h-full border-0"
+                                                                 allow="autoplay; fullscreen; picture-in-picture"
+                                                               ></iframe>
+                                                             );
+                                                          })()}
+                                                        </div>
                                                       </div>
-                                                    </div>
-                                                    <div className="w-full aspect-video relative bg-black flex items-center justify-center">
-                                                      {(() => {
-                                                         const u = activeTopicVideo.url.toLowerCase();
-                                                         if (u.endsWith('.mp3') || (u.includes('drive.google.com') && u.includes('audio'))) {
-                                                           return (
-                                                             <div className="w-full h-full flex flex-col items-center justify-center gap-6 bg-gradient-to-b from-[#111] to-black">
-                                                                <div className="size-24 rounded-full bg-cyan-500/10 border border-cyan-500/30 flex items-center justify-center shadow-[0_0_30px_rgba(6,182,212,0.1)]">
-                                                                  <Music className="size-10 text-cyan-400" />
-                                                                </div>
-                                                                <audio controls src={activeTopicVideo.url} className="w-full max-w-sm outline-none" />
-                                                             </div>
-                                                           );
-                                                         }
-                                                         if (u.endsWith('.pdf')) {
-                                                           return (
-                                                              <iframe src={activeTopicVideo.url} className="absolute inset-0 w-full h-full border-0 bg-white" />
-                                                           );
-                                                         }
-                                                         return (
-                                                           <iframe 
-                                                             src={getSafeEmbedUrl(activeTopicVideo.url, activeTopicVideo.extra)}
-                                                             className="absolute inset-0 w-full h-full border-0"
-                                                             allow="autoplay; fullscreen; picture-in-picture"
-                                                           ></iframe>
-                                                         );
-                                                      })()}
-                                                    </div>
+                                                    ))}
                                                   </div>
                                                 )}
                                                 <div className="flex flex-col sm:flex-row sm:items-center justify-between mb-2 gap-2">
@@ -1832,17 +1927,45 @@ export function PosStudies() {
                                               <div className="space-y-6 bg-black/20 p-5 rounded-3xl border border-white/5 h-fit">
                                                 <div>
                                                   <label className="text-[10px] text-[#A1A1AA] uppercase tracking-widest font-bold mb-1.5 block">Tags da Aula</label>
-                                                  <input 
-                                                    placeholder="Ex: grammar, business, reading"
-                                                    value={localTags}
-                                                    onChange={(e) => setLocalTags(e.target.value)}
-                                                    onBlur={() => {
-                                                      const updated = [...modules];
-                                                      updated[mIdx].topics[tIdx].tags = localTags;
-                                                      updateCourse(selectedCourse.id, { next_topics: JSON.stringify(updated) }, false);
-                                                    }}
-                                                    className="w-full bg-[#1A1A1E] border border-[rgba(255,255,255,0.04)] rounded-xl p-3 text-sm text-white focus:outline-none focus:border-cyan-500/50 transition-colors"
-                                                  />
+                                                  <div className="w-full bg-[#1A1A1E] border border-[rgba(255,255,255,0.04)] rounded-xl p-2 min-h-[46px] flex flex-wrap items-center gap-2 focus-within:border-cyan-500/50 transition-colors">
+                                                    {localTags.split(',').map(t => t.trim()).filter(Boolean).map((tag, idx) => (
+                                                      <span key={idx} className="bg-cyan-500/10 text-cyan-400 px-2 py-1 rounded-md text-xs font-bold flex items-center gap-1.5 border border-cyan-500/20">
+                                                        {tag}
+                                                        <button 
+                                                          onClick={() => {
+                                                            const newTags = localTags.split(',').map(t => t.trim()).filter(Boolean).filter((_, i) => i !== idx).join(', ');
+                                                            setLocalTags(newTags);
+                                                            const updated = [...modules];
+                                                            updated[mIdx].topics[tIdx].tags = newTags;
+                                                            updateCourse(selectedCourse.id, { next_topics: JSON.stringify(updated) }, false);
+                                                          }}
+                                                          className="hover:text-white transition-colors"
+                                                        >
+                                                          <X className="size-3" />
+                                                        </button>
+                                                      </span>
+                                                    ))}
+                                                    <input 
+                                                      placeholder={localTags ? "Adicionar..." : "Digite a tag e aperte Enter..."}
+                                                      value={tagInput}
+                                                      onChange={(e) => setTagInput(e.target.value)}
+                                                      onKeyDown={(e) => {
+                                                        if (e.key === 'Enter' && tagInput.trim()) {
+                                                          e.preventDefault();
+                                                          const currentTags = localTags.split(',').map(t => t.trim()).filter(Boolean);
+                                                          if (!currentTags.includes(tagInput.trim())) {
+                                                            const newTags = [...currentTags, tagInput.trim()].join(', ');
+                                                            setLocalTags(newTags);
+                                                            setTagInput("");
+                                                            const updated = [...modules];
+                                                            updated[mIdx].topics[tIdx].tags = newTags;
+                                                            updateCourse(selectedCourse.id, { next_topics: JSON.stringify(updated) }, false);
+                                                          }
+                                                        }
+                                                      }}
+                                                      className="flex-1 min-w-[120px] bg-transparent border-none focus:outline-none focus:ring-0 text-sm text-white p-1 placeholder:text-zinc-600"
+                                                    />
+                                                  </div>
                                                 </div>
 
                                                 <div>
@@ -1917,8 +2040,8 @@ export function PosStudies() {
                                                         <button onClick={(e) => {
                                                            e.preventDefault();
                                                            const u = topic.source.toLowerCase();
-                                                           if (u.endsWith('.mp3') || u.endsWith('.pdf') || (u.includes('drive.google.com') && u.includes('audio'))) {
-                                                             setActiveTopicVideo({ refType: 'video', url: topic.source, title: "Anexo Antigo" });
+                                                           if (u.endsWith('.mp3') || u.endsWith('.pdf') || u.endsWith('.mp4') || u.includes('drive.google.com') || u.includes('youtu')) {
+                                                             setActiveTopicVideos(prev => prev.some(v => v.url === topic.source) ? prev : [...prev, { refType: 'video', url: topic.source, title: "Anexo Antigo", extra: { mIdx, tIdx, isSource: true } }]);
                                                            } else {
                                                              window.open(topic.source.startsWith('http') ? topic.source : `https://${topic.source}`, '_blank');
                                                            }
@@ -1942,8 +2065,8 @@ export function PosStudies() {
                                                         <button onClick={(e) => {
                                                            e.preventDefault();
                                                            const u = mat.url.toLowerCase();
-                                                           if (u.endsWith('.mp3') || u.endsWith('.pdf') || (u.includes('drive.google.com') && u.includes('audio'))) {
-                                                             setActiveTopicVideo({ refType: 'video', url: mat.url, title: mat.name || "Material Anexo" });
+                                                           if (u.endsWith('.mp3') || u.endsWith('.pdf') || u.endsWith('.mp4') || u.includes('drive.google.com') || u.includes('youtu') || n.endsWith('.pdf') || n.endsWith('.mp3') || n.endsWith('.mp4')) {
+                                                             setActiveTopicVideos(prev => prev.some(v => v.url === mat.url) ? prev : [...prev, { refType: 'video', url: mat.url, title: mat.name || "Material Anexo", extra: { mIdx, tIdx, mArrayIdx: i, isMaterial: true } }]);
                                                            } else {
                                                              window.open(mat.url.startsWith('http') ? mat.url : `https://${mat.url}`, '_blank');
                                                            }

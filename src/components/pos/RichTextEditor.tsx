@@ -19,7 +19,7 @@ import {
   Book, Play, X, ChevronRight, FolderOpen, Palette, Type
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useRef } from 'react';
 
 const ReferenceComponent = (props: any) => {
   const { node } = props;
@@ -143,7 +143,9 @@ export function RichTextEditor({ content, onChange, placeholder, availableBooks,
       }
     },
     onUpdate: ({ editor }) => {
-      onChange(editor.getHTML());
+      const html = editor.getHTML();
+      lastUpdateRef.current = html;
+      onChange(html);
       
       const { state } = editor;
       const { selection } = state;
@@ -174,9 +176,16 @@ export function RichTextEditor({ content, onChange, placeholder, availableBooks,
     },
   });
 
+  const lastUpdateRef = useRef(content);
+
   useEffect(() => {
     if (editor && content !== editor.getHTML()) {
-      editor.commands.setContent(content);
+      // Only update content from props if the user is NOT actively typing
+      // This prevents cursor jumping and text loss from stale React state updates
+      if (!editor.isFocused) {
+        editor.commands.setContent(content, false);
+        lastUpdateRef.current = content;
+      }
     }
   }, [content, editor]);
 
