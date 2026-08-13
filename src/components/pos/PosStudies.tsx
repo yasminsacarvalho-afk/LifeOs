@@ -1913,7 +1913,7 @@ export function PosStudies() {
                                                   </div>
                                                 </div>
                                                 <div 
-                                                  className="rounded-2xl overflow-hidden border border-white/5 focus-within:border-cyan-500/50 focus-within:shadow-[0_0_20px_rgba(6,182,212,0.1)] transition-all bg-[#0A0A0C] flex-1 flex flex-col group relative"
+                                                  className="rounded-2xl overflow-hidden border border-white/5 focus-within:border-cyan-500/50 focus-within:shadow-[0_0_20px_rgba(6,182,212,0.1)] transition-all bg-[#0A0A0C] flex-1 flex flex-col group relative min-h-[400px]"
                                                   onBlur={() => {
                                                     const updated = [...modules];
                                                     updated[mIdx].topics[tIdx].notes = localNotes;
