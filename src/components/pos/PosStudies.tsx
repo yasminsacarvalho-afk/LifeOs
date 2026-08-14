@@ -47,7 +47,12 @@ export function PosStudies() {
   const { courses, sessions, loading, addCourse, updateCourse, deleteCourse, addSession } = usePosStudies();
   const { books, sessions: readingSessions } = usePosLibrary();
   const [activeTab, setActiveTab] = useState("Visão Geral");
-  const [selectedCourseId, setSelectedCourseId] = useState<string | null>(null);
+  const [selectedCourseId, setSelectedCourseId] = useState<string | null>(() => {
+    try { const saved = localStorage.getItem('pos_selectedCourseId'); return saved ? JSON.parse(saved) : null; } catch (e) { return null; }
+  });
+  const [desktopFocusMode, setDesktopFocusMode] = useState<"both" | "media" | "notes">(() => {
+    try { const saved = localStorage.getItem('pos_desktopFocusMode'); return saved ? JSON.parse(saved) : "both"; } catch (e) { return "both"; }
+  });
   const [courseTab, setCourseTab] = useState("Módulos");
   const [activeModuleIndex, setActiveModuleIndex] = useState<number | null>(null);
 
@@ -122,6 +127,10 @@ export function PosStudies() {
   const [activeTopicTimer, setActiveTopicTimer] = useState<string | number | null>(null);
   const [elapsedSeconds, setElapsedSeconds] = useState(0);
   const [isTimerPaused, setIsTimerPaused] = useState(false);
+  const [isPomodoroMode, setIsPomodoroMode] = useState(() => {
+    try { const saved = localStorage.getItem('pos_isPomodoroMode'); return saved ? JSON.parse(saved) : false; } catch (e) { return false; }
+  });
+  const [pomodoroTargetSeconds, setPomodoroTargetSeconds] = useState(25 * 60); // 25 min default
   const [localNotes, setLocalNotes] = useState("");
   const [localTags, setLocalTags] = useState("");
   const [tagInput, setTagInput] = useState("");
@@ -131,7 +140,39 @@ export function PosStudies() {
   useEffect(() => { localStorage.setItem('pos_isSidebarOpen', JSON.stringify(isSidebarOpen)); }, [isSidebarOpen]);
   useEffect(() => { localStorage.setItem('pos_isWorkspaceHeaderOpen', JSON.stringify(isWorkspaceHeaderOpen)); }, [isWorkspaceHeaderOpen]);
   useEffect(() => { localStorage.setItem('pos_activeVideotecaVideos', JSON.stringify(activeVideotecaVideos)); }, [activeVideotecaVideos]);
+  useEffect(() => { localStorage.setItem('pos_isPomodoroMode', JSON.stringify(isPomodoroMode)); }, [isPomodoroMode]);
+  
+  useEffect(() => { 
+    if (selectedCourseId) {
+      localStorage.setItem('pos_selectedCourseId', JSON.stringify(selectedCourseId));
+    } else {
+      localStorage.removeItem('pos_selectedCourseId');
+    }
+  }, [selectedCourseId]);
 
+  useEffect(() => { localStorage.setItem('pos_desktopFocusMode', JSON.stringify(desktopFocusMode)); }, [desktopFocusMode]);
+
+  const syncChannelRef = React.useRef<BroadcastChannel | null>(null);
+
+  // Sync workspace notes across tabs
+  useEffect(() => {
+    const channel = new BroadcastChannel('workspace_sync');
+    syncChannelRef.current = channel;
+    channel.onmessage = (event) => {
+      const { type, payload } = event.data;
+      if (type === 'SYNC_NOTES' && payload.topicId === expandedTopicId) {
+        setLocalNotes(payload.notes);
+      }
+    };
+    return () => {
+      channel.close();
+      if (syncChannelRef.current === channel) {
+        syncChannelRef.current = null;
+      }
+    };
+  }, [expandedTopicId]);
+
+  // Derived state
   const selectedCourse = courses.find(c => c.id === selectedCourseId);
 
   const availableVideos = (() => {
@@ -229,11 +270,23 @@ export function PosStudies() {
     let interval: NodeJS.Timeout;
     if (activeTopicTimer !== null && !isTimerPaused) {
       interval = setInterval(() => {
-        setElapsedSeconds(prev => prev + 1);
+        setElapsedSeconds(prev => {
+          const next = prev + 1;
+          if (isPomodoroMode && next >= pomodoroTargetSeconds) {
+            // Pomodoro terminou!
+            setIsTimerPaused(true);
+            try {
+              const audio = new Audio('/notification.mp3');
+              audio.play().catch(e => console.log('Audio play failed', e));
+            } catch(e) {}
+            toast.success("🍅 Pomodoro concluído! Hora de uma pausa.", { icon: "🎉" });
+          }
+          return next;
+        });
       }, 1000);
     }
     return () => clearInterval(interval);
-  }, [activeTopicTimer, isTimerPaused]);
+  }, [activeTopicTimer, isTimerPaused, isPomodoroMode, pomodoroTargetSeconds]);
 
   const initialCourseState = {
     title: "", knowledge_area: "Tecnologia", category: "Curso", status: "fila", platform: "", instructor: "", course_url: "",
@@ -1737,30 +1790,20 @@ export function PosStudies() {
                                       
                                       {/* EXPANDED WORKSPACE MODAL */}
                                       {expandedTopicId === (topic.id || tIdx) && (
-                                        <div className="fixed inset-0 z-[100] flex items-center justify-center p-2 md:p-4 bg-black/90 backdrop-blur-xl animate-in fade-in zoom-in-95 duration-200" onClick={(e) => { e.stopPropagation(); setExpandedTopicId(null); }}>
-                                          <div className="bg-[#0A0A0C] border border-white/5 rounded-3xl p-3 md:p-8 w-full max-w-[98vw] lg:max-w-[90vw] h-[98vh] flex flex-col gap-3 md:gap-6 shadow-2xl relative overflow-hidden shadow-cyan-900/20" onClick={(e) => e.stopPropagation()}>
+                                        <div className="fixed inset-0 z-[100] flex items-center justify-center p-0 lg:p-4 bg-black/90 backdrop-blur-xl animate-in fade-in zoom-in-95 duration-200" onClick={(e) => { e.stopPropagation(); setExpandedTopicId(null); }}>
+                                          <div className="bg-[#0A0A0C] border-0 lg:border border-white/5 rounded-none lg:rounded-3xl p-3 lg:p-8 w-full max-w-[100vw] lg:max-w-[90vw] h-[100dvh] lg:h-[95vh] flex flex-col gap-3 lg:gap-6 shadow-2xl relative overflow-hidden shadow-cyan-900/20" onClick={(e) => e.stopPropagation()}>
                                             
                                             <div className="absolute top-0 left-0 w-full h-32 bg-gradient-to-b from-cyan-900/20 to-transparent pointer-events-none rounded-t-3xl"></div>
 
                                             {/* Header do Modal */}
-                                            <div className={cn("flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-white/5 relative z-10 transition-all duration-300", isWorkspaceHeaderOpen ? "pb-6" : "pb-3 mt-[-10px]")}>
-                                              {isWorkspaceHeaderOpen ? (
+                                            <div className={cn("flex flex-col sm:flex-row sm:items-center justify-between gap-4 relative z-10 transition-all duration-300", isWorkspaceHeaderOpen ? "pb-6 border-b border-white/5" : "pb-0 mb-2 justify-end")}>
+                                              {isWorkspaceHeaderOpen && (
                                                 <div className="animate-in fade-in slide-in-from-top-2 duration-300">
                                                   <div className="flex items-center gap-3 mb-2">
                                                      <span className="px-2 py-1 bg-cyan-500/10 text-cyan-400 text-[10px] uppercase font-black tracking-widest rounded border border-cyan-500/20 flex items-center gap-1.5 shadow-[0_0_10px_rgba(6,182,212,0.15)]"><Layers className="size-3" /> WORKSPACE</span>
                                                      <span className="text-[10px] text-[#A1A1AA] font-bold uppercase tracking-widest flex items-center gap-1.5"><FolderOpen className="size-3" /> {mod.title}</span>
                                                   </div>
                                                   <h2 className="text-2xl md:text-3xl font-black text-white tracking-tight drop-shadow-md">{topic.title}</h2>
-                                                </div>
-                                              ) : (
-                                                <div className="flex items-center gap-3 animate-in fade-in slide-in-from-left-2 duration-300">
-                                                  <span className="px-2 py-1 bg-cyan-500/10 text-cyan-400 text-[10px] uppercase font-black tracking-widest rounded border border-cyan-500/20"><Layers className="size-3" /></span>
-                                                  <span className="text-sm font-bold text-white truncate max-w-[200px] sm:max-w-[400px]">{topic.title}</span>
-                                                  {activeTopicTimer === (topic.id || tIdx) && (
-                                                    <span className={cn("text-[10px] font-mono font-bold tracking-wider px-2 py-1 bg-black/40 rounded-md border border-white/5", isTimerPaused ? "text-[#71717A] animate-pulse" : "text-cyan-400")}>
-                                                      {String(Math.floor(elapsedSeconds / 3600)).padStart(2, '0')}:{String(Math.floor((elapsedSeconds % 3600) / 60)).padStart(2, '0')}:{String(elapsedSeconds % 60).padStart(2, '0')}
-                                                    </span>
-                                                  )}
                                                 </div>
                                               )}
                                               <div className="flex flex-wrap items-center gap-2 sm:gap-3 w-full sm:w-auto mt-4 sm:mt-0 justify-end">
@@ -1769,10 +1812,12 @@ export function PosStudies() {
                                                     {activeTopicTimer === (topic.id || tIdx) ? (
                                                       <div className="flex flex-wrap items-center justify-center gap-2 bg-black/40 p-1.5 rounded-2xl sm:rounded-full border border-white/5 backdrop-blur-md w-full sm:w-auto">
                                                         <div className="px-4 py-1.5 bg-cyan-900/30 rounded-full flex items-center justify-center min-w-[95px] shadow-[inset_0_0_10px_rgba(6,182,212,0.1)]">
-                                                           <span className={cn("text-lg font-mono font-bold tracking-wider", isTimerPaused ? "text-[#71717A] animate-pulse" : "text-cyan-400 drop-shadow-[0_0_8px_rgba(6,182,212,0.5)]")}>
-                                                             {String(Math.floor(elapsedSeconds / 3600)).padStart(2, '0')}:
-                                                             {String(Math.floor((elapsedSeconds % 3600) / 60)).padStart(2, '0')}:
-                                                             {String(elapsedSeconds % 60).padStart(2, '0')}
+                                                           <span className={cn("text-lg font-mono font-bold tracking-wider", isTimerPaused ? "text-[#71717A] animate-pulse" : (isPomodoroMode ? "text-orange-400 drop-shadow-[0_0_8px_rgba(251,146,60,0.5)]" : "text-cyan-400 drop-shadow-[0_0_8px_rgba(6,182,212,0.5)]"))}>
+                                                             {isPomodoroMode ? (
+                                                               `${String(Math.floor(Math.max(0, pomodoroTargetSeconds - elapsedSeconds) / 60)).padStart(2, '0')}:${String(Math.max(0, pomodoroTargetSeconds - elapsedSeconds) % 60).padStart(2, '0')}`
+                                                             ) : (
+                                                               `${String(Math.floor(elapsedSeconds / 3600)).padStart(2, '0')}:${String(Math.floor((elapsedSeconds % 3600) / 60)).padStart(2, '0')}:${String(elapsedSeconds % 60).padStart(2, '0')}`
+                                                             )}
                                                            </span>
                                                         </div>
                                                         <button onClick={() => setIsTimerPaused(!isTimerPaused)} className="p-2.5 hover:bg-white/10 rounded-full text-white transition-colors" title={isTimerPaused ? "Retomar" : "Pausar"}>
@@ -1805,18 +1850,39 @@ export function PosStudies() {
                                                         </button>
                                                       </div>
                                                     ) : (
-                                                      <button onClick={() => {
-                                                         setActiveTopicTimer(topic.id || tIdx);
-                                                         setElapsedSeconds(0);
-                                                         setIsTimerPaused(false);
-                                                      }} className="px-5 py-2.5 bg-cyan-500 hover:bg-cyan-400 text-black rounded-full text-sm font-bold flex items-center justify-center gap-2 shadow-[0_0_15px_rgba(6,182,212,0.3)] transition-all">
-                                                        <Play className="size-4 fill-black" /> Iniciar Sessão
-                                                      </button>
+                                                      <div className="flex flex-wrap items-center justify-start sm:justify-end gap-2 w-full sm:w-auto">
+                                                        <button onClick={() => {
+                                                           setActiveTopicTimer(topic.id || tIdx);
+                                                           setElapsedSeconds(0);
+                                                           setIsTimerPaused(false);
+                                                        }} className={cn("px-5 py-2.5 hover:brightness-110 text-black rounded-full text-sm font-bold flex items-center justify-center gap-2 transition-all", isPomodoroMode ? "bg-orange-500 shadow-[0_0_15px_rgba(249,115,22,0.3)]" : "bg-cyan-500 shadow-[0_0_15px_rgba(6,182,212,0.3)]")}>
+                                                          <Play className="size-4 fill-black" /> Iniciar Sessão
+                                                        </button>
+                                                        <button 
+                                                          onClick={() => setIsPomodoroMode(!isPomodoroMode)}
+                                                          className={cn("px-3 py-2.5 rounded-full text-xs font-bold transition-colors border", isPomodoroMode ? "bg-orange-500/10 text-orange-400 border-orange-500/20" : "bg-white/5 text-[#A1A1AA] border-white/5 hover:text-white")}
+                                                          title="Alternar entre Timer Crescente e Pomodoro (25m)"
+                                                        >
+                                                          {isPomodoroMode ? "🍅 Pomodoro" : "⏱️ Timer"}
+                                                        </button>
+                                                      </div>
                                                     )}
                                                   </div>
                                                 )}
                                                   
                                                 <div className="flex items-center gap-2 ml-auto sm:ml-0">
+                                                  {/* FOCUS MODE */}
+                                                  {isWorkspaceHeaderOpen && (
+                                                    <div className="hidden lg:flex items-center gap-1 bg-[#1A1A1E] p-1 rounded-xl border border-white/5 mr-2 animate-in fade-in duration-300">
+                                                      <button onClick={() => setDesktopFocusMode("media")} className={cn("px-3 py-1.5 rounded-lg text-[10px] font-bold uppercase tracking-widest transition-colors", desktopFocusMode === "media" ? "bg-cyan-500/20 text-cyan-400" : "text-[#71717A] hover:text-white")} title="Modo Foco: Apenas Mídia">Mídia</button>
+                                                      <button onClick={() => setDesktopFocusMode("both")} className={cn("px-3 py-1.5 rounded-lg text-[10px] font-bold uppercase tracking-widest transition-colors", desktopFocusMode === "both" ? "bg-white/10 text-white" : "text-[#71717A] hover:text-white")} title="Visão Padrão">Dividido</button>
+                                                      <button onClick={() => setDesktopFocusMode("notes")} className={cn("px-3 py-1.5 rounded-lg text-[10px] font-bold uppercase tracking-widest transition-colors", desktopFocusMode === "notes" ? "bg-purple-500/20 text-purple-400" : "text-[#71717A] hover:text-white")} title="Modo Foco: Apenas Anotações">Anotações</button>
+                                                      <div className="w-px h-4 bg-white/10 mx-1"></div>
+                                                      <button onClick={() => window.open(window.location.href, '_blank')} className="px-3 py-1.5 rounded-lg text-[10px] font-bold uppercase tracking-widest text-[#71717A] hover:text-white transition-colors flex items-center gap-1.5" title="Abrir Workspace em Nova Aba">
+                                                        <ExternalLink className="size-3" /> Pop-out
+                                                      </button>
+                                                    </div>
+                                                  )}
                                                   <button onClick={() => setIsWorkspaceHeaderOpen(!isWorkspaceHeaderOpen)} className="p-2 bg-white/5 hover:bg-white/10 rounded-full transition-colors text-white backdrop-blur-md" title={isWorkspaceHeaderOpen ? "Ocultar Cabeçalho" : "Mostrar Cabeçalho"}>
                                                     {isWorkspaceHeaderOpen ? <ChevronUp className="size-4" /> : <ChevronDown className="size-4" />}
                                                   </button>
@@ -1834,7 +1900,7 @@ export function PosStudies() {
                                             <div className="flex-1 min-h-0 w-full pb-0 md:pb-6 flex flex-col lg:flex-row gap-6">
                                               <div className={cn("flex-1 flex-col relative h-full gap-4 overflow-y-auto custom-scrollbar pr-2 lg:flex", (mobileWorkspaceTab === "media" || mobileWorkspaceTab === "notes") ? "flex" : "hidden lg:flex")}>
                                                 {activeTopicVideos.length > 0 ? (
-                                                  <div className={cn("flex-col md:flex-row w-full gap-4 overflow-x-auto min-h-[300px] pb-2 shrink-0 lg:flex", mobileWorkspaceTab === "media" ? "flex" : "hidden lg:flex")}>
+                                                  <div className={cn("flex-col md:flex-row w-full gap-4 overflow-x-auto min-h-[300px] pb-2 shrink-0 lg:flex", mobileWorkspaceTab === "media" ? "flex" : "hidden", desktopFocusMode === "notes" ? "lg:hidden" : "lg:flex")}>
                                                     {activeTopicVideos.map((video, idx) => (
                                                       
                                                         <div key={`video-${idx}`} className="flex-1 rounded-xl overflow-hidden bg-black border border-white/5 shadow-inner flex flex-col animate-in fade-in zoom-in-95 duration-300 min-w-[300px] shrink-0">
@@ -1930,13 +1996,13 @@ export function PosStudies() {
                                                     ))}
                                                   </div>
                                                 ) : (
-                                                  <div className={cn("flex-col items-center justify-center p-8 text-center text-[#A1A1AA] bg-[#1A1A1E] border border-dashed border-white/10 rounded-2xl w-full min-h-[150px] shrink-0", mobileWorkspaceTab === "media" ? "flex lg:hidden" : "hidden")}>
+                                                  <div className={cn("flex-col items-center justify-center p-8 text-center text-[#A1A1AA] bg-[#1A1A1E] border border-dashed border-white/10 rounded-2xl w-full min-h-[150px] shrink-0", mobileWorkspaceTab === "media" ? "flex lg:hidden" : "hidden", desktopFocusMode === "notes" ? "lg:hidden" : "")}>
                                                     <Video className="size-8 mb-2 opacity-50 mx-auto" />
                                                     <p className="text-xs font-bold">Nenhuma mídia anexa.</p>
                                                     <p className="text-[10px] mt-1">Abra os "Recursos" para reproduzir vídeos, PDFs ou músicas.</p>
                                                   </div>
                                                 )}
-                                                <div className={cn("flex flex-col sm:flex-row sm:items-center justify-between mb-2 gap-2", mobileWorkspaceTab === "notes" ? "flex" : "hidden lg:flex")}>
+                                                <div className={cn("flex flex-col sm:flex-row sm:items-center justify-between mb-2 gap-2", mobileWorkspaceTab === "notes" ? "flex" : "hidden", desktopFocusMode === "media" ? "lg:hidden" : "lg:flex")}>
                                                   <label className="text-[10px] uppercase tracking-widest text-[#71717A] font-bold flex items-center gap-2">
                                                     <Edit2 className="size-3 text-purple-500" /> Anotações / Resumo (Salvas Automático)
                                                   </label>
@@ -1999,7 +2065,7 @@ export function PosStudies() {
                                                   </div>
                                                 </div>
                                                 <div 
-                                                  className={cn("rounded-2xl overflow-hidden border border-white/5 focus-within:border-cyan-500/50 focus-within:shadow-[0_0_20px_rgba(6,182,212,0.1)] transition-all bg-[#0A0A0C] flex-1 flex-col group relative min-h-[400px] lg:flex", mobileWorkspaceTab === "notes" ? "flex" : "hidden lg:flex")}
+                                                  className={cn("rounded-2xl overflow-hidden border border-white/5 focus-within:border-cyan-500/50 focus-within:shadow-[0_0_20px_rgba(6,182,212,0.1)] transition-all bg-[#0A0A0C] flex-1 flex-col group relative min-h-[400px] lg:flex", mobileWorkspaceTab === "notes" ? "flex" : "hidden", desktopFocusMode === "media" ? "lg:hidden" : "lg:flex")}
                                                   onBlur={() => {
                                                     const updated = [...modules];
                                                     updated[mIdx].topics[tIdx].notes = localNotes;
@@ -2008,7 +2074,12 @@ export function PosStudies() {
                                                 >
                                                   <RichTextEditor 
                                                     content={localNotes}
-                                                    onChange={(content) => setLocalNotes(content)}
+                                                    onChange={(content) => {
+                                                      setLocalNotes(content);
+                                                      if (syncChannelRef.current) {
+                                                        syncChannelRef.current.postMessage({ type: 'SYNC_NOTES', payload: { topicId: expandedTopicId, notes: content } });
+                                                      }
+                                                    }}
                                                     availableBooks={availableBookQuotes.filter(q => (topic.books || []).includes(q.book_id))}
                                                     availableVideos={availableVideos}
                                                     availableMaterials={topic.materials || []}
@@ -2016,7 +2087,7 @@ export function PosStudies() {
                                                 </div>
                                               </div>
                                               {isSidebarOpen && (
-                                                <div className={cn("w-full lg:w-[350px] shrink-0 bg-black/20 p-5 rounded-3xl border border-white/5 overflow-y-auto custom-scrollbar animate-in slide-in-from-right-4 fade-in duration-300 lg:block", mobileWorkspaceTab === "resources" ? "block" : "hidden lg:block")}>
+                                                <div className={cn("w-full lg:w-[350px] shrink-0 bg-black/20 p-5 rounded-3xl border border-white/5 overflow-y-auto custom-scrollbar animate-in slide-in-from-right-4 fade-in duration-300 lg:block", mobileWorkspaceTab === "resources" ? "block" : "hidden", desktopFocusMode !== "both" ? "lg:hidden" : "lg:block")}>
                                                   <div className="flex items-center justify-between mb-6">
                                                     <div className="flex items-center gap-2 text-xs font-bold text-white">
                                                       <LayoutPanelLeft className="size-4 text-cyan-500" /> Recursos e Ferramentas
@@ -2381,7 +2452,7 @@ export function PosStudies() {
                                             </div>
                                             
                                             {/* MOBILE BOTTOM TABS */}
-                                            <div className="flex lg:hidden items-center justify-between bg-[#111113] p-1.5 rounded-2xl border border-white/5 mt-auto shrink-0 shadow-lg relative z-20 gap-2">
+                                            <div className="flex lg:hidden items-center justify-between bg-[#111113] p-1.5 rounded-t-2xl border-t border-white/5 mt-auto shrink-0 shadow-[0_-10px_40px_rgba(0,0,0,0.5)] sticky bottom-0 z-[100] gap-2 pb-safe">
                                               <button onClick={() => setMobileWorkspaceTab("media")} className={cn("flex-1 py-2 flex flex-col items-center justify-center gap-1 rounded-xl transition-colors", mobileWorkspaceTab === "media" ? "text-cyan-400 bg-cyan-400/10" : "text-[#71717A] hover:text-white hover:bg-white/5")}>
                                                 <Video className="size-5" />
                                                 <span className="text-[10px] font-bold uppercase tracking-widest">Mídia</span>

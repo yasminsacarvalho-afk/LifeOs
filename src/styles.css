@@ -380,3 +380,30 @@
   margin-top: 0.5em !important;
   margin-bottom: 0.5em !important;
 }
+.prose-notion pre {
+  background: #0A0A0C !important;
+  color: #E4E4E7 !important;
+  font-family: var(--font-mono);
+  padding: 1rem 1.2rem !important;
+  border-radius: 0.75rem !important;
+  border: 1px solid rgba(255, 255, 255, 0.05);
+  overflow-x: auto;
+  margin-top: 1em !important;
+  margin-bottom: 1em !important;
+  box-shadow: inset 0 0 20px rgba(0, 0, 0, 0.5);
+}
+.prose-notion pre code {
+  background: transparent !important;
+  color: inherit;
+  padding: 0;
+  border-radius: 0;
+  font-size: 0.85em;
+}
+.prose-notion code {
+  background: rgba(255, 255, 255, 0.1);
+  color: #38bdf8;
+  padding: 0.2em 0.4em;
+  border-radius: 4px;
+  font-size: 0.85em;
+  font-family: var(--font-mono);
+}

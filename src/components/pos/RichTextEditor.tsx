@@ -16,7 +16,7 @@ import {
   Heading1, Heading2, Heading3, List, ListOrdered, 
   CheckSquare, Highlighter, Link as LinkIcon, 
   AlignLeft, AlignCenter, AlignRight, AlignJustify, Minus,
-  Book, Play, X, ChevronRight, FolderOpen, Palette, Type
+  Book, Play, X, ChevronRight, FolderOpen, Palette, Type, Code
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useEffect, useState, useRef } from 'react';
@@ -145,7 +145,12 @@ export function RichTextEditor({ content, onChange, placeholder, availableBooks,
     onUpdate: ({ editor }) => {
       const html = editor.getHTML();
       lastUpdateRef.current = html;
-      onChange(html);
+      
+      // Debounce the onChange callback to prevent parent re-renders on every keystroke
+      if (debounceTimerRef.current) clearTimeout(debounceTimerRef.current);
+      debounceTimerRef.current = setTimeout(() => {
+        onChange(html);
+      }, 500);
       
       const { state } = editor;
       const { selection } = state;
@@ -177,6 +182,14 @@ export function RichTextEditor({ content, onChange, placeholder, availableBooks,
   });
 
   const lastUpdateRef = useRef(content);
+  const debounceTimerRef = useRef<NodeJS.Timeout | null>(null);
+
+  // Limpar timeout no unmount
+  useEffect(() => {
+    return () => {
+      if (debounceTimerRef.current) clearTimeout(debounceTimerRef.current);
+    };
+  }, []);
 
   useEffect(() => {
     if (editor && content !== editor.getHTML()) {
@@ -242,24 +255,25 @@ export function RichTextEditor({ content, onChange, placeholder, availableBooks,
     (m?.name || "").toLowerCase().includes(queryLower)
   ) || [];
   
-  const showMenu = slashMenu.visible && (filteredBooks.length > 0 || filteredVideos.length > 0 || filteredMaterials.length > 0 || activeStep !== 'menu');
+  const showMenu = slashMenu.visible;
 
   return (
-    <div className="w-full bg-[#1A1A1E] border border-[rgba(255,255,255,0.06)] rounded-xl overflow-hidden focus-within:border-rose-500 transition-colors relative">
-      <div className="flex flex-wrap gap-1 p-2 border-b border-[rgba(255,255,255,0.06)] bg-[#111113]/50">
+    <div className="w-full bg-[#1A1A1E] border border-[rgba(255,255,255,0.06)] rounded-xl overflow-hidden focus-within:border-rose-500 transition-colors relative flex flex-col h-full">
+      <div className="flex overflow-x-auto custom-scrollbar flex-nowrap items-center gap-1 p-2 border-b border-[rgba(255,255,255,0.06)] bg-[#111113]/50 shrink-0">
         <ToolbarButton onClick={() => editor.chain().focus().toggleHeading({ level: 1 }).run()} isActive={editor.isActive('heading', { level: 1 })} icon={Heading1} />
         <ToolbarButton onClick={() => editor.chain().focus().toggleHeading({ level: 2 }).run()} isActive={editor.isActive('heading', { level: 2 })} icon={Heading2} />
         <ToolbarButton onClick={() => editor.chain().focus().toggleHeading({ level: 3 }).run()} isActive={editor.isActive('heading', { level: 3 })} icon={Heading3} />
         
-        <div className="w-px h-5 bg-[#3F3F46] mx-1 self-center" />
+        <div className="w-px h-5 bg-[#3F3F46] mx-1 self-center shrink-0" />
         
         <ToolbarButton onClick={() => editor.chain().focus().toggleBold().run()} isActive={editor.isActive('bold')} icon={Bold} />
         <ToolbarButton onClick={() => editor.chain().focus().toggleItalic().run()} isActive={editor.isActive('italic')} icon={Italic} />
         <ToolbarButton onClick={() => editor.chain().focus().toggleUnderline().run()} isActive={editor.isActive('underline')} icon={UnderlineIcon} />
         <ToolbarButton onClick={() => editor.chain().focus().toggleStrike().run()} isActive={editor.isActive('strike')} icon={Strikethrough} />
+        <ToolbarButton onClick={() => editor.chain().focus().toggleCodeBlock().run()} isActive={editor.isActive('codeBlock')} icon={Code} />
         
         {/* Text Colors */}
-        <div className="flex gap-1.5 items-center px-1 border-r border-[#3F3F46] pr-2">
+        <div className="flex shrink-0 gap-1.5 items-center px-1 border-r border-[#3F3F46] pr-2">
           <Type className="size-3 text-[#A1A1AA] mr-1" />
           <button type="button" onClick={() => editor.chain().focus().setColor('#ef4444').run()} className={cn("size-3.5 rounded-full bg-[#ef4444] border border-black/20 hover:scale-110 transition-transform", editor.isActive('textStyle', { color: '#ef4444' }) && "ring-2 ring-white")} title="Texto Vermelho" />
           <button type="button" onClick={() => editor.chain().focus().setColor('#3b82f6').run()} className={cn("size-3.5 rounded-full bg-[#3b82f6] border border-black/20 hover:scale-110 transition-transform", editor.isActive('textStyle', { color: '#3b82f6' }) && "ring-2 ring-white")} title="Texto Azul" />
@@ -271,7 +285,7 @@ export function RichTextEditor({ content, onChange, placeholder, availableBooks,
         </div>
 
         {/* Highlights */}
-        <div className="flex gap-1.5 items-center px-1">
+        <div className="flex shrink-0 gap-1.5 items-center px-1">
           <Highlighter className="size-3 text-[#A1A1AA] mr-1" />
           <button type="button" onClick={() => editor.chain().focus().toggleHighlight({ color: '#fef08a' }).run()} className={cn("size-3.5 rounded-full bg-[#fef08a] border border-black/20 hover:scale-110 transition-transform", editor.isActive('highlight', { color: '#fef08a' }) && "ring-2 ring-white")} title="Marca-texto Amarelo" />
           <button type="button" onClick={() => editor.chain().focus().toggleHighlight({ color: '#bbf7d0' }).run()} className={cn("size-3.5 rounded-full bg-[#bbf7d0] border border-black/20 hover:scale-110 transition-transform", editor.isActive('highlight', { color: '#bbf7d0' }) && "ring-2 ring-white")} title="Marca-texto Verde" />
@@ -282,7 +296,7 @@ export function RichTextEditor({ content, onChange, placeholder, availableBooks,
           </button>
         </div>
         
-        <div className="w-px h-5 bg-[#3F3F46] mx-1 self-center" />
+        <div className="w-px h-5 bg-[#3F3F46] mx-1 self-center shrink-0" />
 
         {/* Fonts */}
         <select 
@@ -293,7 +307,7 @@ export function RichTextEditor({ content, onChange, placeholder, availableBooks,
                editor.chain().focus().unsetFontFamily().run();
              }
            }}
-           className="bg-transparent text-xs text-[#A1A1AA] hover:text-white outline-none border-none cursor-pointer px-1 h-8"
+           className="bg-transparent shrink-0 text-xs text-[#A1A1AA] hover:text-white outline-none border-none cursor-pointer px-1 h-8"
            title="Fonte"
         >
            <option value="" className="bg-[#111113]">Padrão</option>
@@ -303,14 +317,14 @@ export function RichTextEditor({ content, onChange, placeholder, availableBooks,
            <option value="'Comic Sans MS', 'Comic Sans', cursive" className="bg-[#111113]">Comic</option>
         </select>
         
-        <div className="w-px h-5 bg-[#3F3F46] mx-1 self-center" />
+        <div className="w-px h-5 bg-[#3F3F46] mx-1 self-center shrink-0" />
         
         <ToolbarButton onClick={() => editor.chain().focus().setTextAlign('left').run()} isActive={editor.isActive({ textAlign: 'left' })} icon={AlignLeft} />
         <ToolbarButton onClick={() => editor.chain().focus().setTextAlign('center').run()} isActive={editor.isActive({ textAlign: 'center' })} icon={AlignCenter} />
         <ToolbarButton onClick={() => editor.chain().focus().setTextAlign('right').run()} isActive={editor.isActive({ textAlign: 'right' })} icon={AlignRight} />
         <ToolbarButton onClick={() => editor.chain().focus().setTextAlign('justify').run()} isActive={editor.isActive({ textAlign: 'justify' })} icon={AlignJustify} />
         
-        <div className="w-px h-5 bg-[#3F3F46] mx-1 self-center" />
+        <div className="w-px h-5 bg-[#3F3F46] mx-1 self-center shrink-0" />
         
         <ToolbarButton onClick={() => editor.chain().focus().toggleBulletList().run()} isActive={editor.isActive('bulletList')} icon={List} />
         <ToolbarButton onClick={() => editor.chain().focus().toggleOrderedList().run()} isActive={editor.isActive('orderedList')} icon={ListOrdered} />
