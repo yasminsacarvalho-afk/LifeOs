@@ -7,7 +7,7 @@ import {
   ChevronDown, ChevronUp, Search, Filter, LayoutGrid, List as ListIcon,
   ChevronRight, BookMarked, Book, Sparkles, FileText, Library, CheckSquare,
   TrendingUp, BarChart2, Video, PenTool, LayoutTemplate, Layers, AlertCircle,
-  MoreVertical, Share2, Star, FolderOpen, ArrowLeft, Download, X, UploadCloud, Loader2, ExternalLink, Link as LinkIcon, Pause, XCircle, Edit2, Camera, Headphones, Music, CloudRain, Minimize2, Maximize2, ArrowUpRight, Tag, LayoutPanelLeft, LayoutPanelTop, GripVertical, GripHorizontal
+  MoreVertical, Share2, Star, FolderOpen, ArrowLeft, Download, X, UploadCloud, Loader2, ExternalLink, Link as LinkIcon, Pause, XCircle, Edit2, Camera, Headphones, Music, CloudRain, Minimize2, Maximize2, ArrowUpRight, Tag, LayoutPanelLeft, LayoutPanelTop, GripVertical, GripHorizontal, Settings2, MonitorPlay
 } from "lucide-react";
 import { format, isToday, parseISO } from "date-fns";
 import { ptBR } from "date-fns/locale";
@@ -69,7 +69,9 @@ export function PosStudies() {
   const [filterStatus, setFilterStatus] = useState("todos");
   const [filterArea, setFilterArea] = useState("todas");
   const [showFilterMenu, setShowFilterMenu] = useState(false);
-  const [expandedTopicId, setExpandedTopicId] = useState<number | string | null>(null);
+  const [expandedTopicId, setExpandedTopicId] = useState<number | string | null>(() => {
+    try { const saved = localStorage.getItem('pos_expandedTopicId'); return saved ? JSON.parse(saved) : null; } catch (e) { return null; }
+  });
   const [workspaceLayoutMode, setWorkspaceLayoutMode] = useState<"horizontal" | "vertical">("horizontal");
   const [isLoggingSession, setIsLoggingSession] = useState(false);
   const [newSession, setNewSession] = useState({
@@ -85,16 +87,29 @@ export function PosStudies() {
   const [isAddingVideoToChannel, setIsAddingVideoToChannel] = useState<number | null>(null);
   const [newVideoUrl, setNewVideoUrl] = useState('');
   const [newVideoTitle, setNewVideoTitle] = useState('');
-  const [activeTopicVideos, setActiveTopicVideos] = useState<any[]>([]);
-  const [isSidebarOpen, setIsSidebarOpen] = useState(true);
-  const [isWorkspaceHeaderOpen, setIsWorkspaceHeaderOpen] = useState(true);
+  const [activeTopicVideos, setActiveTopicVideos] = useState<any[]>(() => {
+    try { const saved = localStorage.getItem('pos_activeTopicVideos'); return saved ? JSON.parse(saved) : []; } catch (e) { return []; }
+  });
+  const [isSidebarOpen, setIsSidebarOpen] = useState(() => {
+    try { const saved = localStorage.getItem('pos_isSidebarOpen'); return saved !== null ? JSON.parse(saved) : true; } catch (e) { return true; }
+  });
+  const [isWorkspaceHeaderOpen, setIsWorkspaceHeaderOpen] = useState(() => {
+    try { const saved = localStorage.getItem('pos_isWorkspaceHeaderOpen'); return saved !== null ? JSON.parse(saved) : true; } catch (e) { return true; }
+  });
   
+  // Mobile Tab Navigation State for Workspace
+  const [mobileWorkspaceTab, setMobileWorkspaceTab] = useState<"media" | "notes" | "resources">("notes");
+
   // Videoteca Workspace States
-  const [activeVideotecaVideos, setActiveVideotecaVideos] = useState<any[]>([]); // max 2
+  const [activeVideotecaVideos, setActiveVideotecaVideos] = useState<any[]>(() => {
+    try { const saved = localStorage.getItem('pos_activeVideotecaVideos'); return saved ? JSON.parse(saved) : []; } catch (e) { return []; }
+  });
   const [videotecaNotes, setVideotecaNotes] = useState('');
   const [videotecaTags, setVideotecaTags] = useState<string[]>([]);
   const [newVideotecaTag, setNewVideotecaTag] = useState('');
   const [isSelectingSecondVideo, setIsSelectingSecondVideo] = useState(false);
+  const [activeSettingsTopicIdx, setActiveSettingsTopicIdx] = useState<number | null>(null);
+  const [activeSettingsVideotecaIdx, setActiveSettingsVideotecaIdx] = useState<number | null>(null);
 
   const [videoMetadata, setVideoMetadata] = useState<YouTubeVideoMetadata | null>(null);
   const [channelMetadata, setChannelMetadata] = useState<YouTubeChannelMetadata | null>(null);
@@ -110,6 +125,12 @@ export function PosStudies() {
   const [localNotes, setLocalNotes] = useState("");
   const [localTags, setLocalTags] = useState("");
   const [tagInput, setTagInput] = useState("");
+
+  useEffect(() => { localStorage.setItem('pos_expandedTopicId', JSON.stringify(expandedTopicId)); }, [expandedTopicId]);
+  useEffect(() => { localStorage.setItem('pos_activeTopicVideos', JSON.stringify(activeTopicVideos)); }, [activeTopicVideos]);
+  useEffect(() => { localStorage.setItem('pos_isSidebarOpen', JSON.stringify(isSidebarOpen)); }, [isSidebarOpen]);
+  useEffect(() => { localStorage.setItem('pos_isWorkspaceHeaderOpen', JSON.stringify(isWorkspaceHeaderOpen)); }, [isWorkspaceHeaderOpen]);
+  useEffect(() => { localStorage.setItem('pos_activeVideotecaVideos', JSON.stringify(activeVideotecaVideos)); }, [activeVideotecaVideos]);
 
   const selectedCourse = courses.find(c => c.id === selectedCourseId);
 
@@ -1717,7 +1738,7 @@ export function PosStudies() {
                                       {/* EXPANDED WORKSPACE MODAL */}
                                       {expandedTopicId === (topic.id || tIdx) && (
                                         <div className="fixed inset-0 z-[100] flex items-center justify-center p-2 md:p-4 bg-black/90 backdrop-blur-xl animate-in fade-in zoom-in-95 duration-200" onClick={(e) => { e.stopPropagation(); setExpandedTopicId(null); }}>
-                                          <div className="bg-[#0A0A0C] border border-white/5 rounded-3xl p-6 md:p-8 w-full max-w-[98vw] lg:max-w-[90vw] h-[98vh] flex flex-col gap-6 shadow-2xl relative overflow-hidden shadow-cyan-900/20" onClick={(e) => e.stopPropagation()}>
+                                          <div className="bg-[#0A0A0C] border border-white/5 rounded-3xl p-3 md:p-8 w-full max-w-[98vw] lg:max-w-[90vw] h-[98vh] flex flex-col gap-3 md:gap-6 shadow-2xl relative overflow-hidden shadow-cyan-900/20" onClick={(e) => e.stopPropagation()}>
                                             
                                             <div className="absolute top-0 left-0 w-full h-32 bg-gradient-to-b from-cyan-900/20 to-transparent pointer-events-none rounded-t-3xl"></div>
 
@@ -1810,16 +1831,19 @@ export function PosStudies() {
                                               </div>
                                             </div>
                                             
-                                            <div className="flex-1 min-h-0 w-full pb-6 flex flex-col lg:flex-row gap-6">
-                                              <div className="flex-1 flex flex-col relative h-full gap-4 overflow-y-auto custom-scrollbar pr-2">
-                                                {activeTopicVideos.length > 0 && (
-                                                  <div className="flex flex-col md:flex-row w-full gap-4 overflow-x-auto min-h-[300px] pb-2 shrink-0">
+                                            <div className="flex-1 min-h-0 w-full pb-0 md:pb-6 flex flex-col lg:flex-row gap-6">
+                                              <div className={cn("flex-1 flex-col relative h-full gap-4 overflow-y-auto custom-scrollbar pr-2 lg:flex", (mobileWorkspaceTab === "media" || mobileWorkspaceTab === "notes") ? "flex" : "hidden lg:flex")}>
+                                                {activeTopicVideos.length > 0 ? (
+                                                  <div className={cn("flex-col md:flex-row w-full gap-4 overflow-x-auto min-h-[300px] pb-2 shrink-0 lg:flex", mobileWorkspaceTab === "media" ? "flex" : "hidden lg:flex")}>
                                                     {activeTopicVideos.map((video, idx) => (
                                                       
                                                         <div key={`video-${idx}`} className="flex-1 rounded-xl overflow-hidden bg-black border border-white/5 shadow-inner flex flex-col animate-in fade-in zoom-in-95 duration-300 min-w-[300px] shrink-0">
                                                         <div className="flex items-center justify-between p-2 bg-[#1A1A1E] border-b border-white/5">
                                                           <span className="text-[10px] font-bold text-white uppercase tracking-widest px-2 truncate flex-1">{video.title}</span>
                                                           <div className="flex items-center gap-1">
+                                                            <button onClick={() => setActiveSettingsTopicIdx(activeSettingsTopicIdx === idx ? null : idx)} className={cn("p-1.5 rounded-lg transition-colors", activeSettingsTopicIdx === idx ? "bg-white/20 text-white" : "bg-white/5 hover:bg-white/10 text-[#A1A1AA]")} title="Configurações do Visualizador">
+                                                              <Settings2 className="size-3" />
+                                                            </button>
                                                             <button onClick={() => {
                                                               const isAudio = video.url.toLowerCase().endsWith('.mp3') || (video.title || "").toLowerCase().endsWith('.mp3') || (video.url.includes('drive.google.com') && (video.title || "").toLowerCase().includes('audio'));
                                                               window.dispatchEvent(new CustomEvent(isAudio ? 'global-audio' : 'global-pip', { detail: video }));
@@ -1832,7 +1856,36 @@ export function PosStudies() {
                                                             </button>
                                                           </div>
                                                         </div>
-                                                        <div className="w-full aspect-video relative mx-auto bg-black flex items-center justify-center" style={{ maxHeight: '65vh', maxWidth: 'calc(65vh * 1.7778)' }}>
+                                                        
+                                                        {activeSettingsTopicIdx === idx && (
+                                                          <div className="p-4 bg-[#0A0A0C] border-b border-white/5 flex flex-col gap-4 animate-in fade-in slide-in-from-top-2 duration-200">
+                                                            <div className="flex flex-col gap-2">
+                                                              <div className="flex items-center justify-between">
+                                                                <label className="text-[10px] font-bold text-[#A1A1AA] uppercase tracking-widest">Tamanho (Altura Máxima)</label>
+                                                                <span className="text-xs font-mono text-cyan-400">{video.maxHeight || 65}vh</span>
+                                                              </div>
+                                                              <input type="range" min="30" max="100" value={video.maxHeight || 65} onChange={(e) => {
+                                                                const newVids = [...activeTopicVideos];
+                                                                newVids[idx].maxHeight = parseInt(e.target.value);
+                                                                setActiveTopicVideos(newVids);
+                                                              }} className="w-full accent-cyan-500 h-1.5 bg-white/10 rounded-lg appearance-none cursor-pointer" />
+                                                            </div>
+                                                            <div className="flex flex-col gap-2">
+                                                              <label className="text-[10px] font-bold text-[#A1A1AA] uppercase tracking-widest">Formato (Proporção)</label>
+                                                              <div className="flex items-center gap-2">
+                                                                <button onClick={() => { const newVids = [...activeTopicVideos]; newVids[idx].aspectRatio = '16/9'; setActiveTopicVideos(newVids); }} className={cn("flex-1 py-1.5 text-xs font-bold rounded border transition-colors", (!video.aspectRatio || video.aspectRatio === '16/9') ? "bg-cyan-500/20 text-cyan-400 border-cyan-500/50" : "bg-white/5 text-[#A1A1AA] border-white/10 hover:bg-white/10")}>16:9 (Vídeo)</button>
+                                                                <button onClick={() => { const newVids = [...activeTopicVideos]; newVids[idx].aspectRatio = '1/1.414'; setActiveTopicVideos(newVids); }} className={cn("flex-1 py-1.5 text-xs font-bold rounded border transition-colors", video.aspectRatio === '1/1.414' ? "bg-cyan-500/20 text-cyan-400 border-cyan-500/50" : "bg-white/5 text-[#A1A1AA] border-white/10 hover:bg-white/10")}>A4 (Retrato)</button>
+                                                                <button onClick={() => { const newVids = [...activeTopicVideos]; newVids[idx].aspectRatio = 'auto'; setActiveTopicVideos(newVids); }} className={cn("flex-1 py-1.5 text-xs font-bold rounded border transition-colors", video.aspectRatio === 'auto' ? "bg-cyan-500/20 text-cyan-400 border-cyan-500/50" : "bg-white/5 text-[#A1A1AA] border-white/10 hover:bg-white/10")}>Livre</button>
+                                                              </div>
+                                                            </div>
+                                                          </div>
+                                                        )}
+
+                                                        <div className="w-full relative mx-auto bg-black flex items-center justify-center transition-all duration-300" style={{ 
+                                                            maxHeight: `${video.maxHeight || 65}vh`, 
+                                                            maxWidth: (video.aspectRatio || '16/9') === 'auto' ? '100%' : `calc(${video.maxHeight || 65}vh * ${(video.aspectRatio || '16/9') === '16/9' ? 1.7778 : (video.aspectRatio || '16/9') === '1/1.414' ? 0.707 : 1})`,
+                                                            aspectRatio: (video.aspectRatio || '16/9') === 'auto' ? 'auto' : (video.aspectRatio || '16/9') 
+                                                          }}>
                                                           {(() => {
                                                              const u = video.url.toLowerCase();
                                                              const t = (video.title || "").toLowerCase();
@@ -1876,8 +1929,14 @@ export function PosStudies() {
                                                       
                                                     ))}
                                                   </div>
+                                                ) : (
+                                                  <div className={cn("flex-col items-center justify-center p-8 text-center text-[#A1A1AA] bg-[#1A1A1E] border border-dashed border-white/10 rounded-2xl w-full min-h-[150px] shrink-0", mobileWorkspaceTab === "media" ? "flex lg:hidden" : "hidden")}>
+                                                    <Video className="size-8 mb-2 opacity-50 mx-auto" />
+                                                    <p className="text-xs font-bold">Nenhuma mídia anexa.</p>
+                                                    <p className="text-[10px] mt-1">Abra os "Recursos" para reproduzir vídeos, PDFs ou músicas.</p>
+                                                  </div>
                                                 )}
-                                                <div className="flex flex-col sm:flex-row sm:items-center justify-between mb-2 gap-2">
+                                                <div className={cn("flex flex-col sm:flex-row sm:items-center justify-between mb-2 gap-2", mobileWorkspaceTab === "notes" ? "flex" : "hidden lg:flex")}>
                                                   <label className="text-[10px] uppercase tracking-widest text-[#71717A] font-bold flex items-center gap-2">
                                                     <Edit2 className="size-3 text-purple-500" /> Anotações / Resumo (Salvas Automático)
                                                   </label>
@@ -1940,7 +1999,7 @@ export function PosStudies() {
                                                   </div>
                                                 </div>
                                                 <div 
-                                                  className="rounded-2xl overflow-hidden border border-white/5 focus-within:border-cyan-500/50 focus-within:shadow-[0_0_20px_rgba(6,182,212,0.1)] transition-all bg-[#0A0A0C] flex-1 flex flex-col group relative min-h-[400px]"
+                                                  className={cn("rounded-2xl overflow-hidden border border-white/5 focus-within:border-cyan-500/50 focus-within:shadow-[0_0_20px_rgba(6,182,212,0.1)] transition-all bg-[#0A0A0C] flex-1 flex-col group relative min-h-[400px] lg:flex", mobileWorkspaceTab === "notes" ? "flex" : "hidden lg:flex")}
                                                   onBlur={() => {
                                                     const updated = [...modules];
                                                     updated[mIdx].topics[tIdx].notes = localNotes;
@@ -1956,11 +2015,8 @@ export function PosStudies() {
                                                   />
                                                 </div>
                                               </div>
-                                              
-                                              
-                                              
                                               {isSidebarOpen && (
-                                                <div className="w-full lg:w-[350px] shrink-0 bg-black/20 p-5 rounded-3xl border border-white/5 overflow-y-auto custom-scrollbar animate-in slide-in-from-right-4 fade-in duration-300">
+                                                <div className={cn("w-full lg:w-[350px] shrink-0 bg-black/20 p-5 rounded-3xl border border-white/5 overflow-y-auto custom-scrollbar animate-in slide-in-from-right-4 fade-in duration-300 lg:block", mobileWorkspaceTab === "resources" ? "block" : "hidden lg:block")}>
                                                   <div className="flex items-center justify-between mb-6">
                                                     <div className="flex items-center gap-2 text-xs font-bold text-white">
                                                       <LayoutPanelLeft className="size-4 text-cyan-500" /> Recursos e Ferramentas
@@ -2323,6 +2379,22 @@ export function PosStudies() {
                                                 </div>
                                               )}
                                             </div>
+                                            
+                                            {/* MOBILE BOTTOM TABS */}
+                                            <div className="flex lg:hidden items-center justify-between bg-[#111113] p-1.5 rounded-2xl border border-white/5 mt-auto shrink-0 shadow-lg relative z-20 gap-2">
+                                              <button onClick={() => setMobileWorkspaceTab("media")} className={cn("flex-1 py-2 flex flex-col items-center justify-center gap-1 rounded-xl transition-colors", mobileWorkspaceTab === "media" ? "text-cyan-400 bg-cyan-400/10" : "text-[#71717A] hover:text-white hover:bg-white/5")}>
+                                                <Video className="size-5" />
+                                                <span className="text-[10px] font-bold uppercase tracking-widest">Mídia</span>
+                                              </button>
+                                              <button onClick={() => setMobileWorkspaceTab("notes")} className={cn("flex-1 py-2 flex flex-col items-center justify-center gap-1 rounded-xl transition-colors", mobileWorkspaceTab === "notes" ? "text-purple-400 bg-purple-400/10" : "text-[#71717A] hover:text-white hover:bg-white/5")}>
+                                                <Edit2 className="size-5" />
+                                                <span className="text-[10px] font-bold uppercase tracking-widest">Anotações</span>
+                                              </button>
+                                              <button onClick={() => setMobileWorkspaceTab("resources")} className={cn("flex-1 py-2 flex flex-col items-center justify-center gap-1 rounded-xl transition-colors", mobileWorkspaceTab === "resources" ? "text-emerald-400 bg-emerald-400/10" : "text-[#71717A] hover:text-white hover:bg-white/5")}>
+                                                <LayoutPanelLeft className="size-5" />
+                                                <span className="text-[10px] font-bold uppercase tracking-widest">Recursos</span>
+                                              </button>
+                                            </div>
                                           </div>
                                         </div>
                                       )}
@@ -2374,18 +2446,53 @@ export function PosStudies() {
                         <div className="flex flex-col gap-4">
                           {activeVideotecaVideos.map((av, idx) => (
                             <div key={idx} className="relative bg-black rounded-xl border border-white/5 shadow-inner overflow-hidden flex flex-col">
-                              {idx === 1 && (
-                                <div className="absolute top-2 right-2 z-10 flex gap-2">
-                                  <button onClick={() => {
-                                      const newVids = [...activeVideotecaVideos];
-                                      newVids.splice(1, 1);
-                                      setActiveVideotecaVideos(newVids);
-                                  }} className="bg-rose-500/80 text-white p-1.5 rounded-lg hover:bg-rose-500 transition-colors shadow-lg">
-                                    <X className="size-3.5" />
+                              <div className="flex items-center justify-between p-2 bg-[#1A1A1E] border-b border-white/5 relative z-20">
+                                <span className="text-[10px] font-bold text-white uppercase tracking-widest px-2 truncate flex-1">{av.video.title}</span>
+                                <div className="flex items-center gap-1">
+                                  <button onClick={() => setActiveSettingsVideotecaIdx(activeSettingsVideotecaIdx === idx ? null : idx)} className={cn("p-1.5 rounded-lg transition-colors", activeSettingsVideotecaIdx === idx ? "bg-white/20 text-white" : "bg-white/5 hover:bg-white/10 text-[#A1A1AA]")} title="Configurações do Visualizador">
+                                    <Settings2 className="size-3" />
                                   </button>
+                                  {idx === 1 && (
+                                    <button onClick={() => {
+                                        const newVids = [...activeVideotecaVideos];
+                                        newVids.splice(1, 1);
+                                        setActiveVideotecaVideos(newVids);
+                                    }} className="p-1.5 bg-rose-500/10 text-rose-500 hover:bg-rose-500/20 rounded-lg transition-colors" title="Fechar Vídeo">
+                                      <X className="size-3" />
+                                    </button>
+                                  )}
+                                </div>
+                              </div>
+                              
+                              {activeSettingsVideotecaIdx === idx && (
+                                <div className="p-4 bg-[#0A0A0C] border-b border-white/5 flex flex-col gap-4 animate-in fade-in slide-in-from-top-2 duration-200">
+                                  <div className="flex flex-col gap-2">
+                                    <div className="flex items-center justify-between">
+                                      <label className="text-[10px] font-bold text-[#A1A1AA] uppercase tracking-widest">Tamanho (Altura Máxima)</label>
+                                      <span className="text-xs font-mono text-cyan-400">{av.maxHeight || 70}vh</span>
+                                    </div>
+                                    <input type="range" min="30" max="100" value={av.maxHeight || 70} onChange={(e) => {
+                                      const newVids = [...activeVideotecaVideos];
+                                      newVids[idx].maxHeight = parseInt(e.target.value);
+                                      setActiveVideotecaVideos(newVids);
+                                    }} className="w-full accent-cyan-500 h-1.5 bg-white/10 rounded-lg appearance-none cursor-pointer" />
+                                  </div>
+                                  <div className="flex flex-col gap-2">
+                                    <label className="text-[10px] font-bold text-[#A1A1AA] uppercase tracking-widest">Formato (Proporção)</label>
+                                    <div className="flex items-center gap-2">
+                                      <button onClick={() => { const newVids = [...activeVideotecaVideos]; newVids[idx].aspectRatio = '16/9'; setActiveVideotecaVideos(newVids); }} className={cn("flex-1 py-1.5 text-xs font-bold rounded border transition-colors", (!av.aspectRatio || av.aspectRatio === '16/9') ? "bg-cyan-500/20 text-cyan-400 border-cyan-500/50" : "bg-white/5 text-[#A1A1AA] border-white/10 hover:bg-white/10")}>16:9 (Vídeo)</button>
+                                      <button onClick={() => { const newVids = [...activeVideotecaVideos]; newVids[idx].aspectRatio = '1/1.414'; setActiveVideotecaVideos(newVids); }} className={cn("flex-1 py-1.5 text-xs font-bold rounded border transition-colors", av.aspectRatio === '1/1.414' ? "bg-cyan-500/20 text-cyan-400 border-cyan-500/50" : "bg-white/5 text-[#A1A1AA] border-white/10 hover:bg-white/10")}>A4 (Retrato)</button>
+                                      <button onClick={() => { const newVids = [...activeVideotecaVideos]; newVids[idx].aspectRatio = 'auto'; setActiveVideotecaVideos(newVids); }} className={cn("flex-1 py-1.5 text-xs font-bold rounded border transition-colors", av.aspectRatio === 'auto' ? "bg-cyan-500/20 text-cyan-400 border-cyan-500/50" : "bg-white/5 text-[#A1A1AA] border-white/10 hover:bg-white/10")}>Livre</button>
+                                    </div>
+                                  </div>
                                 </div>
                               )}
-                              <div className="w-full aspect-video relative mx-auto bg-black flex items-center justify-center" style={{ maxHeight: '70vh', maxWidth: 'calc(70vh * 1.7778)' }}>
+
+                              <div className="w-full relative mx-auto bg-black flex items-center justify-center transition-all duration-300" style={{ 
+                                  maxHeight: `${av.maxHeight || 70}vh`, 
+                                  maxWidth: (av.aspectRatio || '16/9') === 'auto' ? '100%' : `calc(${av.maxHeight || 70}vh * ${(av.aspectRatio || '16/9') === '16/9' ? 1.7778 : (av.aspectRatio || '16/9') === '1/1.414' ? 0.707 : 1})`,
+                                  aspectRatio: (av.aspectRatio || '16/9') === 'auto' ? 'auto' : (av.aspectRatio || '16/9') 
+                                }}>
                                 {(() => {
                                    const u = av.video.url.toLowerCase();
                                    if (u.endsWith('.mp3') || (u.includes('drive.google.com') && u.includes('audio'))) {
