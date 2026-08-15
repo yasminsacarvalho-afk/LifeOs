@@ -7,7 +7,7 @@ import {
   ChevronDown, ChevronUp, Search, Filter, LayoutGrid, List as ListIcon,
   ChevronRight, BookMarked, Book, Sparkles, FileText, Library, CheckSquare,
   TrendingUp, BarChart2, Video, PenTool, LayoutTemplate, Layers, AlertCircle,
-  MoreVertical, Share2, Star, FolderOpen, ArrowLeft, Download, X, UploadCloud, Loader2, ExternalLink, Link as LinkIcon, Pause, XCircle, Edit2, Camera, Headphones, Music, CloudRain, Minimize2, Maximize2, ArrowUpRight, Tag, LayoutPanelLeft, LayoutPanelTop, GripVertical, GripHorizontal, Settings2, MonitorPlay
+  MoreVertical, Share2, Star, FolderOpen, ArrowLeft, Download, X, UploadCloud, Loader2, ExternalLink, Link as LinkIcon, Pause, XCircle, Edit2, Camera, Headphones, Music, CloudRain, Minimize2, Maximize2, ArrowUpRight, Tag, LayoutPanelLeft, LayoutPanelTop, GripVertical, GripHorizontal, Settings2, MonitorPlay, History, Edit3, Globe, User
 } from "lucide-react";
 import { format, isToday, parseISO } from "date-fns";
 import { ptBR } from "date-fns/locale";
@@ -127,10 +127,16 @@ export function PosStudies() {
   const [activeTopicTimer, setActiveTopicTimer] = useState<string | number | null>(null);
   const [elapsedSeconds, setElapsedSeconds] = useState(0);
   const [isTimerPaused, setIsTimerPaused] = useState(false);
-  const [isPomodoroMode, setIsPomodoroMode] = useState(() => {
-    try { const saved = localStorage.getItem('pos_isPomodoroMode'); return saved ? JSON.parse(saved) : false; } catch (e) { return false; }
-  });
-  const [pomodoroTargetSeconds, setPomodoroTargetSeconds] = useState(25 * 60); // 25 min default
+  const [isPomodoroMode, setIsPomodoroMode] = useState(false);
+  
+  const [pomodoroPhase, setPomodoroPhase] = useState<'study' | 'short_break' | 'long_break'>('study');
+  const [pomodoroCyclesCompleted, setPomodoroCyclesCompleted] = useState(0);
+  const [sessionAccumulatedSeconds, setSessionAccumulatedSeconds] = useState(0);
+  
+  const POMODORO_STUDY_SECONDS = 25 * 60;
+  const POMODORO_SHORT_BREAK_SECONDS = 5 * 60;
+  const POMODORO_LONG_BREAK_SECONDS = 15 * 60;
+
   const [localNotes, setLocalNotes] = useState("");
   const [localTags, setLocalTags] = useState("");
   const [tagInput, setTagInput] = useState("");
@@ -272,21 +278,43 @@ export function PosStudies() {
       interval = setInterval(() => {
         setElapsedSeconds(prev => {
           const next = prev + 1;
-          if (isPomodoroMode && next >= pomodoroTargetSeconds) {
-            // Pomodoro terminou!
-            setIsTimerPaused(true);
-            try {
-              const audio = new Audio('/notification.mp3');
-              audio.play().catch(e => console.log('Audio play failed', e));
-            } catch(e) {}
-            toast.success("🍅 Pomodoro concluído! Hora de uma pausa.", { icon: "🎉" });
+          
+          if (isPomodoroMode) {
+             const target = pomodoroPhase === 'study' ? POMODORO_STUDY_SECONDS : 
+                            pomodoroPhase === 'short_break' ? POMODORO_SHORT_BREAK_SECONDS : 
+                            POMODORO_LONG_BREAK_SECONDS;
+             if (next >= target) {
+               setIsTimerPaused(true);
+               try {
+                 const audio = new Audio('/notification.mp3');
+                 audio.play().catch(e => console.log('Audio play failed', e));
+               } catch(e) {}
+               
+               if (pomodoroPhase === 'study') {
+                  const newCycles = pomodoroCyclesCompleted + 1;
+                  setPomodoroCyclesCompleted(newCycles);
+                  setSessionAccumulatedSeconds(s => s + target);
+                  
+                  if (newCycles % 4 === 0) {
+                     setPomodoroPhase('long_break');
+                     toast.success("🍅 Ciclo completo! Hora de uma pausa longa (15m).", { icon: "🎉" });
+                  } else {
+                     setPomodoroPhase('short_break');
+                     toast.success("🍅 Pomodoro concluído! Hora de uma pausa curta (5m).", { icon: "☕" });
+                  }
+               } else {
+                  setPomodoroPhase('study');
+                  toast.success("⏰ Pausa finalizada! De volta aos estudos.", { icon: "🚀" });
+               }
+               return 0; // reset elapsed for the next phase
+             }
           }
           return next;
         });
       }, 1000);
     }
     return () => clearInterval(interval);
-  }, [activeTopicTimer, isTimerPaused, isPomodoroMode, pomodoroTargetSeconds]);
+  }, [activeTopicTimer, isTimerPaused, isPomodoroMode, pomodoroPhase, pomodoroCyclesCompleted]);
 
   const initialCourseState = {
     title: "", knowledge_area: "Tecnologia", category: "Curso", status: "fila", platform: "", instructor: "", course_url: "",
@@ -498,7 +526,7 @@ export function PosStudies() {
     if (activeTab === "Concluídos") {
        tabCourses = courses.filter(c => c.status === 'concluido');
     } else if (activeTab === "Cursos") {
-       tabCourses = courses.filter(c => !['Faculdade', 'Disciplina', 'Certificação', 'Trilha', 'Projeto Acadêmico'].includes(c.category || '') && c.status !== 'concluido');
+       tabCourses = courses.filter(c => !['Faculdade', 'Disciplina', 'Certificação', 'Trilha', 'Projeto Acadêmico', 'Documentário', 'Biografia'].includes(c.category || '') && c.status !== 'concluido');
     } else if (activeTab === "Faculdade") {
        tabCourses = courses.filter(c => ['Faculdade', 'Disciplina'].includes(c.category || '') && c.status !== 'concluido');
     } else if (activeTab === "Certificações") {
@@ -507,6 +535,10 @@ export function PosStudies() {
        tabCourses = courses.filter(c => c.category === 'Trilha' && c.status !== 'concluido');
     } else if (activeTab === "Projetos") {
        tabCourses = courses.filter(c => c.category === 'Projeto Acadêmico' && c.status !== 'concluido');
+    } else if (activeTab === "Documentários") {
+       tabCourses = courses.filter(c => c.category === 'Documentário' && c.status !== 'concluido');
+    } else if (activeTab === "Biografias") {
+       tabCourses = courses.filter(c => c.category === 'Biografia' && c.status !== 'concluido');
     }
     
     const itemsCount = tabCourses.length;
@@ -537,9 +569,26 @@ export function PosStudies() {
   };
 
   const tabStats = getTabStats();
+  const allKnowledgeAreas = Array.from(new Set(courses.map(c => c.knowledge_area).filter(Boolean)));
 
-  const renderDashboard = () => (
-    <div className="animate-in fade-in slide-in-from-bottom-4 duration-500">
+  const renderDashboard = () => {
+    const allInstructors = Array.from(new Set(courses.map(c => c.instructor).filter(Boolean)));
+    const allChannels: any[] = [];
+    courses.forEach(c => {
+      try {
+        const desc = JSON.parse(c.description || '{}');
+        if (desc.youtube_channels) {
+          desc.youtube_channels.forEach((ch: any) => {
+            if (!allChannels.find(x => x.name === ch.name)) {
+              allChannels.push(ch);
+            }
+          });
+        }
+      } catch(e) {}
+    });
+
+    return (
+      <div className="animate-in fade-in slide-in-from-bottom-4 duration-500">
       {/* Superior KPIs */}
       <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-8 gap-3 mb-6">
         <KpiCard icon={<Zap className="size-4 text-cyan-400"/>} label="Nível" value={`Lvl ${userLevel}`} />
@@ -669,6 +718,15 @@ export function PosStudies() {
                <div className="p-5 flex-1 flex flex-col">
                  <h4 className="font-bold text-white text-lg leading-tight mb-1 line-clamp-2">{c.title}</h4>
                  <p className="text-xs text-[#A1A1AA] mb-3 flex items-center gap-1.5"><PenTool className="size-3" /> {c.instructor || "Professor"}</p>
+                 {(() => {
+                   try {
+                     const p = JSON.parse(c.description || '{}');
+                     if (p.text_description) {
+                       return <p className="text-xs text-[#71717A] mb-3 line-clamp-2">{p.text_description}</p>;
+                     }
+                   } catch (e) {}
+                   return null;
+                 })()}
                  
                  {(() => {
                    try {
@@ -707,8 +765,115 @@ export function PosStudies() {
            );
          })}
       </div>
+
+       {/* Retorne Aonde Parou (Últimas Sessões) */}
+       <h3 className="text-lg font-bold text-white mb-4 mt-12 flex items-center gap-2">
+         <History className="size-5 text-blue-500" /> Retorne Aonde Parou
+       </h3>
+       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+         {sessions.length === 0 ? (
+            <div className="col-span-full p-8 text-center border border-dashed border-[rgba(255,255,255,0.06)] rounded-2xl text-[#A1A1AA] text-sm">
+              Nenhuma sessão de estudo registrada ainda. Inicie um estudo e registre sua primeira sessão!
+            </div>
+         ) : sessions.slice(0, 3).map((session) => {
+            const relatedCourse = courses.find(c => c.id === session.course_id);
+            return (
+              <div key={session.id} onClick={() => { if (relatedCourse) setSelectedCourseId(relatedCourse.id); }} className="bg-[#111113] border border-[rgba(255,255,255,0.04)] rounded-2xl p-5 hover:border-blue-500/30 transition-all group cursor-pointer shadow-lg flex flex-col gap-2 relative overflow-hidden">
+                <div className="absolute top-0 right-0 p-8 bg-blue-500/5 blur-[40px] rounded-full pointer-events-none"></div>
+                <div className="flex justify-between items-start relative z-10">
+                  <div className="text-[10px] font-bold uppercase tracking-widest text-blue-400 mb-1">{format(new Date(session.session_date), "dd 'de' MMM", {locale: ptBR})}</div>
+                  <div className="text-[10px] font-bold uppercase tracking-widest text-white/40">{session.duration_minutes} min</div>
+                </div>
+                <h4 className="font-bold text-white text-base leading-tight group-hover:text-blue-400 transition-colors line-clamp-1 relative z-10">{session.class_name || session.module_name || 'Sessão de Estudo'}</h4>
+                <div className="text-xs text-[#A1A1AA] line-clamp-1 flex items-center gap-1.5 relative z-10"><BookOpen className="size-3" /> {relatedCourse?.title || 'Material Desconhecido'}</div>
+                {session.summary && <div className="mt-2 text-xs text-[#71717A] italic line-clamp-2 border-l-2 border-blue-500/20 pl-2 relative z-10">{session.summary}</div>}
+              </div>
+            );
+         })}
+       </div>
+
+       {/* Últimos Escritos (Estúdio) */}
+       <h3 className="text-lg font-bold text-white mb-4 mt-12 flex items-center gap-2">
+         <Edit3 className="size-5 text-indigo-500" /> Últimos Escritos & Artigos
+       </h3>
+       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+         {(() => {
+           try {
+             const s = localStorage.getItem('lifeos_articles');
+             const parsed = s ? JSON.parse(s) : [];
+             const recentArticles = parsed.sort((a: any, b: any) => b.updatedAt - a.updatedAt).slice(0, 3);
+             
+             if (recentArticles.length === 0) {
+               return (
+                  <div className="col-span-full p-8 text-center border border-dashed border-[rgba(255,255,255,0.06)] rounded-2xl text-[#A1A1AA] text-sm">
+                    Nenhum texto escrito ou alterado recentemente.
+                  </div>
+               );
+             }
+             return recentArticles.map((article: any) => (
+                  <div key={article.id} onClick={() => setIsArticleStudioOpen(true)} className="bg-[#111113] border border-[rgba(255,255,255,0.04)] rounded-2xl p-5 hover:border-indigo-500/30 transition-all group cursor-pointer shadow-lg flex flex-col gap-2 relative overflow-hidden">
+                    <div className="absolute top-0 right-0 p-8 bg-indigo-500/5 blur-[40px] rounded-full pointer-events-none"></div>
+                    <div className="text-[10px] font-bold uppercase tracking-widest text-indigo-400 mb-1 relative z-10">Atualizado {format(new Date(article.updatedAt), "dd 'de' MMM", {locale: ptBR})}</div>
+                    <h4 className="font-bold text-white text-base leading-tight group-hover:text-indigo-400 transition-colors line-clamp-1 relative z-10">{article.title || 'Artigo sem título'}</h4>
+                    <div className="text-xs text-[#71717A] line-clamp-2 mt-2 relative z-10">{article.content ? article.content.replace(/<[^>]*>?/gm, '') : 'Nenhum conteúdo.'}</div>
+                  </div>
+             ));
+           } catch(e) {
+             return null;
+           }
+         })()}
+       </div>
+
+       {/* O Ecossistema (Áreas, Professores, Canais) */}
+       <h3 className="text-lg font-bold text-white mb-6 mt-12 flex items-center gap-2">
+         <Globe className="size-5 text-emerald-500" /> Seu Ecossistema de Aprendizado
+       </h3>
+       
+       <div className="space-y-8">
+         {/* Áreas de Conhecimento */}
+         <div>
+           <div className="text-[10px] font-bold text-[#A1A1AA] uppercase tracking-widest mb-3 flex items-center gap-1.5"><Layers className="size-3" /> Áreas Exploradas ({allKnowledgeAreas.length})</div>
+           <div className="flex flex-wrap gap-2">
+             {allKnowledgeAreas.length === 0 ? <span className="text-xs text-[#71717A]">Nenhuma área definida ainda.</span> : allKnowledgeAreas.map((area, idx) => (
+               <div key={idx} className="px-3 py-1.5 bg-cyan-500/10 border border-cyan-500/20 text-cyan-400 text-xs font-bold rounded-lg shadow-sm backdrop-blur-sm hover:bg-cyan-500/20 transition-colors cursor-default">
+                 {String(area)}
+               </div>
+             ))}
+           </div>
+         </div>
+
+         {/* Professores & Instrutores */}
+         <div>
+           <div className="text-[10px] font-bold text-[#A1A1AA] uppercase tracking-widest mb-3 flex items-center gap-1.5"><GraduationCap className="size-3" /> Seus Mentores & Professores ({allInstructors.length})</div>
+           <div className="flex flex-wrap gap-2">
+             {allInstructors.length === 0 ? <span className="text-xs text-[#71717A]">Nenhum professor registrado.</span> : allInstructors.map((inst, idx) => (
+               <div key={idx} className="px-3 py-1.5 bg-[#1A1A1E] border border-[rgba(255,255,255,0.06)] text-white text-xs font-bold rounded-lg shadow-sm hover:border-white/20 transition-colors cursor-default flex items-center gap-2">
+                 <div className="size-4 rounded-full bg-white/10 flex items-center justify-center"><User className="size-2 text-white" /></div>
+                 {String(inst)}
+               </div>
+             ))}
+           </div>
+         </div>
+
+         {/* Canais */}
+         <div>
+           <div className="text-[10px] font-bold text-[#A1A1AA] uppercase tracking-widest mb-3 flex items-center gap-1.5"><MonitorPlay className="size-3" /> Canais da Videoteca ({allChannels.length})</div>
+           <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-3">
+             {allChannels.length === 0 ? <span className="text-xs text-[#71717A] col-span-full">Nenhum canal na videoteca ainda.</span> : allChannels.map((ch, idx) => (
+               <div key={idx} className="bg-[#111113] border border-[rgba(255,255,255,0.04)] rounded-xl p-3 flex flex-col items-center gap-2 text-center hover:border-rose-500/30 transition-all group">
+                 <div className="w-12 h-12 rounded-full overflow-hidden bg-[#1A1A1E] border-2 border-white/5 group-hover:border-rose-500/50 transition-colors">
+                   {ch.cover_url ? <img src={ch.cover_url} alt={ch.name} className="w-full h-full object-cover" /> : <MonitorPlay className="size-5 m-auto mt-3 text-white/20" />}
+                 </div>
+                 <div className="text-xs font-bold text-white line-clamp-2 leading-tight">{ch.name}</div>
+               </div>
+             ))}
+           </div>
+         </div>
+       </div>
+
     </div>
-  );
+    );
+  };
 
   const renderIntelligenceReport = () => (
     <div className="animate-in fade-in slide-in-from-bottom-4 duration-500 space-y-6">
@@ -887,11 +1052,25 @@ export function PosStudies() {
                                   {course.instructor && (
                                       <span className="px-2 py-0.5 bg-black/60 backdrop-blur-md rounded border border-white/10 text-[9px] font-bold text-white uppercase tracking-wider">{course.instructor}</span>
                                   )}
-                                  <span className="px-2 py-0.5 bg-cyan-500/20 backdrop-blur-md rounded border border-cyan-500/30 text-[9px] font-bold text-cyan-400 uppercase tracking-wider">Trilha</span>
+                                  <div className="flex items-center gap-1">
+                                    <span className="px-2 py-0.5 bg-cyan-500/20 backdrop-blur-md rounded border border-cyan-500/30 text-[9px] font-bold text-cyan-400 uppercase tracking-wider">Trilha</span>
+                                    {course.platform && (
+                                      <span className="px-2 py-0.5 bg-black/50 backdrop-blur-md rounded border border-white/10 text-[9px] font-bold text-white uppercase tracking-wider">{course.platform}</span>
+                                    )}
+                                  </div>
                                 </div>
                                 </div>
                                 <div className="p-5 flex-1 flex flex-col bg-gradient-to-b from-[#111113] to-[#0A0A0C]">
                                 <h4 className="font-bold text-white text-base leading-tight mb-4 group-hover:text-cyan-400 transition-colors line-clamp-2">{course.title}</h4>
+                                {(() => {
+                                  try {
+                                    const p = JSON.parse(course.description || '{}');
+                                    if (p.text_description) {
+                                      return <p className="text-xs text-[#A1A1AA] line-clamp-3 mb-4">{p.text_description}</p>;
+                                    }
+                                  } catch (e) {}
+                                  return null;
+                                })()}
                                 <div className="mt-auto">
                                   <div className="flex justify-between items-end mb-2">
                                     <div className="text-[10px] font-bold text-[#71717A] uppercase tracking-widest">{course.completed_hours}h / {course.total_hours}h</div>
@@ -919,11 +1098,13 @@ export function PosStudies() {
              if (filterStatus !== "todos" && c.status !== filterStatus && activeTab !== "Concluídos") return false;
              if (filterArea !== "todas" && c.knowledge_area !== filterArea) return false;
              
-             if (activeTab === "Cursos") return !['Faculdade', 'Disciplina', 'Certificação', 'Trilha', 'Projeto Acadêmico'].includes(c.category || '') && c.status !== 'concluido';
+             if (activeTab === "Cursos") return !['Faculdade', 'Disciplina', 'Certificação', 'Trilha', 'Projeto Acadêmico', 'Documentário', 'Biografia'].includes(c.category || '') && c.status !== 'concluido';
              if (activeTab === "Faculdade") return ['Faculdade', 'Disciplina'].includes(c.category || '') && c.status !== 'concluido';
              if (activeTab === "Certificações") return c.category === 'Certificação' && c.status !== 'concluido';
              if (activeTab === "Trilhas") return false; // This case is already handled above
              if (activeTab === "Projetos") return c.category === 'Projeto Acadêmico' && c.status !== 'concluido';
+             if (activeTab === "Documentários") return c.category === 'Documentário' && c.status !== 'concluido';
+             if (activeTab === "Biografias") return c.category === 'Biografia' && c.status !== 'concluido';
              if (activeTab === "Concluídos") return c.status === 'concluido';
              
              return true;
@@ -955,11 +1136,22 @@ export function PosStudies() {
                     )}>
                       {course.knowledge_area || "Área"}
                     </span>
+                    {course.platform && (
+                      <span className="px-2 py-0.5 bg-black/50 backdrop-blur-md rounded border border-white/10 text-[9px] font-bold text-white uppercase tracking-wider">{course.platform}</span>
+                    )}
                   </div>
                 </div>
                 <div className="p-5 flex-1 flex flex-col">
                   <h4 className="font-bold text-white text-base leading-tight mb-4">{course.title}</h4>
-                  
+                  {(() => {
+                    try {
+                      const p = JSON.parse(course.description || '{}');
+                      if (p.text_description) {
+                        return <p className="text-xs text-[#A1A1AA] line-clamp-2 mb-4">{p.text_description}</p>;
+                      }
+                    } catch (e) {}
+                    return null;
+                  })()}
                   <div className="mt-auto">
                     <div className="flex justify-between items-end mb-2">
                       <div className="text-[10px] font-bold text-[#71717A] uppercase tracking-widest">{course.completed_hours}h / {course.total_hours}h</div>
@@ -1029,12 +1221,24 @@ export function PosStudies() {
                <div className="flex gap-2 mb-4">
                  <span className="px-3 py-1 bg-cyan-500/20 border border-cyan-500/30 text-cyan-400 rounded-lg text-[10px] font-bold uppercase tracking-widest backdrop-blur-sm shadow-lg">{selectedCourse.knowledge_area}</span>
                  <span className="px-3 py-1 bg-black/50 border border-white/10 text-white rounded-lg text-[10px] font-bold uppercase tracking-widest backdrop-blur-sm shadow-lg">{selectedCourse.category}</span>
+                 {selectedCourse.platform && (
+                   <span className="px-3 py-1 bg-black/50 border border-white/10 text-[#A1A1AA] rounded-lg text-[10px] font-bold uppercase tracking-widest backdrop-blur-sm shadow-lg">{selectedCourse.platform}</span>
+                 )}
                </div>
                
                <div className="flex flex-col md:flex-row justify-between items-start gap-4 mb-6">
                  <h1 className="text-3xl md:text-5xl font-black text-white tracking-tight leading-tight max-w-3xl drop-shadow-xl">
                    {selectedCourse.title}
                  </h1>
+                 {(() => {
+                   try {
+                     const p = JSON.parse(selectedCourse.description || '{}');
+                     if (p.text_description) {
+                       return <p className="text-sm md:text-base text-[#A1A1AA] mt-4 max-w-3xl leading-relaxed">{p.text_description}</p>;
+                     }
+                   } catch (e) {}
+                   return null;
+                 })()}
                  <div className="flex items-center gap-2 relative z-20 shrink-0 mt-2 md:mt-0">
                    <button 
                      onClick={() => {
@@ -1811,11 +2015,20 @@ export function PosStudies() {
                                                   <div className="flex flex-wrap items-center gap-2 mr-0 sm:mr-2 border-r-0 sm:border-r border-white/10 pr-0 sm:pr-4 w-full sm:w-auto justify-end">
                                                     {activeTopicTimer === (topic.id || tIdx) ? (
                                                       <div className="flex flex-wrap items-center justify-center gap-2 bg-black/40 p-1.5 rounded-2xl sm:rounded-full border border-white/5 backdrop-blur-md w-full sm:w-auto">
+                                                        {isPomodoroMode && (
+                                                          <div className={cn("px-3 py-1 rounded-full text-[10px] font-bold uppercase tracking-widest border shrink-0 shadow-sm", 
+                                                            pomodoroPhase === 'study' ? "bg-orange-500/10 text-orange-400 border-orange-500/30" : "bg-emerald-500/10 text-emerald-400 border-emerald-500/30"
+                                                          )}>
+                                                            {pomodoroPhase === 'study' ? `🍅 Estudo (${pomodoroCyclesCompleted + 1}/4)` : (pomodoroPhase === 'short_break' ? '☕ Pausa Curta' : '🛋️ Pausa Longa')}
+                                                          </div>
+                                                        )}
                                                         <div className="px-4 py-1.5 bg-cyan-900/30 rounded-full flex items-center justify-center min-w-[95px] shadow-[inset_0_0_10px_rgba(6,182,212,0.1)]">
-                                                           <span className={cn("text-lg font-mono font-bold tracking-wider", isTimerPaused ? "text-[#71717A] animate-pulse" : (isPomodoroMode ? "text-orange-400 drop-shadow-[0_0_8px_rgba(251,146,60,0.5)]" : "text-cyan-400 drop-shadow-[0_0_8px_rgba(6,182,212,0.5)]"))}>
-                                                             {isPomodoroMode ? (
-                                                               `${String(Math.floor(Math.max(0, pomodoroTargetSeconds - elapsedSeconds) / 60)).padStart(2, '0')}:${String(Math.max(0, pomodoroTargetSeconds - elapsedSeconds) % 60).padStart(2, '0')}`
-                                                             ) : (
+                                                           <span className={cn("text-lg font-mono font-bold tracking-wider", isTimerPaused ? "text-[#71717A] animate-pulse" : (isPomodoroMode && pomodoroPhase === 'study' ? "text-orange-400 drop-shadow-[0_0_8px_rgba(251,146,60,0.5)]" : isPomodoroMode ? "text-emerald-400 drop-shadow-[0_0_8px_rgba(16,185,129,0.5)]" : "text-cyan-400 drop-shadow-[0_0_8px_rgba(6,182,212,0.5)]"))}>
+                                                             {isPomodoroMode ? (() => {
+                                                                const target = pomodoroPhase === 'study' ? POMODORO_STUDY_SECONDS : pomodoroPhase === 'short_break' ? POMODORO_SHORT_BREAK_SECONDS : POMODORO_LONG_BREAK_SECONDS;
+                                                                const rem = Math.max(0, target - elapsedSeconds);
+                                                                return `${String(Math.floor(rem / 60)).padStart(2, '0')}:${String(rem % 60).padStart(2, '0')}`;
+                                                             })() : (
                                                                `${String(Math.floor(elapsedSeconds / 3600)).padStart(2, '0')}:${String(Math.floor((elapsedSeconds % 3600) / 60)).padStart(2, '0')}:${String(elapsedSeconds % 60).padStart(2, '0')}`
                                                              )}
                                                            </span>
@@ -1828,12 +2041,19 @@ export function PosStudies() {
                                                               setActiveTopicTimer(null);
                                                               setElapsedSeconds(0);
                                                               setIsTimerPaused(false);
+                                                              setPomodoroPhase('study');
+                                                              setPomodoroCyclesCompleted(0);
+                                                              setSessionAccumulatedSeconds(0);
                                                            }
                                                         }} className="p-2.5 hover:bg-rose-500/20 text-rose-500 rounded-full transition-colors" title="Cancelar">
                                                           <XCircle className="size-4" />
                                                         </button>
                                                         <button onClick={async () => {
-                                                           const durationMinutes = Math.max(1, Math.ceil(elapsedSeconds / 60));
+                                                           let totalStudySeconds = sessionAccumulatedSeconds;
+                                                           if (!isPomodoroMode || pomodoroPhase === 'study') {
+                                                             totalStudySeconds += elapsedSeconds;
+                                                           }
+                                                           const durationMinutes = Math.max(1, Math.ceil(totalStudySeconds / 60));
                                                            await addSession({
                                                               course_id: selectedCourse.id,
                                                               session_date: format(new Date(), 'yyyy-MM-dd'),
@@ -1845,6 +2065,9 @@ export function PosStudies() {
                                                            setActiveTopicTimer(null);
                                                            setElapsedSeconds(0);
                                                            setIsTimerPaused(false);
+                                                           setPomodoroPhase('study');
+                                                           setPomodoroCyclesCompleted(0);
+                                                           setSessionAccumulatedSeconds(0);
                                                         }} className="px-5 py-2 bg-emerald-500 hover:bg-emerald-400 text-black rounded-full text-sm font-bold flex items-center gap-2 shadow-[0_0_15px_rgba(16,185,129,0.3)] transition-all">
                                                           <CheckCircle2 className="size-4" /> Concluir
                                                         </button>
@@ -3170,7 +3393,7 @@ export function PosStudies() {
 
         {/* TABS NAVEGAÇÃO */}
         <div className="flex items-center gap-1 overflow-x-auto pt-4 mt-4 border-t border-[rgba(255,255,255,0.04)] hide-scrollbar z-10 relative">
-          {["Visão Geral", "Cursos", "Faculdade", "Certificações", "Trilhas", "Projetos", "Concluídos", "Inteligência"].map(tab => (
+          {["Visão Geral", "Cursos", "Faculdade", "Certificações", "Trilhas", "Projetos", "Documentários", "Biografias", "Concluídos", "Inteligência"].map(tab => (
             <button
               key={tab}
               onClick={() => { setActiveTab(tab); setSelectedCourseId(null); }}
@@ -3208,10 +3431,24 @@ export function PosStudies() {
               <div>
                 <label className="text-[10px] uppercase tracking-widest text-[#71717A] font-bold mb-2 block">Plataforma</label>
                 <input 
-                  type="text" value={newCourse.platform} onChange={e => setNewCourse({...newCourse, platform: e.target.value})}
+                  type="text" list="platform-options" value={newCourse.platform} onChange={e => setNewCourse({...newCourse, platform: e.target.value})}
                   className="w-full bg-[#1A1A1E] border border-[rgba(255,255,255,0.06)] rounded-xl px-4 py-3 text-sm text-white focus:border-cyan-500 focus:outline-none transition-colors"
-                  placeholder="Ex: Udemy, Rocketseat..."
+                  placeholder="Ex: Duolingo, Udemy, Youtube..."
                 />
+                <datalist id="platform-options">
+                  <option value="Duolingo" />
+                  <option value="Udemy" />
+                  <option value="Rocketseat" />
+                  <option value="Alura" />
+                  <option value="Coursera" />
+                  <option value="YouTube" />
+                  <option value="Faculdade / Universidade" />
+                  <option value="DIO" />
+                  <option value="Kiwify" />
+                  <option value="Hotmart" />
+                  <option value="Pluralsight" />
+                  <option value="edX" />
+                </datalist>
               </div>
 
               <div>
@@ -3248,20 +3485,28 @@ export function PosStudies() {
                   <option value="Trilha">Trilha</option>
                   <option value="Disciplina">Disciplina</option>
                   <option value="Projeto Acadêmico">Projeto Acadêmico</option>
+                  <option value="Documentário">Documentário</option>
+                  <option value="Biografia">Biografia</option>
                 </select>
               </div>
 
               <div>
                 <label className="text-[10px] uppercase tracking-widest text-[#71717A] font-bold mb-2 block">Área</label>
-                <select 
-                  value={newCourse.knowledge_area} onChange={e => setNewCourse({...newCourse, knowledge_area: e.target.value})}
+                <input 
+                  type="text" list="area-options" value={newCourse.knowledge_area} onChange={e => setNewCourse({...newCourse, knowledge_area: e.target.value})}
                   className="w-full bg-[#1A1A1E] border border-[rgba(255,255,255,0.06)] rounded-xl px-4 py-3 text-sm text-white focus:border-cyan-500 focus:outline-none transition-colors"
-                >
-                  <option value="Tecnologia">Tecnologia</option>
-                  <option value="Negócios">Negócios</option>
-                  <option value="Finanças">Finanças</option>
-                  <option value="Idiomas">Idiomas</option>
-                </select>
+                  placeholder="Ex: Tecnologia, Finanças..."
+                />
+                <datalist id="area-options">
+                  <option value="Tecnologia" />
+                  <option value="Negócios" />
+                  <option value="Finanças" />
+                  <option value="Idiomas" />
+                  <option value="Desenvolvimento Pessoal" />
+                  {allKnowledgeAreas.filter(a => !["Tecnologia", "Negócios", "Finanças", "Idiomas", "Desenvolvimento Pessoal"].includes(String(a))).map((area, idx) => (
+                    <option key={idx} value={String(area)} />
+                  ))}
+                </datalist>
               </div>
 
               <div>
@@ -3321,6 +3566,21 @@ export function PosStudies() {
                   type="url" value={newCourse.course_url} onChange={e => setNewCourse({...newCourse, course_url: e.target.value})}
                   className="w-full bg-[#1A1A1E] border border-[rgba(255,255,255,0.06)] rounded-xl px-4 py-3 text-sm text-white focus:border-cyan-500 focus:outline-none transition-colors"
                   placeholder="https://"
+                />
+              </div>
+
+              <div className="md:col-span-2">
+                <label className="text-[10px] uppercase tracking-widest text-[#71717A] font-bold mb-2 block">Descrição da Trilha / Curso (Opcional)</label>
+                <textarea 
+                  value={(() => { try { const p = JSON.parse(newCourse.description || '{}'); return p.text_description || ""; } catch(e){ return ""; } })()}
+                  onChange={e => {
+                     let s: any = { days: [] as number[], time: "19:00" };
+                     try { const p = JSON.parse(newCourse.description || '{}'); if (p.days) s = p; } catch(e){}
+                     s.text_description = e.target.value;
+                     setNewCourse({...newCourse, description: JSON.stringify(s)});
+                  }}
+                  className="w-full bg-[#1A1A1E] border border-[rgba(255,255,255,0.06)] rounded-xl px-4 py-3 text-sm text-white focus:border-cyan-500 focus:outline-none transition-colors min-h-[60px] mb-4"
+                  placeholder="Sobre o que é esta trilha ou curso?"
                 />
               </div>
 
