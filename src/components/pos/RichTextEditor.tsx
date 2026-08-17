@@ -1,4 +1,5 @@
 import { useEditor, EditorContent } from '@tiptap/react';
+import * as Popover from '@radix-ui/react-popover';
 import StarterKit from '@tiptap/starter-kit';
 import Underline from '@tiptap/extension-underline';
 import TaskList from '@tiptap/extension-task-list';
@@ -18,7 +19,7 @@ import {
   CheckSquare, Highlighter, Link as LinkIcon, 
   AlignLeft, AlignCenter, AlignRight, AlignJustify, Minus,
   Book, Play, X, ChevronRight, FolderOpen, Palette, Type, Code,
-  Image as ImageIcon, BookMarked
+  Image as ImageIcon, BookMarked, Smile
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useEffect, useState, useRef } from 'react';
@@ -256,6 +257,9 @@ export function RichTextEditor({ content, onChange, placeholder, availableBooks,
     setActiveStep('menu');
   }
 
+  const [showEmojiPicker, setShowEmojiPicker] = useState(false);
+  const EMOJIS = ["📌", "⚠️", "💡", "✅", "❌", "🔥", "🚀", "⭐", "🔵", "🔴", "🟢", "🟡", "📖", "💻", "🧠", "🎯", "📝", "⚡", "✨", "🏆", "🚩", "🔍", "⏰", "📅", "📊", "🔗", "💬", "📌", "📌"];
+
   const ToolbarButton = ({ onClick, isActive, icon: Icon, title }: any) => (
     <button
       type="button"
@@ -310,7 +314,7 @@ export function RichTextEditor({ content, onChange, placeholder, availableBooks,
           className={cn(
             "flex items-center gap-1 px-2 py-1 rounded-md transition-all duration-200 ease-out text-[11px] font-bold shrink-0 mx-1",
             editor.isActive('heading', { level: 4 }) 
-              ? "bg-purple-500/20 text-purple-400 border border-purple-500/30 shadow-inner" 
+              ? "bg-cyan-500/20 text-cyan-400 border border-cyan-500/30 shadow-inner" 
               : "bg-white/5 text-[#A1A1AA] hover:bg-white/10 hover:text-white border border-[rgba(255,255,255,0.05)]"
           )}
         >
@@ -318,6 +322,47 @@ export function RichTextEditor({ content, onChange, placeholder, availableBooks,
           Destaque VIP
         </button>
         
+        <div className="w-px h-5 bg-[#3F3F46] mx-1 self-center shrink-0" />
+        
+        <Popover.Root open={showEmojiPicker} onOpenChange={setShowEmojiPicker}>
+          <Popover.Trigger asChild>
+            <button
+              type="button"
+              title="Inserir Ícone/Emoji"
+              className={cn(
+                "p-1.5 rounded-lg transition-all duration-200 ease-out hover:bg-white/10 text-[#A1A1AA] hover:text-white active:scale-90",
+                showEmojiPicker ? "bg-cyan-500/20 text-cyan-400 hover:bg-cyan-500/30 shadow-inner" : ""
+              )}
+            >
+              <Smile className="size-4" />
+            </button>
+          </Popover.Trigger>
+          <Popover.Portal>
+            <Popover.Content 
+              sideOffset={5} 
+              className="w-52 bg-[#1A1A1E] border border-[rgba(255,255,255,0.1)] rounded-xl shadow-2xl p-2 z-[100000] grid grid-cols-6 gap-1"
+            >
+              {EMOJIS.map((emoji, idx) => (
+                <button 
+                  key={idx} 
+                  type="button"
+                  title="Inserir"
+                  onMouseDown={(e) => { e.preventDefault(); e.stopPropagation(); }}
+                  onClick={(e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    editor.chain().focus().insertContent(emoji).run();
+                    setShowEmojiPicker(false);
+                  }}
+                  className="w-7 h-7 flex items-center justify-center text-base hover:bg-white/10 rounded transition-colors"
+                >
+                  {emoji}
+                </button>
+              ))}
+            </Popover.Content>
+          </Popover.Portal>
+        </Popover.Root>
+
         <div className="w-px h-5 bg-[#3F3F46] mx-1 self-center shrink-0" />
         
         <ToolbarButton title="Negrito" onClick={() => editor.chain().focus().toggleBold().run()} isActive={editor.isActive('bold')} icon={Bold} />

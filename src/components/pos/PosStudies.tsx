@@ -3270,24 +3270,35 @@ export function PosStudies() {
                                                 </div>
                                               </div>
                                               {isSidebarOpen && (
-                                                <div className={cn("w-full lg:w-[350px] shrink-0 bg-black/20 p-5 rounded-3xl border border-white/5 overflow-y-auto custom-scrollbar animate-in slide-in-from-right-4 fade-in duration-300 lg:block", mobileWorkspaceTab === "resources" ? "block" : "hidden", desktopFocusMode !== "both" ? "lg:hidden" : "lg:block")}>
-                                                  <div className="flex items-center justify-between mb-6">
-                                                    <div className="flex items-center gap-2 text-xs font-bold text-white">
-                                                      <LayoutPanelLeft className="size-4 text-cyan-500" /> Recursos e Ferramentas
+                                                <div className={cn("w-full lg:w-[320px] xl:w-[350px] shrink-0 bg-gradient-to-b from-[#111113]/95 to-[#0A0A0C]/95 backdrop-blur-2xl p-5 rounded-3xl border border-[rgba(255,255,255,0.06)] shadow-[0_8px_32px_rgba(0,0,0,0.4)] overflow-y-auto custom-scrollbar animate-in slide-in-from-right-4 fade-in duration-300 lg:flex flex-col gap-6", mobileWorkspaceTab === "resources" ? "flex" : "hidden", desktopFocusMode !== "both" ? "lg:hidden" : "lg:flex")}>
+                                                  <div className="flex items-center justify-between pb-4 border-b border-[rgba(255,255,255,0.06)] relative shrink-0">
+                                                    <div className="absolute bottom-0 left-0 w-16 h-[1px] bg-gradient-to-r from-cyan-500 to-transparent"></div>
+                                                    <div className="flex items-center gap-3">
+                                                      <div className="bg-cyan-500/10 p-2 rounded-xl border border-cyan-500/20 shadow-inner">
+                                                        <LayoutPanelLeft className="size-4 text-cyan-400" />
+                                                      </div>
+                                                      <div>
+                                                        <h3 className="text-sm font-black text-white tracking-wide">Recursos</h3>
+                                                        <p className="text-[10px] text-[#A1A1AA] uppercase tracking-widest mt-0.5">Painel Auxiliar</p>
+                                                      </div>
                                                     </div>
-                                                    <button onClick={() => setIsSidebarOpen(false)} className="p-1.5 hover:bg-white/10 rounded-lg text-[#A1A1AA] hover:text-white transition-colors" title="Esconder">
-                                                      <X className="size-3.5" />
+                                                    <button onClick={() => setIsSidebarOpen(false)} className="p-2 hover:bg-white/10 rounded-xl text-[#A1A1AA] hover:text-white transition-all hover:rotate-90" title="Esconder">
+                                                      <X className="size-4" />
                                                     </button>
                                                   </div>
-                                                  <div className="space-y-6">
+                                                  
+                                                  <div className="space-y-6 flex-1">
                                                 <details open className="group [&_summary::-webkit-details-marker]:hidden">
-                                                  <summary className="text-[10px] text-[#A1A1AA] hover:text-white uppercase tracking-widest font-bold mb-2 flex items-center justify-between cursor-pointer list-none transition-colors">
-                                                    <div className="flex items-center gap-1">
-                                                      <ListIcon className="size-3 text-purple-500" /> Glossário de Anotações
+                                                  <summary className="text-[11px] text-[#A1A1AA] hover:text-white uppercase tracking-widest font-bold mb-3 flex items-center justify-between cursor-pointer list-none transition-colors group/summary bg-white/5 hover:bg-white/10 px-3 py-2.5 rounded-xl border border-[rgba(255,255,255,0.04)] shadow-sm">
+                                                    <div className="flex items-center gap-2">
+                                                      <div className="p-1 rounded-md bg-cyan-500/20 text-cyan-400 group-hover/summary:scale-110 transition-transform">
+                                                        <ListIcon className="size-3.5" />
+                                                      </div>
+                                                      Glossário de Anotações
                                                     </div>
-                                                    <ChevronDown className="size-3 transition-transform group-open:rotate-180" />
+                                                    <ChevronDown className="size-3.5 transition-transform group-open:rotate-180 text-[#71717A] group-hover/summary:text-white" />
                                                   </summary>
-                                                  <div className="flex flex-col gap-1 max-h-48 overflow-y-auto custom-scrollbar pr-1 bg-[#1A1A1E] p-2 rounded-xl border border-[rgba(255,255,255,0.04)]">
+                                                  <div className="flex flex-col gap-1 max-h-56 overflow-y-auto custom-scrollbar pr-1 bg-[#0A0A0C]/50 p-2 rounded-xl border border-[rgba(255,255,255,0.03)] shadow-inner">
                                                     {(() => {
                                                       if (typeof window === 'undefined' || !localNotes) return <span className="text-[10px] text-[#71717A] italic text-center py-2">Nenhum título criado.</span>;
                                                       const doc = new DOMParser().parseFromString(localNotes, 'text/html');
@@ -3312,7 +3323,7 @@ export function PosStudies() {
                                                                 target.scrollIntoView({ behavior: 'smooth', block: 'center' });
                                                                 target.style.transition = 'all 0.5s ease';
                                                                 const oldBg = target.style.backgroundColor;
-                                                                target.style.backgroundColor = 'rgba(168, 85, 247, 0.2)';
+                                                                target.style.backgroundColor = 'rgba(6, 182, 212, 0.2)';
                                                                 target.style.borderRadius = '4px';
                                                                 target.style.padding = '0 4px';
                                                                 setTimeout(() => {
@@ -3327,8 +3338,8 @@ export function PosStudies() {
                                                           title={item.title}
                                                         >
                                                           {item.level === 4 ? (
-                                                            <div className="flex items-center gap-2 px-2 py-1.5 bg-gradient-to-r from-purple-500/10 to-cyan-500/5 border-l-2 border-purple-500 rounded-r-lg group-hover/item:from-purple-500/20 transition-all w-full shrink-0 min-h-[28px]">
-                                                              <BookMarked className="w-4 h-4 text-purple-400 shrink-0" />
+                                                            <div className="flex items-center gap-2 px-2 py-1.5 bg-gradient-to-r from-cyan-500/10 to-cyan-500/5 border-l-2 border-cyan-500 rounded-r-lg group-hover/item:from-cyan-500/20 transition-all w-full shrink-0 min-h-[28px]">
+                                                              <BookMarked className="w-4 h-4 text-cyan-400 shrink-0" />
                                                               <span className="text-xs font-bold text-white truncate flex-1 min-w-0">{item.title}</span>
                                                             </div>
                                                           ) : (
@@ -3347,13 +3358,16 @@ export function PosStudies() {
                                                 </details>
 
                                                 <details open className="group [&_summary::-webkit-details-marker]:hidden">
-                                                  <summary className="text-[10px] text-[#A1A1AA] hover:text-white uppercase tracking-widest font-bold mb-2 flex items-center justify-between cursor-pointer list-none transition-colors">
-                                                    <div className="flex items-center gap-1">
-                                                      <Tag className="size-3 text-cyan-500" /> Tags da Aula
+                                                  <summary className="text-[11px] text-[#A1A1AA] hover:text-white uppercase tracking-widest font-bold mb-3 flex items-center justify-between cursor-pointer list-none transition-colors group/summary bg-white/5 hover:bg-white/10 px-3 py-2.5 rounded-xl border border-[rgba(255,255,255,0.04)] shadow-sm">
+                                                    <div className="flex items-center gap-2">
+                                                      <div className="p-1 rounded-md bg-cyan-500/20 text-cyan-400 group-hover/summary:scale-110 transition-transform">
+                                                        <Tag className="size-3.5" />
+                                                      </div>
+                                                      Tags da Aula
                                                     </div>
-                                                    <ChevronDown className="size-3 transition-transform group-open:rotate-180" />
+                                                    <ChevronDown className="size-3.5 transition-transform group-open:rotate-180 text-[#71717A] group-hover/summary:text-white" />
                                                   </summary>
-                                                  <div className="w-full bg-[#1A1A1E] border border-[rgba(255,255,255,0.04)] rounded-xl p-2 min-h-[46px] flex flex-wrap items-center gap-2 focus-within:border-cyan-500/50 transition-colors">
+                                                  <div className="w-full bg-[#0A0A0C]/50 border border-[rgba(255,255,255,0.03)] rounded-xl p-3 min-h-[56px] flex flex-wrap items-center gap-2 focus-within:border-cyan-500/40 focus-within:shadow-[0_0_15px_rgba(6,182,212,0.1)] transition-all shadow-inner">
                                                     {localTags.split(',').map(t => t.trim()).filter(Boolean).map((tag, idx) => (
                                                       <span key={idx} className="bg-cyan-500/10 text-cyan-400 px-2 py-1 rounded-md text-xs font-bold flex items-center gap-1.5 border border-cyan-500/20">
                                                         {tag}
@@ -3395,16 +3409,19 @@ export function PosStudies() {
                                                 </details>
 
                                                 <details open className="group [&_summary::-webkit-details-marker]:hidden">
-                                                  <summary className="text-[10px] text-[#A1A1AA] hover:text-white uppercase tracking-widest font-bold mb-2 flex items-center justify-between cursor-pointer list-none transition-colors">
-                                                    <div className="flex items-center gap-1">
-                                                      <Book className="size-3 text-emerald-500"/> Referências Literárias
+                                                  <summary className="text-[11px] text-[#A1A1AA] hover:text-white uppercase tracking-widest font-bold mb-3 flex items-center justify-between cursor-pointer list-none transition-colors group/summary bg-white/5 hover:bg-white/10 px-3 py-2.5 rounded-xl border border-[rgba(255,255,255,0.04)] shadow-sm">
+                                                    <div className="flex items-center gap-2">
+                                                      <div className="p-1 rounded-md bg-cyan-500/20 text-cyan-400 group-hover/summary:scale-110 transition-transform">
+                                                        <Book className="size-3.5" />
+                                                      </div>
+                                                      Referências Literárias
                                                     </div>
-                                                    <ChevronDown className="size-3 transition-transform group-open:rotate-180" />
+                                                    <ChevronDown className="size-3.5 transition-transform group-open:rotate-180 text-[#71717A] group-hover/summary:text-white" />
                                                   </summary>
-                                                  <div className="flex flex-col gap-2">
+                                                  <div className="flex flex-col gap-3">
                                                     <div className="relative">
                                                       <select 
-                                                        className="w-full appearance-none bg-[#1A1A1E] hover:bg-[#27272A] border border-[rgba(255,255,255,0.08)] rounded-xl p-3 pr-10 text-sm font-bold text-white focus:outline-none focus:border-emerald-500/50 focus:ring-1 focus:ring-emerald-500/50 transition-all cursor-pointer shadow-sm"
+                                                        className="w-full appearance-none bg-[#1A1A1E] hover:bg-[#27272A] border border-[rgba(255,255,255,0.08)] rounded-xl p-3 pr-10 text-sm font-bold text-white focus:outline-none focus:border-cyan-500/50 focus:ring-1 focus:ring-cyan-500/50 transition-all cursor-pointer shadow-sm"
                                                         onChange={(e) => {
                                                           const val = e.target.value;
                                                           if (!val) return;
@@ -3431,16 +3448,16 @@ export function PosStudies() {
                                                            const b = books.find(r => r.id === bookId);
                                                            if (!b) return null;
                                                            return (
-                                                             <div key={bookId} className="flex items-center justify-between p-3 bg-[#1A1A1E] border border-[rgba(255,255,255,0.08)] rounded-xl group hover:border-emerald-500/40 hover:bg-emerald-500/5 transition-all shadow-sm">
+                                                             <div key={bookId} className="flex items-center justify-between p-3 bg-[#0A0A0C]/50 border border-[rgba(255,255,255,0.03)] rounded-xl group hover:border-cyan-500/40 hover:bg-cyan-500/10 transition-all shadow-inner">
                                                                <div className="flex items-center gap-3 overflow-hidden flex-1 cursor-pointer" onClick={() => {
                                                                   const event = new CustomEvent('reference-click', { detail: { refType: 'book', title: b.title, id: b.id } });
                                                                   window.dispatchEvent(event);
                                                                }}>
-                                                                 <div className="w-9 h-9 rounded-lg shrink-0 bg-[#111113] flex items-center justify-center border border-emerald-500/20 shadow-inner group-hover:bg-emerald-500/10 transition-colors">
-                                                                   <Book className="size-4 text-emerald-400" />
+                                                                 <div className="w-9 h-9 rounded-lg shrink-0 bg-[#111113] flex items-center justify-center border border-cyan-500/20 shadow-inner group-hover:bg-cyan-500/10 transition-colors">
+                                                                   <Book className="size-4 text-cyan-400" />
                                                                  </div>
                                                                  <div className="flex flex-col">
-                                                                   <span className="text-xs font-bold text-white group-hover:text-emerald-400 transition-colors truncate">{b.title}</span>
+                                                                   <span className="text-xs font-bold text-white group-hover:text-cyan-400 transition-colors truncate">{b.title}</span>
                                                                    <span className="text-[10px] text-[#A1A1AA] mt-0.5">Clique para ver citações</span>
                                                                  </div>
                                                                </div>
@@ -3460,15 +3477,18 @@ export function PosStudies() {
                                                 </details>
 
                                                 <details open className="group [&_summary::-webkit-details-marker]:hidden">
-                                                  <summary className="text-[10px] text-[#A1A1AA] hover:text-white uppercase tracking-widest font-bold mb-2 flex items-center justify-between cursor-pointer list-none transition-colors">
-                                                    <div className="flex items-center gap-1">
-                                                      <FolderOpen className="size-3 text-cyan-500"/> Materiais Anexos
+                                                  <summary className="text-[11px] text-[#A1A1AA] hover:text-white uppercase tracking-widest font-bold mb-3 flex items-center justify-between cursor-pointer list-none transition-colors group/summary bg-white/5 hover:bg-white/10 px-3 py-2.5 rounded-xl border border-[rgba(255,255,255,0.04)] shadow-sm">
+                                                    <div className="flex items-center gap-2">
+                                                      <div className="p-1 rounded-md bg-cyan-500/20 text-cyan-400 group-hover/summary:scale-110 transition-transform">
+                                                        <FolderOpen className="size-3.5" />
+                                                      </div>
+                                                      Materiais Anexos
                                                     </div>
-                                                    <ChevronDown className="size-3 transition-transform group-open:rotate-180" />
+                                                    <ChevronDown className="size-3.5 transition-transform group-open:rotate-180 text-[#71717A] group-hover/summary:text-white" />
                                                   </summary>
                                                   <div className="flex flex-col gap-2">
                                                     {topic.source && !(topic.materials && topic.materials.length > 0) && (
-                                                      <div className="flex items-center justify-between p-3 bg-[#1A1A1E] border border-[rgba(255,255,255,0.04)] rounded-xl">
+                                                      <div className="flex items-center justify-between p-3 bg-[#0A0A0C]/50 border border-[rgba(255,255,255,0.03)] rounded-xl shadow-inner">
                                                         <button onClick={(e) => {
                                                            e.preventDefault();
                                                            const u = topic.source.toLowerCase();
@@ -3493,7 +3513,7 @@ export function PosStudies() {
                                                     {topic.materials?.map((mat: any, i: number) => {
                                                       const thumb = getThumbnail(mat.url);
                                                       return (
-                                                      <div key={i} className="flex items-center justify-between p-2 bg-[#1A1A1E] border border-[rgba(255,255,255,0.04)] rounded-xl group hover:border-[rgba(255,255,255,0.1)] transition-colors">
+                                                      <div key={i} className="flex items-center justify-between p-2 bg-[#0A0A0C]/50 border border-[rgba(255,255,255,0.03)] rounded-xl shadow-inner group hover:border-[rgba(255,255,255,0.1)] transition-colors">
                                                         <button onClick={(e) => {
                                                            e.preventDefault();
                                                            const u = mat.url.toLowerCase();
@@ -3548,14 +3568,14 @@ export function PosStudies() {
                                                           updated[mIdx].topics[tIdx].materials.push({ name: matName, url: src, type: 'link' });
                                                           updateCourse(selectedCourse.id, { next_topics: JSON.stringify(updated) }, false);
                                                         }
-                                                      }} className="flex-1 py-2 bg-[#1A1A1E] hover:bg-[#27272A] border border-[rgba(255,255,255,0.04)] rounded-xl text-[10px] font-bold text-[#A1A1AA] hover:text-white transition-colors flex items-center justify-center gap-1.5">
+                                                      }} className="flex-1 py-2 bg-[#0A0A0C]/50 hover:bg-cyan-500/10 border border-[rgba(255,255,255,0.03)] hover:border-cyan-500/30 rounded-xl text-[10px] font-bold text-[#A1A1AA] hover:text-cyan-400 transition-colors flex items-center justify-center gap-1.5 shadow-inner">
                                                         <LinkIcon className="size-3" /> Add Link
                                                       </button>
-                                                      <label className="flex-1 py-2 bg-[#1A1A1E] hover:bg-[#27272A] border border-[rgba(255,255,255,0.04)] rounded-xl text-[10px] font-bold text-[#A1A1AA] hover:text-white transition-colors flex items-center justify-center gap-1.5 cursor-pointer">
+                                                      <label className="flex-1 py-2 bg-[#0A0A0C]/50 hover:bg-cyan-500/10 border border-[rgba(255,255,255,0.03)] hover:border-cyan-500/30 rounded-xl text-[10px] font-bold text-[#A1A1AA] hover:text-cyan-400 transition-colors flex items-center justify-center gap-1.5 cursor-pointer shadow-inner">
                                                         {isUploading ? <Loader2 className="size-3 animate-spin" /> : <UploadCloud className="size-3" />} Add Arquivo
                                                         <input type="file" className="hidden" disabled={isUploading} onChange={(e) => handleMaterialUpload(e, mIdx, tIdx)} />
                                                       </label>
-                                                      <button onClick={() => setReferenceModalTarget({ mIdx, tIdx })} className="flex-1 py-2 bg-[#1A1A1E] hover:bg-[#27272A] border border-[rgba(255,255,255,0.04)] rounded-xl text-[10px] font-bold text-amber-500/70 hover:text-amber-400 transition-colors flex items-center justify-center gap-1.5">
+                                                      <button onClick={() => setReferenceModalTarget({ mIdx, tIdx })} className="flex-1 py-2 bg-[#0A0A0C]/50 hover:bg-amber-500/10 border border-[rgba(255,255,255,0.03)] hover:border-amber-500/30 rounded-xl text-[10px] font-bold text-amber-500/70 hover:text-amber-400 transition-colors flex items-center justify-center gap-1.5 shadow-inner">
                                                         <Search className="size-3" /> Puxar Ref.
                                                       </button>
                                                     </div>
@@ -3563,11 +3583,14 @@ export function PosStudies() {
                                                 </details>
 
                                                 <details open className="group [&_summary::-webkit-details-marker]:hidden">
-                                                  <summary className="text-[10px] text-[#A1A1AA] hover:text-white uppercase tracking-widest font-bold mb-2 flex items-center justify-between cursor-pointer list-none transition-colors">
-                                                    <div className="flex items-center gap-1">
-                                                      <Video className="size-3 text-cyan-500"/> Videoteca (Trilha)
+                                                  <summary className="text-[11px] text-[#A1A1AA] hover:text-white uppercase tracking-widest font-bold mb-3 flex items-center justify-between cursor-pointer list-none transition-colors group/summary bg-white/5 hover:bg-white/10 px-3 py-2.5 rounded-xl border border-[rgba(255,255,255,0.04)] shadow-sm">
+                                                    <div className="flex items-center gap-2">
+                                                      <div className="p-1 rounded-md bg-cyan-500/20 text-cyan-400 group-hover/summary:scale-110 transition-transform">
+                                                        <Video className="size-3.5" />
+                                                      </div>
+                                                      Videoteca (Trilha)
                                                     </div>
-                                                    <ChevronDown className="size-3 transition-transform group-open:rotate-180" />
+                                                    <ChevronDown className="size-3.5 transition-transform group-open:rotate-180 text-[#71717A] group-hover/summary:text-white" />
                                                   </summary>
                                                   <div className="flex flex-col gap-2">
                                                     {availableVideos && availableVideos.length > 0 ? (
@@ -3575,7 +3598,7 @@ export function PosStudies() {
                                                         {availableVideos.map((vid: any, idx: number) => {
                                                           const thumb = getThumbnail(vid.url);
                                                           return (
-                                                            <div key={idx} className="w-32 shrink-0 bg-[#1A1A1E] border border-[rgba(255,255,255,0.04)] hover:border-cyan-500/30 rounded-xl overflow-hidden group cursor-pointer transition-colors" onClick={() => {
+                                                            <div key={idx} className="w-32 shrink-0 bg-[#0A0A0C]/50 shadow-inner border border-[rgba(255,255,255,0.03)] hover:border-cyan-500/30 rounded-xl overflow-hidden group cursor-pointer transition-colors" onClick={() => {
                                                                const event = new CustomEvent('reference-click', { detail: { refType: 'video', title: vid.title, url: vid.url, id: vid.id } });
                                                                window.dispatchEvent(event);
                                                             }}>
@@ -3600,11 +3623,14 @@ export function PosStudies() {
 
                                                 {/* NOVA SESSÃO DE PESQUISA */}
                                                 <details open className="group [&_summary::-webkit-details-marker]:hidden">
-                                                  <summary className="text-[10px] text-[#A1A1AA] hover:text-white uppercase tracking-widest font-bold mb-2 flex items-center justify-between cursor-pointer list-none transition-colors">
-                                                    <div className="flex items-center gap-1">
-                                                      <Search className="size-3 text-emerald-500"/> Pesquisa Rápida
+                                                  <summary className="text-[11px] text-[#A1A1AA] hover:text-white uppercase tracking-widest font-bold mb-3 flex items-center justify-between cursor-pointer list-none transition-colors group/summary bg-white/5 hover:bg-white/10 px-3 py-2.5 rounded-xl border border-[rgba(255,255,255,0.04)] shadow-sm">
+                                                    <div className="flex items-center gap-2">
+                                                      <div className="p-1 rounded-md bg-cyan-500/20 text-cyan-400 group-hover/summary:scale-110 transition-transform">
+                                                        <Search className="size-3.5" />
+                                                      </div>
+                                                      Pesquisa Rápida
                                                     </div>
-                                                    <ChevronDown className="size-3 transition-transform group-open:rotate-180" />
+                                                    <ChevronDown className="size-3.5 transition-transform group-open:rotate-180 text-[#71717A] group-hover/summary:text-white" />
                                                   </summary>
                                                   <div className="flex flex-col gap-2">
                                                     <div className="flex bg-[#1A1A1E] border border-[rgba(255,255,255,0.04)] rounded-xl overflow-hidden focus-within:border-emerald-500/50 transition-colors">
@@ -3624,7 +3650,7 @@ export function PosStudies() {
                                                       </div>
                                                       <button onClick={() => {
                                                           if(webSearchQuery.trim()) window.open(`https://www.google.com/search?q=${encodeURIComponent(webSearchQuery.trim())}`, '_blank');
-                                                      }} className="px-3 bg-emerald-500/10 text-emerald-500 hover:bg-emerald-500/20 font-bold text-xs transition-colors border-l border-[rgba(255,255,255,0.04)]">
+                                                      }} className="px-3 bg-cyan-500/10 text-cyan-400 hover:bg-cyan-500/20 font-bold text-xs transition-colors border-l border-[rgba(255,255,255,0.04)]">
                                                         Ir
                                                       </button>
                                                     </div>
@@ -3646,7 +3672,7 @@ export function PosStudies() {
                                                       </div>
                                                       <button onClick={() => {
                                                           if(dictionaryQuery.trim()) window.open(`https://www.dicio.com.br/${encodeURIComponent(dictionaryQuery.trim().toLowerCase().replace(/\s+/g, '-'))}/`, '_blank');
-                                                      }} className="px-3 bg-indigo-500/10 text-indigo-400 hover:bg-indigo-500/20 font-bold text-xs transition-colors border-l border-[rgba(255,255,255,0.04)]">
+                                                      }} className="px-3 bg-cyan-500/10 text-cyan-400 hover:bg-cyan-500/20 font-bold text-xs transition-colors border-l border-[rgba(255,255,255,0.04)]">
                                                         Definir
                                                       </button>
                                                     </div>
@@ -3654,44 +3680,50 @@ export function PosStudies() {
                                                 </details>
 
                                                 <details open className="group [&_summary::-webkit-details-marker]:hidden">
-                                                  <summary className="text-[10px] text-[#A1A1AA] hover:text-white uppercase tracking-widest font-bold mb-2 flex items-center justify-between cursor-pointer list-none transition-colors">
-                                                    <div className="flex items-center gap-1">
-                                                      <Sparkles className="size-3 text-cyan-500"/> Laboratório I.A.
+                                                  <summary className="text-[11px] text-[#A1A1AA] hover:text-white uppercase tracking-widest font-bold mb-3 flex items-center justify-between cursor-pointer list-none transition-colors group/summary bg-white/5 hover:bg-white/10 px-3 py-2.5 rounded-xl border border-[rgba(255,255,255,0.04)] shadow-sm">
+                                                    <div className="flex items-center gap-2">
+                                                      <div className="p-1 rounded-md bg-cyan-500/20 text-cyan-400 group-hover/summary:scale-110 transition-transform">
+                                                        <Sparkles className="size-3.5" />
+                                                      </div>
+                                                      Laboratório I.A.
                                                     </div>
-                                                    <ChevronDown className="size-3 transition-transform group-open:rotate-180" />
+                                                    <ChevronDown className="size-3.5 transition-transform group-open:rotate-180 text-[#71717A] group-hover/summary:text-white" />
                                                   </summary>
                                                   <div className="flex flex-col gap-2">
-                                                    <button onClick={() => window.open('https://notebooklm.google.com/', '_blank')} className="w-full py-3 bg-cyan-900/20 hover:bg-cyan-900/40 border border-cyan-500/20 hover:border-cyan-500/50 rounded-xl text-xs font-bold text-cyan-400 transition-colors flex items-center justify-center gap-1.5" title="Abrir NotebookLM para gerar resumos/slides">
+                                                    <button onClick={() => window.open('https://notebooklm.google.com/', '_blank')} className="w-full py-3 bg-[#0A0A0C]/50 shadow-inner hover:bg-cyan-500/10 border border-[rgba(255,255,255,0.03)] hover:border-cyan-500/30 rounded-full text-xs font-bold text-cyan-400 transition-colors flex items-center justify-center gap-1.5" title="Abrir NotebookLM para gerar resumos/slides">
                                                       <LayoutTemplate className="size-3.5" /> NotebookLM (Slides)
                                                     </button>
-                                                    <button onClick={() => window.open('https://notebooklm.google.com/', '_blank')} className="w-full py-3 bg-emerald-900/20 hover:bg-emerald-900/40 border border-emerald-500/20 hover:border-emerald-500/50 rounded-xl text-xs font-bold text-emerald-400 transition-colors flex items-center justify-center gap-1.5" title="Abrir NotebookLM para gerar quiz baseado nas notas">
+                                                    <button onClick={() => window.open('https://notebooklm.google.com/', '_blank')} className="w-full py-3 bg-[#0A0A0C]/50 shadow-inner hover:bg-cyan-500/10 border border-[rgba(255,255,255,0.03)] hover:border-cyan-500/30 rounded-full text-xs font-bold text-cyan-400 transition-colors flex items-center justify-center gap-1.5" title="Abrir NotebookLM para gerar quiz baseado nas notas">
                                                       <Brain className="size-3.5" /> NotebookLM (Quiz)
                                                     </button>
                                                   </div>
                                                 </details>
 
                                                 <details open className="group [&_summary::-webkit-details-marker]:hidden">
-                                                  <summary className="text-[10px] text-[#A1A1AA] hover:text-white uppercase tracking-widest font-bold mb-2 flex items-center justify-between cursor-pointer list-none transition-colors">
-                                                    <div className="flex items-center gap-1">
-                                                      <Headphones className="size-3 text-cyan-500"/> Músicas (Foco)
+                                                  <summary className="text-[11px] text-[#A1A1AA] hover:text-white uppercase tracking-widest font-bold mb-3 flex items-center justify-between cursor-pointer list-none transition-colors group/summary bg-white/5 hover:bg-white/10 px-3 py-2.5 rounded-xl border border-[rgba(255,255,255,0.04)] shadow-sm">
+                                                    <div className="flex items-center gap-2">
+                                                      <div className="p-1 rounded-md bg-cyan-500/20 text-cyan-400 group-hover/summary:scale-110 transition-transform">
+                                                        <Headphones className="size-3.5" />
+                                                      </div>
+                                                      Músicas (Foco)
                                                     </div>
-                                                    <ChevronDown className="size-3 transition-transform group-open:rotate-180" />
+                                                    <ChevronDown className="size-3.5 transition-transform group-open:rotate-180 text-[#71717A] group-hover/summary:text-white" />
                                                   </summary>
                                                   <div className="flex flex-col gap-2">
                                                     <button onClick={() => {
                                                         window.dispatchEvent(new CustomEvent('reference-click', { detail: { refType: 'video', title: 'Lofi Gospel', url: 'https://www.youtube.com/watch?v=srxN4L1n5p4', id: 'srxN4L1n5p4' } }));
-                                                    }} className="w-full py-2.5 bg-[#1A1A1E] hover:bg-[#27272A] border border-[rgba(255,255,255,0.04)] rounded-xl text-xs font-bold text-[#A1A1AA] hover:text-white transition-colors flex items-center gap-2 px-3 text-left">
-                                                      <Music className="size-3.5 text-purple-400" /> <span className="flex-1 truncate">Gospel</span>
+                                                    }} className="w-full py-2.5 bg-[#0A0A0C]/50 shadow-inner hover:bg-cyan-500/10 border border-[rgba(255,255,255,0.03)] hover:border-cyan-500/30 rounded-full text-xs font-bold text-[#A1A1AA] hover:text-white transition-colors flex items-center gap-2 px-4 text-left">
+                                                      <Music className="size-3.5 text-cyan-400" /> <span className="flex-1 truncate">Gospel</span>
                                                     </button>
                                                     <button onClick={() => {
                                                         window.dispatchEvent(new CustomEvent('reference-click', { detail: { refType: 'video', title: 'Som de Chuva', url: 'https://www.youtube.com/watch?v=mPZkdNFkNps', id: 'mPZkdNFkNps' } }));
-                                                    }} className="w-full py-2.5 bg-[#1A1A1E] hover:bg-[#27272A] border border-[rgba(255,255,255,0.04)] rounded-xl text-xs font-bold text-[#A1A1AA] hover:text-white transition-colors flex items-center gap-2 px-3 text-left">
-                                                      <CloudRain className="size-3.5 text-blue-400" /> <span className="flex-1 truncate">Som de Chuva</span>
+                                                    }} className="w-full py-2.5 bg-[#0A0A0C]/50 shadow-inner hover:bg-cyan-500/10 border border-[rgba(255,255,255,0.03)] hover:border-cyan-500/30 rounded-full text-xs font-bold text-[#A1A1AA] hover:text-white transition-colors flex items-center gap-2 px-4 text-left">
+                                                      <CloudRain className="size-3.5 text-cyan-400" /> <span className="flex-1 truncate">Som de Chuva</span>
                                                     </button>
                                                     <button onClick={() => {
                                                         window.dispatchEvent(new CustomEvent('reference-click', { detail: { refType: 'video', title: 'Som Ambiente (Lofi)', url: 'https://www.youtube.com/watch?v=jfKfPfyJRdk', id: 'jfKfPfyJRdk' } }));
-                                                    }} className="w-full py-2.5 bg-[#1A1A1E] hover:bg-[#27272A] border border-[rgba(255,255,255,0.04)] rounded-xl text-xs font-bold text-[#A1A1AA] hover:text-white transition-colors flex items-center gap-2 px-3 text-left">
-                                                      <Headphones className="size-3.5 text-emerald-400" /> <span className="flex-1 truncate">Som Ambiente</span>
+                                                    }} className="w-full py-2.5 bg-[#0A0A0C]/50 shadow-inner hover:bg-cyan-500/10 border border-[rgba(255,255,255,0.03)] hover:border-cyan-500/30 rounded-full text-xs font-bold text-[#A1A1AA] hover:text-white transition-colors flex items-center gap-2 px-4 text-left">
+                                                      <Headphones className="size-3.5 text-cyan-400" /> <span className="flex-1 truncate">Som Ambiente</span>
                                                     </button>
                                                   </div>
                                                 </details>
@@ -3706,11 +3738,11 @@ export function PosStudies() {
                                                 <Video className="size-5" />
                                                 <span className="text-[10px] font-bold uppercase tracking-widest">Mídia</span>
                                               </button>
-                                              <button onClick={() => setMobileWorkspaceTab("notes")} className={cn("flex-1 py-2 flex flex-col items-center justify-center gap-1 rounded-xl transition-colors", mobileWorkspaceTab === "notes" ? "text-purple-400 bg-purple-400/10" : "text-[#71717A] hover:text-white hover:bg-white/5")}>
+                                              <button onClick={() => setMobileWorkspaceTab("notes")} className={cn("flex-1 py-2 flex flex-col items-center justify-center gap-1 rounded-xl transition-colors", mobileWorkspaceTab === "notes" ? "text-cyan-400 bg-cyan-400/10" : "text-[#71717A] hover:text-white hover:bg-white/5")}>
                                                 <Edit2 className="size-5" />
                                                 <span className="text-[10px] font-bold uppercase tracking-widest">Anotações</span>
                                               </button>
-                                              <button onClick={() => setMobileWorkspaceTab("resources")} className={cn("flex-1 py-2 flex flex-col items-center justify-center gap-1 rounded-xl transition-colors", mobileWorkspaceTab === "resources" ? "text-emerald-400 bg-emerald-400/10" : "text-[#71717A] hover:text-white hover:bg-white/5")}>
+                                              <button onClick={() => setMobileWorkspaceTab("resources")} className={cn("flex-1 py-2 flex flex-col items-center justify-center gap-1 rounded-xl transition-colors", mobileWorkspaceTab === "resources" ? "text-cyan-400 bg-cyan-400/10" : "text-[#71717A] hover:text-white hover:bg-white/5")}>
                                                 <LayoutPanelLeft className="size-5" />
                                                 <span className="text-[10px] font-bold uppercase tracking-widest">Recursos</span>
                                               </button>

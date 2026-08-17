@@ -217,10 +217,12 @@ export function PosAgenda() {
       type: t.category || 'tarefa'
     }));
 
-    const dayHabits = habitLogs.filter(l => l.log_date === dayStr).map(l => {
+    const loggedHabitIds = new Set(habitLogs.filter(l => l.log_date === dayStr).map(l => l.habit_id));
+    
+    const dayHabitsLogged = habitLogs.filter(l => l.log_date === dayStr).map(l => {
       const habit = habits.find(h => h.id === l.habit_id);
       return {
-        id: `habit_${l.id}`,
+        id: `habit_log_${l.id}`,
         title: habit ? habit.title : 'Hábito',
         start_time: '23:59',
         itemType: 'habito',
@@ -228,6 +230,33 @@ export function PosAgenda() {
         status: l.status,
       };
     });
+
+    const dayHabitsPending = habits.filter(h => {
+       if (loggedHabitIds.has(h.id)) return false;
+       if (h.status === 'pausado') return false;
+       if (h.frequency === 'diaria') return true;
+       if (h.frequency === 'dias_semana' && h.days_of_week) {
+          const dStr = format(date, 'EE', { locale: ptBR });
+          const mapDays: any = { 'seg': 'Seg', 'ter': 'Ter', 'qua': 'Qua', 'qui': 'Qui', 'sex': 'Sex', 'sáb': 'Sab', 'dom': 'Dom' };
+          const dayFormatted = mapDays[dStr.toLowerCase()] || 'Seg';
+          return h.days_of_week.includes(dayFormatted);
+       }
+       if (h.frequency === 'dias_mes' && h.days_of_week) {
+          const dayNum = format(date, 'd');
+          return h.days_of_week.includes(dayNum);
+       }
+       // Para outras frequências complexas (vezes na semana, dias do ano), mostramos como pendente
+       return true;
+    }).map(h => ({
+        id: `habit_pending_${h.id}_${dayStr}`,
+        title: h.title,
+        start_time: '23:59',
+        itemType: 'habito',
+        type: 'habito',
+        status: 'pendente'
+    }));
+
+    const dayHabits = [...dayHabitsLogged, ...dayHabitsPending];
 
     const dayReading = readingSessions.filter(s => s.session_date === dayStr).map(s => {
       const book = books.find(b => b.id === s.book_id);
