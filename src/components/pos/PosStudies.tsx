@@ -55,7 +55,7 @@ export function PosStudies() {
   });
   const [courseTab, setCourseTab] = useState("Módulos");
   const [activeModuleIndex, setActiveModuleIndex] = useState<number | null>(null);
-  const [viewMode, setViewMode] = useState<"cards" | "lista" | "kanban" | "tabela" | "galeria" | "timeline" | "calendario">(() => {
+  const [viewMode, setViewMode] = useState<"cards" | "lista" | "kanban" | "tabela" | "galeria" | "timeline" | "calendario" | "por_area">(() => {
     try { const saved = localStorage.getItem('pos_viewMode'); return saved ? JSON.parse(saved) : "cards"; } catch(e) { return "cards"; }
   });
   useEffect(() => {
@@ -70,6 +70,8 @@ export function PosStudies() {
 
   const [isCreatingCourse, setIsCreatingCourse] = useState(false);
   const [isEditingCourse, setIsEditingCourse] = useState(false);
+  const [coverMode, setCoverMode] = useState<"url" | "upload">("url");
+  const coverInputRef = React.useRef<HTMLInputElement>(null);
   const [searchQuery, setSearchQuery] = useState("");
   const [referenceModalTarget, setReferenceModalTarget] = useState<{ mIdx: number, tIdx: number } | null>(null);
   const [referenceSearchQuery, setReferenceSearchQuery] = useState('');
@@ -540,7 +542,7 @@ export function PosStudies() {
     if (activeTab === "Concluídos") {
        tabCourses = courses.filter(c => c.status === 'concluido');
     } else if (activeTab === "Cursos") {
-       tabCourses = courses.filter(c => !['Faculdade', 'Disciplina', 'Certificação', 'Trilha', 'Projeto Acadêmico', 'Documentário', 'Biografia'].includes(c.category || '') && c.status !== 'concluido');
+       tabCourses = courses.filter(c => !['Faculdade', 'Disciplina', 'Certificação', 'Trilha', 'Projeto Acadêmico', 'Documentário', 'Biografia', 'Conteúdo'].includes(c.category || '') && c.status !== 'concluido');
     } else if (activeTab === "Faculdade") {
        tabCourses = courses.filter(c => ['Faculdade', 'Disciplina'].includes(c.category || '') && c.status !== 'concluido');
     } else if (activeTab === "Certificações") {
@@ -553,6 +555,8 @@ export function PosStudies() {
        tabCourses = courses.filter(c => c.category === 'Documentário' && c.status !== 'concluido');
     } else if (activeTab === "Biografias") {
        tabCourses = courses.filter(c => c.category === 'Biografia' && c.status !== 'concluido');
+    } else if (activeTab === "Conteúdos") {
+       tabCourses = courses.filter(c => c.category === 'Conteúdo' && c.status !== 'concluido');
     }
     
     const itemsCount = tabCourses.length;
@@ -1304,6 +1308,7 @@ export function PosStudies() {
               <div className="absolute top-full right-0 mt-2 w-48 bg-[#111113] border border-[rgba(255,255,255,0.1)] rounded-2xl shadow-2xl z-50 p-2 animate-in fade-in zoom-in-95 max-h-[60vh] overflow-y-auto custom-scrollbar">
                  <div className="text-[10px] uppercase font-bold text-[#71717A] tracking-widest px-2 py-1 mb-1">Layout</div>
                  <button onClick={() => { setViewMode("cards"); setShowViewMenu(false); }} className={cn("w-full text-left px-3 py-2 text-xs font-bold rounded-xl transition-colors flex items-center gap-2", viewMode === "cards" ? "bg-cyan-500/10 text-cyan-400" : "text-white hover:bg-white/5")}><LayoutGrid className="size-3"/> Cards</button>
+                 <button onClick={() => { setViewMode("por_area"); setShowViewMenu(false); }} className={cn("w-full text-left px-3 py-2 text-xs font-bold rounded-xl transition-colors flex items-center gap-2", viewMode === "por_area" ? "bg-cyan-500/10 text-cyan-400" : "text-white hover:bg-white/5")}><Layers className="size-3"/> Por Área</button>
                  <button onClick={() => { setViewMode("lista"); setShowViewMenu(false); }} className={cn("w-full text-left px-3 py-2 text-xs font-bold rounded-xl transition-colors flex items-center gap-2", viewMode === "lista" ? "bg-cyan-500/10 text-cyan-400" : "text-white hover:bg-white/5")}><ListIcon className="size-3"/> Lista</button>
                  <button onClick={() => { setViewMode("kanban"); setShowViewMenu(false); }} className={cn("w-full text-left px-3 py-2 text-xs font-bold rounded-xl transition-colors flex items-center gap-2", viewMode === "kanban" ? "bg-cyan-500/10 text-cyan-400" : "text-white hover:bg-white/5")}><LayoutTemplate className="size-3"/> Kanban</button>
                  <button onClick={() => { setViewMode("tabela"); setShowViewMenu(false); }} className={cn("w-full text-left px-3 py-2 text-xs font-bold rounded-xl transition-colors flex items-center gap-2", viewMode === "tabela" ? "bg-cyan-500/10 text-cyan-400" : "text-white hover:bg-white/5")}><Table2 className="size-3"/> Tabela</button>
@@ -1344,13 +1349,14 @@ export function PosStudies() {
              if (filterStatus !== "todos" && c.status !== filterStatus && activeTab !== "Concluídos") return false;
              if (filterArea !== "todas" && c.knowledge_area !== filterArea) return false;
              
-             if (activeTab === "Cursos") return !['Faculdade', 'Disciplina', 'Certificação', 'Trilha', 'Projeto Acadêmico', 'Documentário', 'Biografia'].includes(c.category || '') && c.status !== 'concluido';
+             if (activeTab === "Cursos") return !['Faculdade', 'Disciplina', 'Certificação', 'Trilha', 'Projeto Acadêmico', 'Documentário', 'Biografia', 'Conteúdo'].includes(c.category || '') && c.status !== 'concluido';
              if (activeTab === "Faculdade") return ['Faculdade', 'Disciplina'].includes(c.category || '') && c.status !== 'concluido';
              if (activeTab === "Certificações") return c.category === 'Certificação' && c.status !== 'concluido';
              if (activeTab === "Trilhas") return c.category === 'Trilha' && c.status !== 'concluido';
              if (activeTab === "Projetos") return c.category === 'Projeto Acadêmico' && c.status !== 'concluido';
              if (activeTab === "Documentários") return c.category === 'Documentário' && c.status !== 'concluido';
              if (activeTab === "Biografias") return c.category === 'Biografia' && c.status !== 'concluido';
+             if (activeTab === "Conteúdos") return c.category === 'Conteúdo' && c.status !== 'concluido';
              if (activeTab === "Concluídos") return c.status === 'concluido';
              
              return true;
@@ -1360,10 +1366,77 @@ export function PosStudies() {
            return <div className="p-8 text-center border border-dashed border-[rgba(255,255,255,0.06)] rounded-2xl text-[#A1A1AA] text-sm">Nenhum material encontrado com os filtros atuais.</div>;
          }
 
-         if (viewMode === "cards") {
-           // Original Trilhas logic (grouped by knowledge_area and carousel)
-           if (activeTab === "Trilhas") {
-              const grouped = filteredList.reduce((acc, course) => {
+         if (activeTab === "Conteúdos") {
+            return (
+               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-x-6 gap-y-10 animate-in fade-in duration-500">
+                 {filteredList.map(course => {
+                    let thumbUrl = null;
+                    if (course.course_url) {
+                       if (course.course_url.includes('youtube.com') || course.course_url.includes('youtu.be')) {
+                          let thumbId = course.course_url.split('v=')[1];
+                          if(!thumbId) thumbId = course.course_url.split('/').pop();
+                          if(thumbId && thumbId.includes('&')) thumbId = thumbId.split('&')[0];
+                          if(thumbId) thumbUrl = `https://img.youtube.com/vi/${thumbId}/maxresdefault.jpg`;
+                       }
+                    }
+                    if (!thumbUrl) {
+                       try { const p = JSON.parse(course.description || '{}'); if (p.cover_url) thumbUrl = p.cover_url; } catch(e){}
+                    }
+
+                    return (
+                       <div key={course.id} onClick={() => setSelectedCourseId(course.id)} className="group cursor-pointer flex flex-col gap-3 w-full">
+                          {/* Thumbnail Container */}
+                          <div className="relative w-full aspect-video rounded-xl overflow-hidden bg-[#0A0A0C] border border-[rgba(255,255,255,0.04)] shadow-lg group-hover:shadow-[0_0_30px_rgba(6,182,212,0.15)] transition-all duration-500">
+                             {thumbUrl ? (
+                                <>
+                                  <img src={thumbUrl} className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110" />
+                                  <div className="absolute inset-0 bg-gradient-to-t from-[#111113]/80 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500 z-0"></div>
+                                </>
+                             ) : (
+                                <MonitorPlay className="size-10 text-[#A1A1AA]/30 absolute inset-0 m-auto" />
+                             )}
+                             {/* Floating Play Icon on Hover */}
+                             <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-all duration-300 scale-90 group-hover:scale-100 z-10">
+                                <div className="w-14 h-14 rounded-full bg-cyan-500/90 shadow-[0_0_20px_rgba(6,182,212,0.6)] backdrop-blur-md flex items-center justify-center">
+                                   <Play className="size-6 text-white ml-1 fill-white" />
+                                </div>
+                             </div>
+                             {/* Time indicator */}
+                             {course.total_hours > 0 && (
+                                <div className="absolute bottom-2 right-2 bg-black/90 backdrop-blur-md text-white text-[10px] font-bold px-2 py-1 rounded-md border border-white/10 shadow-lg z-20">
+                                   {course.total_hours}:00
+                                </div>
+                             )}
+                          </div>
+                          {/* Info Container */}
+                          <div className="flex gap-3 px-1 mt-1">
+                             {/* Channel/Area Avatar */}
+                             <div className="shrink-0 mt-0.5">
+                                <div className="w-9 h-9 rounded-full bg-gradient-to-br from-cyan-500/20 to-indigo-500/20 border border-white/10 flex items-center justify-center text-cyan-400 font-bold text-xs uppercase shadow-inner group-hover:shadow-[0_0_15px_rgba(6,182,212,0.3)] transition-shadow duration-300">
+                                   {(course.knowledge_area || "C").charAt(0)}
+                                </div>
+                             </div>
+                             {/* Texts */}
+                             <div className="flex flex-col overflow-hidden">
+                                <h3 className="text-sm font-semibold text-[#E4E4E7] leading-tight line-clamp-2 group-hover:text-cyan-400 transition-colors duration-300">
+                                   {course.title}
+                                </h3>
+                                <div className="flex items-center gap-1 mt-1.5 text-[12px] text-[#A1A1AA] truncate">
+                                   <span className="truncate">{course.knowledge_area || "Conteúdo Variado"}</span>
+                                   <span className="shrink-0">•</span>
+                                   <span className="capitalize shrink-0">{course.status.replace('_', ' ')}</span>
+                                </div>
+                             </div>
+                          </div>
+                       </div>
+                    )
+                 })}
+               </div>
+            );
+         }
+
+         if (viewMode === "por_area" || (viewMode === "cards" && activeTab === "Trilhas")) {
+            const grouped = filteredList.reduce((acc, course) => {
                  const area = course.knowledge_area || 'Outras Áreas';
                  if (!acc[area]) acc[area] = [];
                  acc[area].push(course);
@@ -1379,6 +1452,54 @@ export function PosStudies() {
                           </h3>
                           <div className="flex overflow-x-auto gap-4 pb-4 hide-scrollbar snap-x snap-mandatory">
                              {areaCourses.map(course => {
+                                if (course.category === 'Conteúdo') {
+                                  let thumbUrl = null;
+                                  if (course.course_url) {
+                                     if (course.course_url.includes('youtube.com') || course.course_url.includes('youtu.be')) {
+                                        let thumbId = course.course_url.split('v=')[1];
+                                        if(!thumbId) thumbId = course.course_url.split('/').pop();
+                                        if(thumbId && thumbId.includes('&')) thumbId = thumbId.split('&')[0];
+                                        if(thumbId) thumbUrl = `https://img.youtube.com/vi/${thumbId}/maxresdefault.jpg`;
+                                     }
+                                  }
+                                  if (!thumbUrl) {
+                                     try { const p = JSON.parse(course.description || '{}'); if (p.cover_url) thumbUrl = p.cover_url; } catch(e){}
+                                  }
+                                  return (
+                                    <div key={course.id} onClick={() => {
+                                        setSelectedCourseId(course.id);
+                                        setCourseTab("Diário de Bordo");
+                                        if (course.course_url) {
+                                            window.dispatchEvent(new CustomEvent('global-pip', { detail: { url: course.course_url, title: course.title, refType: 'video' } }));
+                                        }
+                                    }} className="snap-start shrink-0 w-[280px] md:w-[320px] bg-[#111113] border border-[rgba(255,255,255,0.04)] rounded-2xl overflow-hidden hover:border-cyan-500/50 hover:shadow-[0_0_20px_rgba(6,182,212,0.15)] transition-all group cursor-pointer shadow-lg flex flex-col h-[320px]">
+                                       <div className="h-44 w-full relative overflow-hidden bg-[#0A0A0A] flex items-center justify-center">
+                                          {thumbUrl ? (
+                                             <img src={thumbUrl} className="absolute inset-0 w-full h-full object-cover opacity-80 group-hover:opacity-100 group-hover:scale-105 transition-all duration-700 z-0" />
+                                          ) : (
+                                             <MonitorPlay className="size-10 text-[#A1A1AA]/30 z-0" />
+                                          )}
+                                          <div className="absolute inset-0 bg-black/40 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity duration-300 z-10">
+                                             <div className="w-12 h-12 rounded-full bg-cyan-500/90 flex items-center justify-center shadow-[0_0_20px_rgba(6,182,212,0.6)]">
+                                                <Play className="size-5 text-white ml-1" />
+                                             </div>
+                                          </div>
+                                          <div className="absolute top-3 left-3 flex gap-2 z-20">
+                                             <span className="px-2 py-1 bg-black/60 backdrop-blur-md rounded border border-white/10 text-[9px] font-bold text-white uppercase tracking-wider">{course.knowledge_area || "Mídia"}</span>
+                                          </div>
+                                       </div>
+                                       <div className="p-5 flex-1 flex flex-col bg-gradient-to-b from-[#111113] to-[#0A0A0C] z-20">
+                                          <h4 className="font-bold text-base text-white leading-tight line-clamp-3 group-hover:text-cyan-400 transition-colors">{course.title}</h4>
+                                          <div className="mt-auto pt-4 flex items-center justify-between border-t border-white/5">
+                                             <div className="flex items-center gap-2 text-cyan-400 text-[10px] font-bold uppercase tracking-widest">
+                                                <MonitorPlay className="size-3" /> Assistir / Anotar
+                                             </div>
+                                          </div>
+                                       </div>
+                                    </div>
+                                  );
+                                }
+
                                 const percent = course.total_hours ? Math.min(100, Math.round((course.completed_hours / course.total_hours) * 100)) : 0;
                                 return (
                                   <div key={course.id} onClick={() => setSelectedCourseId(course.id)} className="snap-start shrink-0 w-[280px] md:w-[320px] bg-[#111113] border border-[rgba(255,255,255,0.04)] rounded-2xl overflow-hidden hover:border-cyan-500/50 hover:shadow-[0_0_20px_rgba(6,182,212,0.15)] transition-all group cursor-pointer shadow-lg flex flex-col">
@@ -1415,12 +1536,61 @@ export function PosStudies() {
                     ))}
                  </div>
               );
-           }
+         }
 
+         if (viewMode === "cards") {
            // Original grid logic
            return (
              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 animate-in fade-in duration-500">
                {filteredList.map(course => {
+                  if (course.category === 'Conteúdo') {
+                    let thumbUrl = null;
+                    if (course.course_url) {
+                       if (course.course_url.includes('youtube.com') || course.course_url.includes('youtu.be')) {
+                          let thumbId = course.course_url.split('v=')[1];
+                          if(!thumbId) thumbId = course.course_url.split('/').pop();
+                          if(thumbId && thumbId.includes('&')) thumbId = thumbId.split('&')[0];
+                          if(thumbId) thumbUrl = `https://img.youtube.com/vi/${thumbId}/maxresdefault.jpg`;
+                       }
+                    }
+                    if (!thumbUrl) {
+                       try { const p = JSON.parse(course.description || '{}'); if (p.cover_url) thumbUrl = p.cover_url; } catch(e){}
+                    }
+                    return (
+                      <div key={course.id} onClick={() => {
+                          setSelectedCourseId(course.id);
+                          setCourseTab("Diário de Bordo");
+                          if (course.course_url) {
+                              window.dispatchEvent(new CustomEvent('global-pip', { detail: { url: course.course_url, title: course.title, refType: 'video' } }));
+                          }
+                      }} className="bg-[#111113] border border-[rgba(255,255,255,0.04)] rounded-2xl overflow-hidden hover:border-cyan-500/50 hover:shadow-[0_0_20px_rgba(6,182,212,0.15)] transition-all group cursor-pointer shadow-lg flex flex-col h-full min-h-[260px]">
+                         <div className="h-40 w-full relative overflow-hidden bg-[#0A0A0A] flex items-center justify-center shrink-0">
+                            {thumbUrl ? (
+                               <img src={thumbUrl} className="absolute inset-0 w-full h-full object-cover opacity-80 group-hover:opacity-100 group-hover:scale-105 transition-all duration-700 z-0" />
+                            ) : (
+                               <MonitorPlay className="size-10 text-[#A1A1AA]/30 z-0" />
+                            )}
+                            <div className="absolute inset-0 bg-black/40 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity duration-300 z-10">
+                               <div className="w-12 h-12 rounded-full bg-cyan-500/90 flex items-center justify-center shadow-[0_0_20px_rgba(6,182,212,0.6)]">
+                                  <Play className="size-5 text-white ml-1" />
+                               </div>
+                            </div>
+                            <div className="absolute top-3 left-3 flex gap-2 z-20">
+                               <span className="px-2 py-1 bg-black/60 backdrop-blur-md rounded border border-white/10 text-[9px] font-bold text-white uppercase tracking-wider">{course.knowledge_area || "Mídia"}</span>
+                            </div>
+                         </div>
+                         <div className="p-4 flex-1 flex flex-col bg-gradient-to-b from-[#111113] to-[#0A0A0C] z-20">
+                            <h4 className="font-bold text-sm text-white leading-tight line-clamp-3 group-hover:text-cyan-400 transition-colors">{course.title}</h4>
+                            <div className="mt-auto pt-4 flex items-center justify-between border-t border-white/5">
+                               <div className="flex items-center gap-2 text-cyan-400 text-[10px] font-bold uppercase tracking-widest">
+                                  <MonitorPlay className="size-3" /> Assistir / Anotar
+                               </div>
+                            </div>
+                         </div>
+                      </div>
+                    );
+                  }
+
                   const percent = course.total_hours ? Math.min(100, Math.round((course.completed_hours / course.total_hours) * 100)) : 0;
                   const isCompleted = course.status === 'concluido';
                   return (
@@ -1834,6 +2004,89 @@ export function PosStudies() {
 
   const renderCourseDetails = () => {
     if (!selectedCourse) return null;
+
+    if (selectedCourse.category === 'Conteúdo') {
+      let embedUrl = "";
+      if (selectedCourse.course_url) {
+         if (selectedCourse.course_url.includes('youtube') || selectedCourse.course_url.includes('youtu.be')) {
+            embedUrl = selectedCourse.course_url.replace('watch?v=', 'embed/').split('&')[0];
+            if (embedUrl.includes('youtu.be/')) embedUrl = embedUrl.replace('youtu.be/', 'youtube.com/embed/');
+         } else if (selectedCourse.course_url.includes('spotify')) {
+            embedUrl = selectedCourse.course_url.replace('/episode/', '/embed/episode/').replace('/show/', '/embed/show/').replace('/track/', '/embed/track/');
+         }
+      }
+
+      return (
+        <div className="animate-in fade-in slide-in-from-bottom-8 duration-700 flex flex-col min-h-screen pb-20 w-full max-w-[1200px] mx-auto">
+           <button onClick={() => setSelectedCourseId(null)} className="flex items-center gap-2 text-sm font-bold text-[#A1A1AA] hover:text-white transition-all w-fit mb-6 mt-2 group bg-white/5 hover:bg-white/10 px-4 py-2 rounded-full border border-white/5 backdrop-blur-md">
+             <ArrowLeft className="size-4 group-hover:-translate-x-1 transition-transform" /> Voltar
+           </button>
+           
+           <div className="flex flex-col gap-6 w-full">
+             {/* Premium YouTube Player Section */}
+             <div className="w-full aspect-video bg-[#0A0A0C] rounded-3xl overflow-hidden shadow-[0_20px_50px_rgba(0,0,0,0.5)] border border-[rgba(255,255,255,0.06)] relative group">
+                {embedUrl ? (
+                   <iframe src={embedUrl} className="w-full h-full border-0 bg-[#0A0A0C] relative z-10" allow="autoplay; encrypted-media; picture-in-picture" allowFullScreen></iframe>
+                ) : (
+                   <div className="w-full h-full flex flex-col items-center justify-center text-[#71717A] gap-4 relative z-10">
+                      <MonitorPlay className="size-16 opacity-20" />
+                      <p className="text-sm">Nenhum vídeo ou áudio compatível encontrado neste conteúdo.</p>
+                      {selectedCourse.course_url && (
+                        <a href={selectedCourse.course_url} target="_blank" className="text-cyan-400 hover:underline font-bold">Abrir Link Original</a>
+                      )}
+                   </div>
+                )}
+                <div className="absolute inset-0 bg-gradient-to-t from-cyan-500/5 to-transparent pointer-events-none z-0"></div>
+             </div>
+
+             {/* Info Section */}
+             <div className="flex flex-col gap-4 mt-2">
+                <div className="flex flex-col sm:flex-row justify-between items-start gap-6">
+                   <h1 className="text-3xl sm:text-4xl font-black text-white leading-tight tracking-tight drop-shadow-md">{selectedCourse.title}</h1>
+                   <button 
+                      onClick={() => {
+                         if (selectedCourse.course_url) {
+                            window.dispatchEvent(new CustomEvent('global-pip', { detail: { url: selectedCourse.course_url, title: selectedCourse.title, refType: 'video' } }));
+                         }
+                      }} 
+                      className="flex items-center gap-2 px-5 py-2.5 bg-[#111113] hover:bg-cyan-500/10 text-[#A1A1AA] hover:text-cyan-400 border border-white/10 hover:border-cyan-500/30 rounded-2xl transition-all shadow-xl hover:shadow-[0_0_20px_rgba(6,182,212,0.15)] text-sm font-bold shrink-0"
+                   >
+                      <Minimize2 className="size-4" /> Minimizar (PiP)
+                   </button>
+                </div>
+                <div className="flex items-center gap-4 border-b border-[rgba(255,255,255,0.06)] pb-6">
+                   <div className="flex items-center gap-4">
+                      <div className="w-12 h-12 rounded-full bg-gradient-to-br from-cyan-500/20 to-indigo-500/20 border border-cyan-500/30 flex items-center justify-center text-cyan-400 font-bold text-xl uppercase shadow-[0_0_15px_rgba(6,182,212,0.15)]">
+                         {(selectedCourse.knowledge_area || "C").charAt(0)}
+                      </div>
+                      <div className="flex flex-col">
+                         <span className="text-[#E4E4E7] font-bold text-base">{selectedCourse.knowledge_area || "Conteúdo Variado"}</span>
+                         <span className="text-xs text-[#71717A] font-medium tracking-wide uppercase">{selectedCourse.status.replace('_', ' ')} • {selectedCourse.completed_hours || "0"} visualizações</span>
+                      </div>
+                   </div>
+                </div>
+             </div>
+
+             {/* Comments / Notes Section */}
+             <div className="mt-4">
+                <h3 className="text-xl font-black text-white mb-6 flex items-center gap-3 drop-shadow-md">
+                   <span className="bg-cyan-500/20 p-2 rounded-xl border border-cyan-500/30 shadow-[0_0_15px_rgba(6,182,212,0.2)]">
+                      <Edit3 className="size-5 text-cyan-400" />
+                   </span>
+                   Suas Anotações
+                </h3>
+                <div className="bg-[#0A0A0C] rounded-3xl border border-[rgba(255,255,255,0.06)] shadow-2xl overflow-hidden transition-all duration-500 hover:border-white/10">
+                   <RichTextEditor 
+                      initialValue={selectedCourse.study_notes || ""} 
+                      onChange={(val) => updateCourse(selectedCourse.id, { study_notes: val })} 
+                   />
+                </div>
+             </div>
+           </div>
+        </div>
+      );
+    }
+
     const percent = selectedCourse.total_hours ? Math.min(100, Math.round((selectedCourse.completed_hours / selectedCourse.total_hours) * 100)) : 0;
     
     let coverUrl = "";
@@ -4050,7 +4303,7 @@ export function PosStudies() {
 
         {/* TABS NAVEGAÇÃO */}
         <div className="flex items-center gap-1 overflow-x-auto pt-4 mt-4 border-t border-[rgba(255,255,255,0.04)] hide-scrollbar z-10 relative">
-          {["Visão Geral", "Cursos", "Faculdade", "Certificações", "Trilhas", "Projetos", "Documentários", "Biografias", "Concluídos", "Inteligência"].map(tab => (
+          {["Visão Geral", "Cursos", "Faculdade", "Certificações", "Trilhas", "Projetos", "Documentários", "Biografias", "Conteúdos", "Concluídos", "Inteligência"].map(tab => (
             <button
               key={tab}
               onClick={() => { setActiveTab(tab); setSelectedCourseId(null); }}
@@ -4144,6 +4397,7 @@ export function PosStudies() {
                   <option value="Projeto Acadêmico">Projeto Acadêmico</option>
                   <option value="Documentário">Documentário</option>
                   <option value="Biografia">Biografia</option>
+                  <option value="Conteúdo">Conteúdo (Vídeos, Podcasts)</option>
                 </select>
               </div>
 
@@ -4257,19 +4511,51 @@ export function PosStudies() {
               </div>
 
               <div className="md:col-span-2">
-                <label className="text-[10px] uppercase tracking-widest text-[#71717A] font-bold mb-2 block">Capa do Curso (URL da Imagem)</label>
-                <input 
-                  type="url" 
-                  value={(() => { try { const p = JSON.parse(newCourse.description || '{}'); return p.cover_url || ""; } catch(e){ return ""; } })()}
-                  onChange={e => {
-                     let s: any = { days: [] as number[], time: "19:00" };
-                     try { const p = JSON.parse(newCourse.description || '{}'); if (p.days) s = p; } catch(e){}
-                     s.cover_url = e.target.value;
-                     setNewCourse({...newCourse, description: JSON.stringify(s)});
-                  }}
-                  className="w-full bg-[#1A1A1E] border border-[rgba(255,255,255,0.06)] rounded-xl px-4 py-3 text-sm text-white focus:border-cyan-500 focus:outline-none transition-colors"
-                  placeholder="https://..."
-                />
+                <div className="flex items-center justify-between mb-2">
+                   <label className="text-[10px] uppercase tracking-widest text-[#71717A] font-bold">Capa do Curso</label>
+                   <div className="flex items-center gap-2 bg-[#1A1A1E] p-1 rounded-lg border border-white/5">
+                      <button type="button" onClick={() => setCoverMode("url")} className={cn("text-[10px] px-3 py-1 font-bold rounded-md transition-all", coverMode === "url" ? "bg-cyan-500/20 text-cyan-400" : "text-[#71717A] hover:text-white")}>Link (URL)</button>
+                      <button type="button" onClick={() => setCoverMode("upload")} className={cn("text-[10px] px-3 py-1 font-bold rounded-md transition-all", coverMode === "upload" ? "bg-cyan-500/20 text-cyan-400" : "text-[#71717A] hover:text-white")}>Upload Foto</button>
+                   </div>
+                </div>
+                {coverMode === "url" ? (
+                  <input 
+                    type="url" 
+                    value={(() => { try { const p = JSON.parse(newCourse.description || '{}'); return p.cover_url || ""; } catch(e){ return ""; } })()}
+                    onChange={e => {
+                       let s: any = { days: [] as number[], time: "19:00" };
+                       try { const p = JSON.parse(newCourse.description || '{}'); if (p.days) s = p; } catch(e){}
+                       s.cover_url = e.target.value;
+                       setNewCourse({...newCourse, description: JSON.stringify(s)});
+                    }}
+                    className="w-full bg-[#1A1A1E] border border-[rgba(255,255,255,0.06)] rounded-xl px-4 py-3 text-sm text-white focus:border-cyan-500 focus:outline-none transition-colors"
+                    placeholder="https://..."
+                  />
+                ) : (
+                  <div className="flex items-center gap-3">
+                    <button type="button" onClick={() => coverInputRef.current?.click()} className="flex items-center gap-2 px-4 py-3 bg-[#1A1A1E] border border-[rgba(255,255,255,0.06)] rounded-xl text-sm font-bold text-white hover:border-cyan-500 transition-colors flex-1 justify-center shadow-inner">
+                       <UploadCloud className="size-5 text-cyan-500" /> 
+                       {(() => { try { const p = JSON.parse(newCourse.description || '{}'); return p.cover_url?.startsWith('data:image') ? "Trocar Foto..." : "Selecionar Foto..."; } catch(e){ return "Selecionar Foto..."; } })()}
+                    </button>
+                    {(() => { try { const p = JSON.parse(newCourse.description || '{}'); return p.cover_url?.startsWith('data:image') ? <div className="h-[46px] aspect-video rounded-lg overflow-hidden shrink-0 border border-white/10"><img src={p.cover_url} className="w-full h-full object-cover"/></div> : null; } catch(e){ return null; } })()}
+                    <input 
+                       type="file" accept="image/*" ref={coverInputRef} className="hidden"
+                       onChange={e => {
+                          const file = e.target.files?.[0];
+                          if (file) {
+                             const reader = new FileReader();
+                             reader.onload = (ev) => {
+                                let s: any = { days: [] as number[], time: "19:00" };
+                                try { const p = JSON.parse(newCourse.description || '{}'); if (p.days) s = p; } catch(err){}
+                                s.cover_url = ev.target?.result as string;
+                                setNewCourse({...newCourse, description: JSON.stringify(s)});
+                             };
+                             reader.readAsDataURL(file);
+                          }
+                       }}
+                    />
+                  </div>
+                )}
               </div>
             </div>
             

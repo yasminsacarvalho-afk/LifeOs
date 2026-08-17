@@ -133,14 +133,14 @@ export function GlobalPiPPlayer() {
         </div>
       </div>
       
-      <div className="w-full aspect-video bg-black relative group">
+      <div className="w-full aspect-video bg-black relative">
          <iframe 
            src={getSafeEmbedUrl(pipData.url, pipData.extra)} 
            className="w-full h-full border-0" 
            allowFullScreen
            allow="autoplay; encrypted-media"
          ></iframe>
-         <div className="absolute inset-0 pointer-events-none group-hover:pointer-events-auto" />
+         {isDragging && <div className="absolute inset-0 z-50 pointer-events-auto cursor-grabbing" />}
       </div>
     </div>
   );

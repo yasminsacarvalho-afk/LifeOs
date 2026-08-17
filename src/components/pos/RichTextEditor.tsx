@@ -11,12 +11,14 @@ import { ReactNodeViewRenderer, NodeViewWrapper } from '@tiptap/react';
 import { FontFamily } from '@tiptap/extension-font-family';
 import { TextStyle } from '@tiptap/extension-text-style';
 import { Color } from '@tiptap/extension-color';
+import Image from '@tiptap/extension-image';
 import { 
   Bold, Italic, Underline as UnderlineIcon, Strikethrough, 
   Heading1, Heading2, Heading3, List, ListOrdered, 
   CheckSquare, Highlighter, Link as LinkIcon, 
   AlignLeft, AlignCenter, AlignRight, AlignJustify, Minus,
-  Book, Play, X, ChevronRight, FolderOpen, Palette, Type, Code
+  Book, Play, X, ChevronRight, FolderOpen, Palette, Type, Code,
+  Image as ImageIcon
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useEffect, useState, useRef } from 'react';
@@ -109,6 +111,7 @@ export function RichTextEditor({ content, onChange, placeholder, availableBooks,
   const [activeFilter, setActiveFilter] = useState<'quotes'|'videos'|'materials'>('quotes');
   const [selectedItem, setSelectedItem] = useState<any>(null);
   const [extraInput, setExtraInput] = useState("");
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   const editor = useEditor({
     extensions: [
@@ -124,7 +127,8 @@ export function RichTextEditor({ content, onChange, placeholder, availableBooks,
       TextStyle,
       FontFamily,
       Color,
-      ReferenceExtension
+      ReferenceExtension,
+      Image.configure({ inline: true, allowBase64: true })
     ],
     content,
     editorProps: {
@@ -210,6 +214,31 @@ export function RichTextEditor({ content, onChange, placeholder, availableBooks,
     setExtraInput(item.text || "");
   }
 
+  const handleImageUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (file) {
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        const result = e.target?.result as string;
+        editor.chain().focus().setImage({ src: result }).run();
+      };
+      reader.readAsDataURL(file);
+    }
+    if (event.target) event.target.value = '';
+  };
+
+  const addImage = () => {
+    const choice = window.confirm("Clique 'OK' para enviar um arquivo do seu computador, ou 'Cancelar' para inserir um Link.");
+    if (choice) {
+      fileInputRef.current?.click();
+    } else {
+      const url = window.prompt("Insira a URL da imagem:");
+      if (url) {
+        editor.chain().focus().setImage({ src: url }).run();
+      }
+    }
+  };
+
   const handleInsert = () => {
     if (slashMenu.range) {
       editor.chain().focus().deleteRange(slashMenu.range).insertContent({
@@ -259,6 +288,13 @@ export function RichTextEditor({ content, onChange, placeholder, availableBooks,
 
   return (
     <div className="w-full bg-[#1A1A1E] border border-[rgba(255,255,255,0.06)] rounded-xl overflow-hidden focus-within:border-rose-500 transition-colors relative flex flex-col h-full">
+      <input 
+        type="file" 
+        accept="image/*" 
+        ref={fileInputRef} 
+        onChange={handleImageUpload} 
+        className="hidden" 
+      />
       <div className="flex overflow-x-auto custom-scrollbar flex-nowrap items-center gap-1 p-2 border-b border-[rgba(255,255,255,0.06)] bg-[#111113]/50 shrink-0">
         <ToolbarButton onClick={() => editor.chain().focus().toggleHeading({ level: 1 }).run()} isActive={editor.isActive('heading', { level: 1 })} icon={Heading1} />
         <ToolbarButton onClick={() => editor.chain().focus().toggleHeading({ level: 2 }).run()} isActive={editor.isActive('heading', { level: 2 })} icon={Heading2} />
@@ -271,6 +307,7 @@ export function RichTextEditor({ content, onChange, placeholder, availableBooks,
         <ToolbarButton onClick={() => editor.chain().focus().toggleUnderline().run()} isActive={editor.isActive('underline')} icon={UnderlineIcon} />
         <ToolbarButton onClick={() => editor.chain().focus().toggleStrike().run()} isActive={editor.isActive('strike')} icon={Strikethrough} />
         <ToolbarButton onClick={() => editor.chain().focus().toggleCodeBlock().run()} isActive={editor.isActive('codeBlock')} icon={Code} />
+        <ToolbarButton onClick={addImage} isActive={editor.isActive('image')} icon={ImageIcon} />
         
         {/* Text Colors */}
         <div className="flex shrink-0 gap-1.5 items-center px-1 border-r border-[#3F3F46] pr-2">
