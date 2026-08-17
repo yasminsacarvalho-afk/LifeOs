@@ -22,6 +22,7 @@ export interface PosStudyCourse {
   created_at?: string;
   share_token?: string | null;
   is_public?: boolean;
+  next_topics?: string | null;
 }
 
 export interface PosStudySession {
@@ -86,7 +87,7 @@ export function usePosStudies() {
         .single();
 
       if (error) throw error;
-      if (data) setCourses([data, ...courses]);
+      if (data) setCourses(prev => [data, ...prev]);
       toast.success("Curso cadastrado com sucesso!");
       return data;
     } catch (error: any) {
@@ -105,7 +106,7 @@ export function usePosStudies() {
         .single();
 
       if (error) throw error;
-      if (data) setCourses(courses.map(c => c.id === id ? data : c));
+      if (data) setCourses(prev => prev.map(c => c.id === id ? data : c));
       if (showToast) toast.success("Curso atualizado!");
       return true;
     } catch (error: any) {

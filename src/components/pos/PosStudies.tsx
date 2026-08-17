@@ -2666,20 +2666,22 @@ export function PosStudies() {
                         <h3 className="text-lg font-bold text-white flex items-center gap-2"><Layers className="size-5 text-cyan-500" /> Módulos</h3>
                         <p className="text-xs text-[#A1A1AA] mt-1">Estruture o curso em módulos e tópicos. Anexe links, tags e gere materiais com IA.</p>
                       </div>
-                      <button onClick={() => {
-                        const moduleTitle = prompt("Qual o nome do novo Módulo?");
-                        if (moduleTitle) {
-                          let current = [];
-                          try {
-                            const parsed = JSON.parse(selectedCourse.next_topics || '[]');
-                            current = (parsed.length > 0 && !parsed[0].topics) ? [{ id: Date.now(), title: 'Módulo Geral', topics: parsed }] : parsed;
-                          } catch(e) {}
-                          const updated = [...current, { id: Date.now(), title: moduleTitle, topics: [] }];
-                          updateCourse(selectedCourse.id, { next_topics: JSON.stringify(updated) });
-                        }
-                      }} className="bg-cyan-600 hover:bg-cyan-500 text-white px-4 py-2 rounded-xl text-sm font-bold flex items-center gap-2 transition-colors">
-                        <Plus className="size-4" /> Novo Módulo
-                      </button>
+                      {activeModuleIndex === null && (
+                        <button onClick={() => {
+                          const moduleTitle = prompt("Qual o nome do novo Módulo?");
+                          if (moduleTitle) {
+                            let current = [];
+                            try {
+                              const parsed = JSON.parse(selectedCourse.next_topics || '[]');
+                              current = (parsed.length > 0 && !parsed[0].topics) ? [{ id: Date.now(), title: 'Módulo Geral', topics: parsed }] : parsed;
+                            } catch(e) {}
+                            const updated = [...current, { id: Date.now(), title: moduleTitle, topics: [] }];
+                            updateCourse(selectedCourse.id, { next_topics: JSON.stringify(updated) });
+                          }
+                        }} className="bg-cyan-600 hover:bg-cyan-500 text-white px-4 py-2 rounded-xl text-sm font-bold flex items-center gap-2 transition-colors">
+                          <Plus className="size-4" /> Novo Módulo
+                        </button>
+                      )}
                     </div>
 
                     {/* Lógica de Renderização e Progresso */}
@@ -3278,6 +3280,72 @@ export function PosStudies() {
                                                     </button>
                                                   </div>
                                                   <div className="space-y-6">
+                                                <details open className="group [&_summary::-webkit-details-marker]:hidden">
+                                                  <summary className="text-[10px] text-[#A1A1AA] hover:text-white uppercase tracking-widest font-bold mb-2 flex items-center justify-between cursor-pointer list-none transition-colors">
+                                                    <div className="flex items-center gap-1">
+                                                      <ListIcon className="size-3 text-purple-500" /> Glossário de Anotações
+                                                    </div>
+                                                    <ChevronDown className="size-3 transition-transform group-open:rotate-180" />
+                                                  </summary>
+                                                  <div className="flex flex-col gap-1 max-h-48 overflow-y-auto custom-scrollbar pr-1 bg-[#1A1A1E] p-2 rounded-xl border border-[rgba(255,255,255,0.04)]">
+                                                    {(() => {
+                                                      if (typeof window === 'undefined' || !localNotes) return <span className="text-[10px] text-[#71717A] italic text-center py-2">Nenhum título criado.</span>;
+                                                      const doc = new DOMParser().parseFromString(localNotes, 'text/html');
+                                                      const headings = Array.from(doc.querySelectorAll('h1, h2, h3, h4'));
+                                                      const items = headings.map((h, i) => ({
+                                                        title: h.textContent || '',
+                                                        level: parseInt(h.tagName.replace('H', '')),
+                                                        index: i
+                                                      })).filter(h => h.title.replace(/\u200B/g, '').replace(/[\u00A0\u1680\u180e\u2000-\u2009\u200a\u200b\u202f\u205f\u3000]/g, '').trim() !== '');
+
+                                                      if (items.length === 0) return <span className="text-[10px] text-[#71717A] italic text-center py-2">Nenhum título criado nas anotações.</span>;
+                                                      
+                                                      return items.map((item, idx) => (
+                                                        <button
+                                                          key={idx}
+                                                          onClick={() => {
+                                                            const editorEl = document.querySelector('.ProseMirror');
+                                                            if (editorEl) {
+                                                              const domHeadings = Array.from(editorEl.querySelectorAll('h1, h2, h3, h4'));
+                                                              const target = domHeadings[item.index] as HTMLElement;
+                                                              if (target) {
+                                                                target.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                                                                target.style.transition = 'all 0.5s ease';
+                                                                const oldBg = target.style.backgroundColor;
+                                                                target.style.backgroundColor = 'rgba(168, 85, 247, 0.2)';
+                                                                target.style.borderRadius = '4px';
+                                                                target.style.padding = '0 4px';
+                                                                setTimeout(() => {
+                                                                  target.style.backgroundColor = oldBg;
+                                                                }, 1500);
+                                                              }
+                                                            }
+                                                          }}
+                                                          className={cn("text-left w-full py-1 rounded-lg transition-colors group/item overflow-hidden block shrink-0", 
+                                                            item.level === 4 ? "my-1" : "px-2 hover:bg-white/5"
+                                                          )}
+                                                          title={item.title}
+                                                        >
+                                                          {item.level === 4 ? (
+                                                            <div className="flex items-center gap-2 px-2 py-1.5 bg-gradient-to-r from-purple-500/10 to-cyan-500/5 border-l-2 border-purple-500 rounded-r-lg group-hover/item:from-purple-500/20 transition-all w-full shrink-0 min-h-[28px]">
+                                                              <BookMarked className="w-4 h-4 text-purple-400 shrink-0" />
+                                                              <span className="text-xs font-bold text-white truncate flex-1 min-w-0">{item.title}</span>
+                                                            </div>
+                                                          ) : (
+                                                            <div className={cn("truncate text-xs py-0.5 w-full",
+                                                              item.level === 1 ? "font-bold text-white" : 
+                                                              item.level === 2 ? "text-[#E4E4E7] pl-2 font-medium" : 
+                                                              "text-[#A1A1AA] pl-4 text-[11px]"
+                                                            )}>
+                                                              {item.title}
+                                                            </div>
+                                                          )}
+                                                        </button>
+                                                      ));
+                                                    })()}
+                                                  </div>
+                                                </details>
+
                                                 <details open className="group [&_summary::-webkit-details-marker]:hidden">
                                                   <summary className="text-[10px] text-[#A1A1AA] hover:text-white uppercase tracking-widest font-bold mb-2 flex items-center justify-between cursor-pointer list-none transition-colors">
                                                     <div className="flex items-center gap-1">

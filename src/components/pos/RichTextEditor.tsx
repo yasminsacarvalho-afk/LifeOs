@@ -18,7 +18,7 @@ import {
   CheckSquare, Highlighter, Link as LinkIcon, 
   AlignLeft, AlignCenter, AlignRight, AlignJustify, Minus,
   Book, Play, X, ChevronRight, FolderOpen, Palette, Type, Code,
-  Image as ImageIcon
+  Image as ImageIcon, BookMarked
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useEffect, useState, useRef } from 'react';
@@ -116,7 +116,7 @@ export function RichTextEditor({ content, onChange, placeholder, availableBooks,
   const editor = useEditor({
     extensions: [
       StarterKit.configure({
-        heading: { levels: [1, 2, 3] },
+        heading: { levels: [1, 2, 3, 4] },
       }),
       Underline,
       TaskList,
@@ -300,6 +300,23 @@ export function RichTextEditor({ content, onChange, placeholder, availableBooks,
         <ToolbarButton title="Título 1" onClick={() => editor.chain().focus().toggleHeading({ level: 1 }).run()} isActive={editor.isActive('heading', { level: 1 })} icon={Heading1} />
         <ToolbarButton title="Título 2" onClick={() => editor.chain().focus().toggleHeading({ level: 2 }).run()} isActive={editor.isActive('heading', { level: 2 })} icon={Heading2} />
         <ToolbarButton title="Título 3" onClick={() => editor.chain().focus().toggleHeading({ level: 3 }).run()} isActive={editor.isActive('heading', { level: 3 })} icon={Heading3} />
+        
+        <div className="w-px h-5 bg-[#3F3F46] mx-1 self-center shrink-0" />
+        
+        <button
+          type="button"
+          title="Adicionar Destaque no Glossário"
+          onClick={(e) => { e.preventDefault(); editor.chain().focus().toggleHeading({ level: 4 }).run(); }}
+          className={cn(
+            "flex items-center gap-1 px-2 py-1 rounded-md transition-all duration-200 ease-out text-[11px] font-bold shrink-0 mx-1",
+            editor.isActive('heading', { level: 4 }) 
+              ? "bg-purple-500/20 text-purple-400 border border-purple-500/30 shadow-inner" 
+              : "bg-white/5 text-[#A1A1AA] hover:bg-white/10 hover:text-white border border-[rgba(255,255,255,0.05)]"
+          )}
+        >
+          <BookMarked className="size-3" />
+          Destaque VIP
+        </button>
         
         <div className="w-px h-5 bg-[#3F3F46] mx-1 self-center shrink-0" />
         
