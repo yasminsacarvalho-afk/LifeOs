@@ -133,7 +133,7 @@ export function RichTextEditor({ content, onChange, placeholder, availableBooks,
     content,
     editorProps: {
       attributes: {
-        class: 'prose prose-invert prose-notion max-w-none focus:outline-none min-h-[120px] px-6 py-4 text-[15px] text-white relative',
+        class: 'prose prose-invert prose-notion max-w-none focus:outline-none min-h-full px-6 py-4 text-[15px] text-white relative',
       },
       handleKeyDown: (view, event) => {
         if (slashMenu.visible) {
@@ -256,13 +256,14 @@ export function RichTextEditor({ content, onChange, placeholder, availableBooks,
     setActiveStep('menu');
   }
 
-  const ToolbarButton = ({ onClick, isActive, icon: Icon }: any) => (
+  const ToolbarButton = ({ onClick, isActive, icon: Icon, title }: any) => (
     <button
       type="button"
+      title={title}
       onClick={(e) => { e.preventDefault(); onClick(); }}
       className={cn(
-        "p-1.5 rounded-lg transition-colors hover:bg-white/10 text-[#A1A1AA] hover:text-white",
-        isActive ? "bg-rose-500/20 text-rose-400 hover:bg-rose-500/30" : ""
+        "p-1.5 rounded-lg transition-all duration-200 ease-out hover:bg-white/10 text-[#A1A1AA] hover:text-white active:scale-90",
+        isActive ? "bg-cyan-500/20 text-cyan-400 hover:bg-cyan-500/30 shadow-inner" : ""
       )}
     >
       <Icon className="size-4" />
@@ -287,7 +288,7 @@ export function RichTextEditor({ content, onChange, placeholder, availableBooks,
   const showMenu = slashMenu.visible;
 
   return (
-    <div className="w-full bg-[#1A1A1E] border border-[rgba(255,255,255,0.06)] rounded-xl overflow-hidden focus-within:border-rose-500 transition-colors relative flex flex-col h-full">
+    <div className="w-full bg-[#1A1A1E] border border-[rgba(255,255,255,0.06)] rounded-xl overflow-hidden focus-within:border-cyan-500/50 focus-within:shadow-[0_0_20px_rgba(6,182,212,0.1)] transition-all duration-300 relative flex flex-col h-full flex-1 min-h-0">
       <input 
         type="file" 
         accept="image/*" 
@@ -295,45 +296,54 @@ export function RichTextEditor({ content, onChange, placeholder, availableBooks,
         onChange={handleImageUpload} 
         className="hidden" 
       />
-      <div className="flex overflow-x-auto custom-scrollbar flex-nowrap items-center gap-1 p-2 border-b border-[rgba(255,255,255,0.06)] bg-[#111113]/50 shrink-0">
-        <ToolbarButton onClick={() => editor.chain().focus().toggleHeading({ level: 1 }).run()} isActive={editor.isActive('heading', { level: 1 })} icon={Heading1} />
-        <ToolbarButton onClick={() => editor.chain().focus().toggleHeading({ level: 2 }).run()} isActive={editor.isActive('heading', { level: 2 })} icon={Heading2} />
-        <ToolbarButton onClick={() => editor.chain().focus().toggleHeading({ level: 3 }).run()} isActive={editor.isActive('heading', { level: 3 })} icon={Heading3} />
+      <div className="flex overflow-x-auto custom-scrollbar flex-nowrap items-center gap-1 p-2 border-b border-[rgba(255,255,255,0.06)] bg-[#111113]/80 backdrop-blur-md shrink-0 sticky top-0 z-10 transition-colors">
+        <ToolbarButton title="Título 1" onClick={() => editor.chain().focus().toggleHeading({ level: 1 }).run()} isActive={editor.isActive('heading', { level: 1 })} icon={Heading1} />
+        <ToolbarButton title="Título 2" onClick={() => editor.chain().focus().toggleHeading({ level: 2 }).run()} isActive={editor.isActive('heading', { level: 2 })} icon={Heading2} />
+        <ToolbarButton title="Título 3" onClick={() => editor.chain().focus().toggleHeading({ level: 3 }).run()} isActive={editor.isActive('heading', { level: 3 })} icon={Heading3} />
         
         <div className="w-px h-5 bg-[#3F3F46] mx-1 self-center shrink-0" />
         
-        <ToolbarButton onClick={() => editor.chain().focus().toggleBold().run()} isActive={editor.isActive('bold')} icon={Bold} />
-        <ToolbarButton onClick={() => editor.chain().focus().toggleItalic().run()} isActive={editor.isActive('italic')} icon={Italic} />
-        <ToolbarButton onClick={() => editor.chain().focus().toggleUnderline().run()} isActive={editor.isActive('underline')} icon={UnderlineIcon} />
-        <ToolbarButton onClick={() => editor.chain().focus().toggleStrike().run()} isActive={editor.isActive('strike')} icon={Strikethrough} />
-        <ToolbarButton onClick={() => editor.chain().focus().toggleCodeBlock().run()} isActive={editor.isActive('codeBlock')} icon={Code} />
-        <ToolbarButton onClick={addImage} isActive={editor.isActive('image')} icon={ImageIcon} />
+        <ToolbarButton title="Negrito" onClick={() => editor.chain().focus().toggleBold().run()} isActive={editor.isActive('bold')} icon={Bold} />
+        <ToolbarButton title="Itálico" onClick={() => editor.chain().focus().toggleItalic().run()} isActive={editor.isActive('italic')} icon={Italic} />
+        <ToolbarButton title="Sublinhado" onClick={() => editor.chain().focus().toggleUnderline().run()} isActive={editor.isActive('underline')} icon={UnderlineIcon} />
+        <ToolbarButton title="Tachado" onClick={() => editor.chain().focus().toggleStrike().run()} isActive={editor.isActive('strike')} icon={Strikethrough} />
+        <ToolbarButton title="Bloco de Código" onClick={() => editor.chain().focus().toggleCodeBlock().run()} isActive={editor.isActive('codeBlock')} icon={Code} />
+        <ToolbarButton title="Adicionar Imagem" onClick={addImage} isActive={editor.isActive('image')} icon={ImageIcon} />
         
         {/* Text Colors */}
-        <div className="flex shrink-0 gap-1.5 items-center px-1 border-r border-[#3F3F46] pr-2">
+        <div className="flex shrink-0 gap-1.5 items-center px-1 border-r border-[#3F3F46] pr-2 ml-1">
           <Type className="size-3 text-[#A1A1AA] mr-1" />
-          <button type="button" onClick={() => editor.chain().focus().setColor('#ef4444').run()} className={cn("size-3.5 rounded-full bg-[#ef4444] border border-black/20 hover:scale-110 transition-transform", editor.isActive('textStyle', { color: '#ef4444' }) && "ring-2 ring-white")} title="Texto Vermelho" />
-          <button type="button" onClick={() => editor.chain().focus().setColor('#3b82f6').run()} className={cn("size-3.5 rounded-full bg-[#3b82f6] border border-black/20 hover:scale-110 transition-transform", editor.isActive('textStyle', { color: '#3b82f6' }) && "ring-2 ring-white")} title="Texto Azul" />
-          <button type="button" onClick={() => editor.chain().focus().setColor('#10b981').run()} className={cn("size-3.5 rounded-full bg-[#10b981] border border-black/20 hover:scale-110 transition-transform", editor.isActive('textStyle', { color: '#10b981' }) && "ring-2 ring-white")} title="Texto Verde" />
-          <button type="button" onClick={() => editor.chain().focus().setColor('#f59e0b').run()} className={cn("size-3.5 rounded-full bg-[#f59e0b] border border-black/20 hover:scale-110 transition-transform", editor.isActive('textStyle', { color: '#f59e0b' }) && "ring-2 ring-white")} title="Texto Laranja" />
-          <button type="button" onClick={() => editor.chain().focus().unsetColor().run()} className="size-4 rounded-full border border-white/20 flex items-center justify-center hover:bg-white/10 text-white transition-colors" title="Limpar Cor">
+          <button type="button" onClick={() => editor.chain().focus().setColor('#ef4444').run()} className={cn("size-3.5 rounded-full bg-[#ef4444] border border-black/20 hover:scale-125 hover:shadow-lg transition-all", editor.isActive('textStyle', { color: '#ef4444' }) && "ring-2 ring-white scale-110")} title="Texto Vermelho" />
+          <button type="button" onClick={() => editor.chain().focus().setColor('#3b82f6').run()} className={cn("size-3.5 rounded-full bg-[#3b82f6] border border-black/20 hover:scale-125 hover:shadow-lg transition-all", editor.isActive('textStyle', { color: '#3b82f6' }) && "ring-2 ring-white scale-110")} title="Texto Azul" />
+          <button type="button" onClick={() => editor.chain().focus().setColor('#10b981').run()} className={cn("size-3.5 rounded-full bg-[#10b981] border border-black/20 hover:scale-125 hover:shadow-lg transition-all", editor.isActive('textStyle', { color: '#10b981' }) && "ring-2 ring-white scale-110")} title="Texto Verde" />
+          <button type="button" onClick={() => editor.chain().focus().setColor('#f59e0b').run()} className={cn("size-3.5 rounded-full bg-[#f59e0b] border border-black/20 hover:scale-125 hover:shadow-lg transition-all", editor.isActive('textStyle', { color: '#f59e0b' }) && "ring-2 ring-white scale-110")} title="Texto Laranja" />
+          <button type="button" onClick={() => editor.chain().focus().setColor('#a855f7').run()} className={cn("size-3.5 rounded-full bg-[#a855f7] border border-black/20 hover:scale-125 hover:shadow-lg transition-all", editor.isActive('textStyle', { color: '#a855f7' }) && "ring-2 ring-white scale-110")} title="Texto Roxo" />
+          <label className="relative cursor-pointer size-4 rounded-full border border-white/20 flex items-center justify-center hover:scale-125 transition-all overflow-hidden shadow-sm" title="Cor Personalizada">
+             <div className="absolute inset-0 bg-gradient-to-tr from-rose-500 via-cyan-500 to-purple-500" />
+             <input type="color" className="absolute opacity-0 w-8 h-8 cursor-pointer" onChange={(e) => editor.chain().focus().setColor(e.target.value).run()} />
+          </label>
+          <button type="button" onClick={() => editor.chain().focus().unsetColor().run()} className="size-4 rounded-full border border-white/20 flex items-center justify-center hover:bg-white/10 text-white transition-all hover:scale-110" title="Limpar Cor">
              <X className="size-3" />
           </button>
         </div>
 
         {/* Highlights */}
-        <div className="flex shrink-0 gap-1.5 items-center px-1">
+        <div className="flex shrink-0 gap-1.5 items-center px-1 ml-1">
           <Highlighter className="size-3 text-[#A1A1AA] mr-1" />
-          <button type="button" onClick={() => editor.chain().focus().toggleHighlight({ color: '#fef08a' }).run()} className={cn("size-3.5 rounded-full bg-[#fef08a] border border-black/20 hover:scale-110 transition-transform", editor.isActive('highlight', { color: '#fef08a' }) && "ring-2 ring-white")} title="Marca-texto Amarelo" />
-          <button type="button" onClick={() => editor.chain().focus().toggleHighlight({ color: '#bbf7d0' }).run()} className={cn("size-3.5 rounded-full bg-[#bbf7d0] border border-black/20 hover:scale-110 transition-transform", editor.isActive('highlight', { color: '#bbf7d0' }) && "ring-2 ring-white")} title="Marca-texto Verde" />
-          <button type="button" onClick={() => editor.chain().focus().toggleHighlight({ color: '#bfdbfe' }).run()} className={cn("size-3.5 rounded-full bg-[#bfdbfe] border border-black/20 hover:scale-110 transition-transform", editor.isActive('highlight', { color: '#bfdbfe' }) && "ring-2 ring-white")} title="Marca-texto Azul" />
-          <button type="button" onClick={() => editor.chain().focus().toggleHighlight({ color: '#fbcfe8' }).run()} className={cn("size-3.5 rounded-full bg-[#fbcfe8] border border-black/20 hover:scale-110 transition-transform", editor.isActive('highlight', { color: '#fbcfe8' }) && "ring-2 ring-white")} title="Marca-texto Rosa" />
-          <button type="button" onClick={() => editor.chain().focus().unsetHighlight().run()} className="size-4 rounded-full border border-white/20 flex items-center justify-center hover:bg-white/10 text-white transition-colors" title="Limpar Marca-texto">
+          <button type="button" onClick={() => editor.chain().focus().toggleHighlight({ color: '#fef08a' }).run()} className={cn("size-3.5 rounded-full bg-[#fef08a] border border-black/20 hover:scale-125 hover:shadow-lg transition-all", editor.isActive('highlight', { color: '#fef08a' }) && "ring-2 ring-white scale-110")} title="Marca-texto Amarelo" />
+          <button type="button" onClick={() => editor.chain().focus().toggleHighlight({ color: '#bbf7d0' }).run()} className={cn("size-3.5 rounded-full bg-[#bbf7d0] border border-black/20 hover:scale-125 hover:shadow-lg transition-all", editor.isActive('highlight', { color: '#bbf7d0' }) && "ring-2 ring-white scale-110")} title="Marca-texto Verde" />
+          <button type="button" onClick={() => editor.chain().focus().toggleHighlight({ color: '#bfdbfe' }).run()} className={cn("size-3.5 rounded-full bg-[#bfdbfe] border border-black/20 hover:scale-125 hover:shadow-lg transition-all", editor.isActive('highlight', { color: '#bfdbfe' }) && "ring-2 ring-white scale-110")} title="Marca-texto Azul" />
+          <button type="button" onClick={() => editor.chain().focus().toggleHighlight({ color: '#fbcfe8' }).run()} className={cn("size-3.5 rounded-full bg-[#fbcfe8] border border-black/20 hover:scale-125 hover:shadow-lg transition-all", editor.isActive('highlight', { color: '#fbcfe8' }) && "ring-2 ring-white scale-110")} title="Marca-texto Rosa" />
+          <label className="relative cursor-pointer size-4 rounded-full border border-white/20 flex items-center justify-center hover:scale-125 transition-all overflow-hidden shadow-sm" title="Marca-texto Personalizado">
+             <div className="absolute inset-0 bg-gradient-to-tr from-yellow-300 via-green-300 to-pink-300 opacity-80" />
+             <input type="color" className="absolute opacity-0 w-8 h-8 cursor-pointer" onChange={(e) => editor.chain().focus().toggleHighlight({ color: e.target.value }).run()} />
+          </label>
+          <button type="button" onClick={() => editor.chain().focus().unsetHighlight().run()} className="size-4 rounded-full border border-white/20 flex items-center justify-center hover:bg-white/10 text-white transition-all hover:scale-110" title="Limpar Marca-texto">
              <X className="size-3" />
           </button>
         </div>
         
-        <div className="w-px h-5 bg-[#3F3F46] mx-1 self-center shrink-0" />
+        <div className="w-px h-5 bg-[#3F3F46] mx-1 self-center shrink-0 ml-2" />
 
         {/* Fonts */}
         <select 
@@ -356,20 +366,20 @@ export function RichTextEditor({ content, onChange, placeholder, availableBooks,
         
         <div className="w-px h-5 bg-[#3F3F46] mx-1 self-center shrink-0" />
         
-        <ToolbarButton onClick={() => editor.chain().focus().setTextAlign('left').run()} isActive={editor.isActive({ textAlign: 'left' })} icon={AlignLeft} />
-        <ToolbarButton onClick={() => editor.chain().focus().setTextAlign('center').run()} isActive={editor.isActive({ textAlign: 'center' })} icon={AlignCenter} />
-        <ToolbarButton onClick={() => editor.chain().focus().setTextAlign('right').run()} isActive={editor.isActive({ textAlign: 'right' })} icon={AlignRight} />
-        <ToolbarButton onClick={() => editor.chain().focus().setTextAlign('justify').run()} isActive={editor.isActive({ textAlign: 'justify' })} icon={AlignJustify} />
+        <ToolbarButton title="Alinhar à Esquerda" onClick={() => editor.chain().focus().setTextAlign('left').run()} isActive={editor.isActive({ textAlign: 'left' })} icon={AlignLeft} />
+        <ToolbarButton title="Centralizar" onClick={() => editor.chain().focus().setTextAlign('center').run()} isActive={editor.isActive({ textAlign: 'center' })} icon={AlignCenter} />
+        <ToolbarButton title="Alinhar à Direita" onClick={() => editor.chain().focus().setTextAlign('right').run()} isActive={editor.isActive({ textAlign: 'right' })} icon={AlignRight} />
+        <ToolbarButton title="Justificar" onClick={() => editor.chain().focus().setTextAlign('justify').run()} isActive={editor.isActive({ textAlign: 'justify' })} icon={AlignJustify} />
         
         <div className="w-px h-5 bg-[#3F3F46] mx-1 self-center shrink-0" />
         
-        <ToolbarButton onClick={() => editor.chain().focus().toggleBulletList().run()} isActive={editor.isActive('bulletList')} icon={List} />
-        <ToolbarButton onClick={() => editor.chain().focus().toggleOrderedList().run()} isActive={editor.isActive('orderedList')} icon={ListOrdered} />
-        <ToolbarButton onClick={() => editor.chain().focus().toggleTaskList().run()} isActive={editor.isActive('taskList')} icon={CheckSquare} />
-        <ToolbarButton onClick={() => editor.chain().focus().setHorizontalRule().run()} icon={Minus} />
+        <ToolbarButton title="Lista de Marcadores" onClick={() => editor.chain().focus().toggleBulletList().run()} isActive={editor.isActive('bulletList')} icon={List} />
+        <ToolbarButton title="Lista Numerada" onClick={() => editor.chain().focus().toggleOrderedList().run()} isActive={editor.isActive('orderedList')} icon={ListOrdered} />
+        <ToolbarButton title="Lista de Tarefas" onClick={() => editor.chain().focus().toggleTaskList().run()} isActive={editor.isActive('taskList')} icon={CheckSquare} />
+        <ToolbarButton title="Linha Horizontal" onClick={() => editor.chain().focus().setHorizontalRule().run()} icon={Minus} />
       </div>
       
-      <EditorContent editor={editor} className="custom-scrollbar" />
+      <EditorContent editor={editor} className="flex-1 overflow-y-auto custom-scrollbar min-h-0" onClick={() => editor.chain().focus().run()} />
 
       {showMenu && (
         <div 

@@ -16,15 +16,16 @@ export const getYouTubeVideoId = (url: string) => {
   return (match && match[2].length === 11) ? match[2] : null;
 };
 
-export const parseTimeToSeconds = (timeStr: string) => {
+export const parseTimeToSeconds = (timeStr: string | number) => {
   if (!timeStr) return 0;
-  const parts = timeStr.split(':').map(Number);
+  const str = String(timeStr);
+  const parts = str.split(':').map(Number);
   if (parts.length === 2) return parts[0] * 60 + parts[1];
   if (parts.length === 3) return parts[0] * 3600 + parts[1] * 60 + parts[2];
-  return parseInt(timeStr) || 0;
+  return parseInt(str) || 0;
 };
 
-export const getSafeEmbedUrl = (url: string, timeExtra?: string) => {
+export const getSafeEmbedUrl = (url: string, timeExtra?: string | number) => {
   if (!url) return '';
   const ytId = getYouTubeVideoId(url);
   if (ytId) {

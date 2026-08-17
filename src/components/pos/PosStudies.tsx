@@ -2692,12 +2692,18 @@ export function PosStudies() {
 
                       let totalTopics = 0;
                       let completedTopics = 0;
+                      let revisingTopics = 0;
+                      let advancingTopics = 0;
                       modules.forEach((m: any) => {
                         totalTopics += m.topics?.length || 0;
                         completedTopics += m.topics?.filter((t: any) => t.status === 'concluido').length || 0;
+                        revisingTopics += m.topics?.filter((t: any) => t.status === 'revisando').length || 0;
+                        advancingTopics += m.topics?.filter((t: any) => t.status === 'avançando').length || 0;
                       });
                       
                       const topicPercent = totalTopics > 0 ? Math.round((completedTopics / totalTopics) * 100) : 0;
+                      const revisingPercent = totalTopics > 0 ? Math.round((revisingTopics / totalTopics) * 100) : 0;
+                      const advancingPercent = totalTopics > 0 ? Math.round((advancingTopics / totalTopics) * 100) : 0;
                       
                       const getStatusColor = (status: string) => {
                         switch(status) {
@@ -2724,13 +2730,50 @@ export function PosStudies() {
 
                       return (
                         <>
-                          <div className="mb-6 bg-[#1A1A1E] p-4 rounded-xl border border-white/5">
-                            <div className="flex justify-between items-end mb-2">
-                               <div className="text-[10px] uppercase tracking-widest font-bold text-[#71717A]">Progresso da Grade</div>
-                               <div className="text-sm font-bold text-cyan-400">{completedTopics} de {totalTopics} Tópicos ({topicPercent}%)</div>
+                          <div className="mb-6 bg-[#111113] p-5 rounded-2xl border border-[rgba(255,255,255,0.06)] shadow-lg relative overflow-hidden group hover:border-[rgba(255,255,255,0.1)] transition-all duration-500">
+                            <div className="absolute top-0 left-0 w-1 h-full bg-gradient-to-b from-cyan-500 via-emerald-500 to-yellow-500 opacity-50 group-hover:opacity-100 transition-opacity"></div>
+                            <div className="flex flex-col md:flex-row justify-between md:items-end mb-5 gap-4 pl-3">
+                              <div>
+                                 <div className="text-[10px] uppercase tracking-widest font-bold text-[#71717A] mb-1">Progresso da Grade Curricular</div>
+                                 <div className="text-3xl font-black text-white flex items-baseline gap-2">
+                                   {topicPercent}% <span className="text-xs font-bold text-[#A1A1AA] uppercase tracking-widest">Concluído</span>
+                                 </div>
+                              </div>
+                              <div className="flex flex-wrap gap-2 text-xs font-bold">
+                                {completedTopics > 0 && (
+                                  <div className="flex items-center gap-2 bg-emerald-500/10 px-3 py-1.5 rounded-xl border border-emerald-500/20">
+                                    <div className="size-2 rounded-full bg-emerald-500 shadow-[0_0_8px_rgba(16,185,129,0.5)]"></div>
+                                    <span className="text-white">{completedTopics}</span>
+                                    <span className="text-emerald-400/70 uppercase tracking-wider text-[9px]">Concluídos</span>
+                                  </div>
+                                )}
+                                {revisingTopics > 0 && (
+                                  <div className="flex items-center gap-2 bg-yellow-500/10 px-3 py-1.5 rounded-xl border border-yellow-500/20">
+                                    <div className="size-2 rounded-full bg-yellow-500 shadow-[0_0_8px_rgba(234,179,8,0.5)]"></div>
+                                    <span className="text-white">{revisingTopics}</span>
+                                    <span className="text-yellow-400/70 uppercase tracking-wider text-[9px]">Em Revisão</span>
+                                  </div>
+                                )}
+                                {advancingTopics > 0 && (
+                                  <div className="flex items-center gap-2 bg-cyan-500/10 px-3 py-1.5 rounded-xl border border-cyan-500/20">
+                                    <div className="size-2 rounded-full bg-cyan-500 shadow-[0_0_8px_rgba(6,182,212,0.5)]"></div>
+                                    <span className="text-white">{advancingTopics}</span>
+                                    <span className="text-cyan-400/70 uppercase tracking-wider text-[9px]">Avançando</span>
+                                  </div>
+                                )}
+                                {totalTopics > 0 && (completedTopics === 0 && revisingTopics === 0 && advancingTopics === 0) && (
+                                  <div className="flex items-center gap-2 bg-[#1A1A1E] px-3 py-1.5 rounded-xl border border-[rgba(255,255,255,0.04)]">
+                                    <div className="size-2 rounded-full bg-[#71717A]"></div>
+                                    <span className="text-white">{totalTopics}</span>
+                                    <span className="text-[#71717A] uppercase tracking-wider text-[9px]">Pendentes</span>
+                                  </div>
+                                )}
+                              </div>
                             </div>
-                            <div className="h-2 w-full bg-[#111113] rounded-full overflow-hidden">
-                               <div className="h-full bg-cyan-500 rounded-full transition-all duration-500" style={{ width: `${topicPercent}%` }}></div>
+                            <div className="h-2 w-full bg-[#1A1A1E] rounded-full overflow-hidden flex border border-white/5 ml-3 max-w-[calc(100%-12px)] shadow-inner">
+                              <div className="h-full bg-emerald-500 transition-all duration-1000 ease-out" style={{ width: `${topicPercent}%` }}></div>
+                              <div className="h-full bg-yellow-500 transition-all duration-1000 ease-out opacity-90" style={{ width: `${revisingPercent}%` }}></div>
+                              <div className="h-full bg-cyan-500 transition-all duration-1000 ease-out opacity-80" style={{ width: `${advancingPercent}%` }}></div>
                             </div>
                           </div>
 
