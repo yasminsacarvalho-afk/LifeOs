@@ -26,6 +26,7 @@ export function PosAgenda() {
   const [isCreating, setIsCreating] = useState(false);
   const [showConfig, setShowConfig] = useState(false);
   const [viewMode, setViewMode] = useState<'semana' | 'mes'>('mes');
+  const [selectedMonthDayModal, setSelectedMonthDayModal] = useState<Date | null>(null);
   
   // Google Integrations
   const [gasUrl, setGasUrl] = useState(localStorage.getItem('gas_integration_url') || '');
@@ -245,10 +246,10 @@ export function PosAgenda() {
           const dayNum = format(date, 'd');
           return h.days_of_week.includes(dayNum);
        }
-       // Para outras frequências complexas (vezes na semana, dias do ano), mostramos como pendente
        return true;
     }).map(h => ({
         id: `habit_pending_${h.id}_${dayStr}`,
+        originalId: h.id,
         title: h.title,
         start_time: '23:59',
         itemType: 'habito',
@@ -362,6 +363,73 @@ export function PosAgenda() {
     if (type === 'foco' || type === 'deepwork') return "text-purple-400 bg-purple-400/10 border-purple-400/20";
     if (type === 'pessoal') return "text-orange-400 bg-orange-400/10 border-orange-400/20";
     return "text-[#A1A1AA] bg-[#1A1A1E] border-[rgba(255,255,255,0.06)]";
+  };
+
+  const renderGroup = (title: string, groupItems: any[], IconCmp: any, colorClass: string, isTodayFlag: boolean) => {
+    if (groupItems.length === 0) return null;
+    return (
+      <details className="group bg-[#121214] border border-[rgba(255,255,255,0.03)] rounded-2xl overflow-hidden mb-3 hover:border-[rgba(255,255,255,0.08)] transition-all shadow-sm">
+        <summary className="list-none p-3.5 flex items-center justify-between cursor-pointer hover:bg-[rgba(255,255,255,0.02)] transition-colors select-none">
+          <div className="flex items-center gap-3">
+            <div className={cn("p-2 rounded-xl border flex items-center justify-center shadow-inner", colorClass)}>
+              <IconCmp className="size-4" />
+            </div>
+            <div>
+              <span className="text-[13px] font-bold text-[#E4E4E7] block leading-tight">{title}</span>
+              <span className="text-[10px] font-medium text-[#71717A] mt-0.5 block">{groupItems.length} {groupItems.length === 1 ? 'item' : 'itens'}</span>
+            </div>
+          </div>
+          <div className="size-6 rounded-full bg-[#1A1A1E] border border-[rgba(255,255,255,0.04)] flex items-center justify-center group-hover:bg-[#27272A] transition-colors">
+            <ChevronRight className="size-3.5 text-[#71717A] group-open:rotate-90 transition-transform duration-300" />
+          </div>
+        </summary>
+        <div className="p-3 bg-[#0A0A0C]/50 flex flex-col gap-2 border-t border-[rgba(255,255,255,0.02)]">
+          {groupItems.map(item => (
+            <div key={item.id} className={cn(
+              "group/item p-3 rounded-xl border transition-all flex flex-col gap-2 relative backdrop-blur-md",
+              (item.itemType === 'tarefa' || item.itemType === 'curso' || (item.itemType === 'habito' && item.status === 'concluido'))
+                ? ((item.status === 'concluida' || item.status === 'concluido') ? "bg-emerald-500/5 border-emerald-500/10 opacity-60" : "bg-[#111113] border-[#27272A] hover:border-emerald-500/30")
+                : item.itemType !== 'evento'
+                  ? "bg-[#111113]/50 border-[rgba(255,255,255,0.02)] opacity-70 hover:opacity-100 hover:border-[rgba(255,255,255,0.06)]" 
+                  : "bg-[#17171A] border-[rgba(255,255,255,0.06)] shadow-sm hover:border-rose-500/40 hover:bg-[#1A1A1E]"
+            )}>
+              <div className="flex justify-between items-start gap-2">
+                <span className={cn("px-2 py-0.5 rounded-md text-[9px] uppercase font-bold tracking-widest flex items-center gap-1.5 border shadow-inner", getTypeColor(item.itemType, item.type))}>
+                  {getTypeIcon(item.itemType, item.type)}
+                  {item.itemType === 'evento' ? item.type : item.itemType}
+                </span>
+                
+                {item.start_time && item.start_time !== '23:59' && (
+                  <span className="text-[10px] font-bold text-[#A1A1AA] bg-[#09090B] px-1.5 py-0.5 rounded-md flex items-center gap-1 border border-[rgba(255,255,255,0.06)]">
+                    <Clock className="size-3" /> {item.start_time.substring(0,5)}
+                  </span>
+                )}
+              </div>
+
+              <h4 className={cn("text-[13px] font-bold leading-snug mt-1", (item.itemType === 'tarefa' || item.itemType === 'habito' || item.itemType === 'curso') && (item.status === 'concluida' || item.status === 'concluido') ? "text-[#71717A] line-through" : "text-[#F4F4F5]")}>
+                {item.title}
+              </h4>
+              
+              {item.itemType === 'evento' && item.description && (
+                <p className="text-[11px] text-[#A1A1AA] truncate mt-0.5 leading-relaxed">{item.description}</p>
+              )}
+
+              <div className="absolute top-2 right-2 opacity-0 group-hover/item:opacity-100 transition-opacity flex gap-1 bg-[#1A1A1E]/90 backdrop-blur-md p-1 rounded-lg border border-[rgba(255,255,255,0.1)] shadow-xl">
+                {item.itemType === 'tarefa' ? (
+                  <button onClick={() => updateTask(item.id, {status: item.status === 'concluida' ? 'pendente' : 'concluida'})} className="p-1 hover:text-emerald-400 text-[#71717A] transition-colors"><CheckCircle2 className="size-3.5" /></button>
+                ) : item.itemType === 'habito' && item.status === 'pendente' && item.originalId ? (
+                  <button onClick={async () => {
+                     toast.info("Para concluir hábitos, por favor vá até a aba Hábitos ou implemente o toggle global.");
+                  }} className="p-1 hover:text-orange-400 text-[#71717A] transition-colors"><Flame className="size-3.5" /></button>
+                ) : item.itemType === 'evento' ? (
+                  <button onClick={() => deleteEvent(item.id)} className="p-1 hover:text-rose-400 text-[#71717A] transition-colors"><Trash2 className="size-3.5" /></button>
+                ) : null}
+              </div>
+            </div>
+          ))}
+        </div>
+      </details>
+    );
   };
 
   return (
@@ -716,7 +784,7 @@ export function PosAgenda() {
                const isTodayFlag = isToday(day);
                const isCurrentMonth = isSameMonth(day, currentDate);
                return (
-                 <div key={day.toISOString()} className={cn("min-h-[140px] rounded-2xl border flex flex-col overflow-hidden transition-all hover:border-white/10 group", isTodayFlag ? "border-rose-500/50 bg-rose-500/5 shadow-[0_0_15px_rgba(225,29,72,0.1)]" : isCurrentMonth ? "bg-[#111113]/80 border-[rgba(255,255,255,0.04)]" : "bg-transparent border-[rgba(255,255,255,0.01)] opacity-30")}>
+                 <div key={day.toISOString()} onClick={() => setSelectedMonthDayModal(day)} className={cn("min-h-[140px] rounded-2xl border flex flex-col overflow-hidden transition-all hover:border-white/10 group cursor-pointer", isTodayFlag ? "border-rose-500/50 bg-rose-500/5 shadow-[0_0_15px_rgba(225,29,72,0.1)]" : isCurrentMonth ? "bg-[#111113]/80 border-[rgba(255,255,255,0.04)]" : "bg-transparent border-[rgba(255,255,255,0.01)] opacity-30")}>
                     <div className="flex justify-between items-center p-2 border-b border-transparent group-hover:border-white/5 transition-colors">
                       <span className="text-[9px] font-bold text-[#A1A1AA] uppercase tracking-widest opacity-0 group-hover:opacity-100 transition-opacity">
                          {items.length} {items.length === 1 ? 'item' : 'itens'}
@@ -780,69 +848,6 @@ export function PosAgenda() {
                       const readList = items.filter((i:any) => i.itemType === 'leitura');
                       const courseList = items.filter((i:any) => i.itemType === 'curso');
 
-                      const renderGroup = (title: string, groupItems: any[], IconCmp: any, colorClass: string, isTodayFlag: boolean) => {
-                        if (groupItems.length === 0) return null;
-                        return (
-                          <details className="group bg-[#121214] border border-[rgba(255,255,255,0.03)] rounded-2xl overflow-hidden mb-3 hover:border-[rgba(255,255,255,0.08)] transition-all shadow-sm">
-                            <summary className="list-none p-3.5 flex items-center justify-between cursor-pointer hover:bg-[rgba(255,255,255,0.02)] transition-colors select-none">
-                              <div className="flex items-center gap-3">
-                                <div className={cn("p-2 rounded-xl border flex items-center justify-center shadow-inner", colorClass)}>
-                                  <IconCmp className="size-4" />
-                                </div>
-                                <div>
-                                  <span className="text-[13px] font-bold text-[#E4E4E7] block leading-tight">{title}</span>
-                                  <span className="text-[10px] font-medium text-[#71717A] mt-0.5 block">{groupItems.length} {groupItems.length === 1 ? 'item' : 'itens'}</span>
-                                </div>
-                              </div>
-                              <div className="size-6 rounded-full bg-[#1A1A1E] border border-[rgba(255,255,255,0.04)] flex items-center justify-center group-hover:bg-[#27272A] transition-colors">
-                                <ChevronRight className="size-3.5 text-[#71717A] group-open:rotate-90 transition-transform duration-300" />
-                              </div>
-                            </summary>
-                            <div className="p-3 bg-[#0A0A0C]/50 flex flex-col gap-2 border-t border-[rgba(255,255,255,0.02)]">
-                              {groupItems.map(item => (
-                                <div key={item.id} className={cn(
-                                  "group/item p-3 rounded-xl border transition-all flex flex-col gap-2 relative backdrop-blur-md",
-                                  (item.itemType === 'tarefa' || item.itemType === 'curso')
-                                    ? ((item.status === 'concluida' || item.status === 'concluido') ? "bg-emerald-500/5 border-emerald-500/10 opacity-60" : "bg-[#111113] border-[#27272A] hover:border-emerald-500/30")
-                                    : item.itemType !== 'evento'
-                                      ? "bg-[#111113]/50 border-[rgba(255,255,255,0.02)] opacity-70 hover:opacity-100 hover:border-[rgba(255,255,255,0.06)]" 
-                                      : "bg-[#17171A] border-[rgba(255,255,255,0.06)] shadow-sm hover:border-rose-500/40 hover:bg-[#1A1A1E]"
-                                )}>
-                                  <div className="flex justify-between items-start gap-2">
-                                    <span className={cn("px-2 py-0.5 rounded-md text-[9px] uppercase font-bold tracking-widest flex items-center gap-1.5 border shadow-inner", getTypeColor(item.itemType, item.type))}>
-                                      {getTypeIcon(item.itemType, item.type)}
-                                      {item.itemType === 'evento' ? item.type : item.itemType}
-                                    </span>
-                                    
-                                    {item.start_time && item.start_time !== '23:59' && (
-                                      <span className="text-[10px] font-bold text-[#A1A1AA] bg-[#09090B] px-1.5 py-0.5 rounded-md flex items-center gap-1 border border-[rgba(255,255,255,0.06)]">
-                                        <Clock className="size-3" /> {item.start_time.substring(0,5)}
-                                      </span>
-                                    )}
-                                  </div>
-
-                                  <h4 className={cn("text-[13px] font-bold leading-snug mt-1", (item.itemType === 'tarefa' || item.itemType === 'habito' || item.itemType === 'curso') && (item.status === 'concluida' || item.status === 'concluido') ? "text-[#71717A] line-through" : "text-[#F4F4F5]")}>
-                                    {item.title}
-                                  </h4>
-                                  
-                                  {item.itemType === 'evento' && item.description && (
-                                    <p className="text-[11px] text-[#A1A1AA] truncate mt-0.5 leading-relaxed">{item.description}</p>
-                                  )}
-
-                                  <div className="absolute top-2 right-2 opacity-0 group-hover/item:opacity-100 transition-opacity flex gap-1 bg-[#1A1A1E]/90 backdrop-blur-md p-1 rounded-lg border border-[rgba(255,255,255,0.1)] shadow-xl">
-                                    {item.itemType === 'tarefa' ? (
-                                      <button onClick={() => updateTask(item.id, {status: item.status === 'concluida' ? 'pendente' : 'concluida'})} className="p-1 hover:text-emerald-400 text-[#71717A] transition-colors"><CheckCircle2 className="size-3.5" /></button>
-                                    ) : item.itemType === 'evento' ? (
-                                      <button onClick={() => deleteEvent(item.id)} className="p-1 hover:text-rose-400 text-[#71717A] transition-colors"><Trash2 className="size-3.5" /></button>
-                                    ) : null}
-                                  </div>
-                                </div>
-                              ))}
-                            </div>
-                          </details>
-                        );
-                      };
-
                       return (
                         <>
                           {renderGroup("Eventos", eventsList, CalendarIcon, "text-blue-400 bg-blue-400/10 border-blue-400/20", isTodayFlag)}
@@ -862,6 +867,60 @@ export function PosAgenda() {
           );
         })}
       </div>
+      )}
+
+      {/* MONTH DAY MODAL */}
+      {selectedMonthDayModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-md" onClick={() => setSelectedMonthDayModal(null)}>
+          <div className="bg-[#0A0A0C] border border-white/10 rounded-2xl w-full max-w-md max-h-[85vh] flex flex-col shadow-2xl animate-in zoom-in-95 duration-200" onClick={e => e.stopPropagation()}>
+            <div className="flex items-center justify-between p-5 border-b border-white/5 bg-[#111113]">
+              <div>
+                <h3 className="text-xl font-black text-white leading-none mb-1">
+                  {format(selectedMonthDayModal, "dd 'de' MMMM", { locale: ptBR })}
+                </h3>
+                <span className="text-xs text-[#A1A1AA] uppercase font-bold tracking-widest">
+                  {format(selectedMonthDayModal, "EEEE", { locale: ptBR })}
+                </span>
+              </div>
+              <button onClick={() => setSelectedMonthDayModal(null)} className="p-2 bg-white/5 hover:bg-white/10 rounded-full transition-colors text-[#A1A1AA] hover:text-white">
+                <X className="size-5" />
+              </button>
+            </div>
+            
+            <div className="flex-1 overflow-y-auto p-4 custom-scrollbar bg-gradient-to-b from-[#0A0A0C] to-[#0A0A0C]/50">
+               {(() => {
+                  const dayItems = getDayItems(selectedMonthDayModal);
+                  if (dayItems.length === 0) {
+                     return (
+                       <div className="h-full flex flex-col items-center justify-center py-10 opacity-50">
+                         <CalendarIcon className="size-10 text-[#71717A] mb-3" />
+                         <span className="text-sm font-bold text-[#71717A]">Nenhum item agendado</span>
+                       </div>
+                     );
+                  }
+
+                  const eventsList = dayItems.filter((i:any) => i.itemType === 'evento');
+                  const tasksList = dayItems.filter((i:any) => i.itemType === 'tarefa');
+                  const habitsList = dayItems.filter((i:any) => i.itemType === 'habito');
+                  const readList = dayItems.filter((i:any) => i.itemType === 'leitura');
+                  const courseList = dayItems.filter((i:any) => i.itemType === 'curso');
+                  const isTodayFlag = isToday(selectedMonthDayModal);
+
+                  return (
+                    <>
+                      {renderGroup("Eventos", eventsList, CalendarIcon, "text-blue-400 bg-blue-400/10 border-blue-400/20", isTodayFlag)}
+                      {renderGroup("Eventos (Google)", dayItems.filter((i:any) => i.itemType === 'evento_google'), CalendarIcon, "text-blue-400 bg-blue-500/10 border-blue-500/30", isTodayFlag)}
+                      {renderGroup("Tarefas", tasksList, CheckCircle2, "text-emerald-400 bg-emerald-400/10 border-emerald-400/20", isTodayFlag)}
+                      {renderGroup("Tarefas (Google)", dayItems.filter((i:any) => i.itemType === 'tarefa_google'), CheckCircle2, "text-emerald-400 bg-emerald-500/10 border-emerald-500/30", isTodayFlag)}
+                      {renderGroup("Hábitos", habitsList, Flame, "text-orange-500 bg-orange-500/10 border-orange-500/20", isTodayFlag)}
+                      {renderGroup("Estudos", courseList, GraduationCap, "text-indigo-400 bg-indigo-400/10 border-indigo-400/20", isTodayFlag)}
+                      {renderGroup("Leitura", readList, BookOpen, "text-cyan-400 bg-cyan-400/10 border-cyan-400/20", isTodayFlag)}
+                    </>
+                  );
+               })()}
+            </div>
+          </div>
+        </div>
       )}
       
     </div>

@@ -55,6 +55,7 @@ export function PosStudies() {
   });
   const [courseTab, setCourseTab] = useState("Módulos");
   const [activeModuleIndex, setActiveModuleIndex] = useState<number | null>(null);
+  const [topicViewMode, setTopicViewMode] = useState<"lista" | "grade">("lista");
   const [viewMode, setViewMode] = useState<"cards" | "lista" | "kanban" | "tabela" | "galeria" | "timeline" | "calendario" | "por_area">(() => {
     try { const saved = localStorage.getItem('pos_viewMode'); return saved ? JSON.parse(saved) : "cards"; } catch(e) { return "cards"; }
   });
@@ -2855,6 +2856,10 @@ export function PosStudies() {
                                         {mod.title}
                                       </h4>
                                   <div className="flex items-center gap-2 relative z-10">
+                                    <div className="flex items-center bg-white/5 border border-white/10 rounded-lg p-1 mr-2">
+                                      <button onClick={() => setTopicViewMode('lista')} className={`px-2.5 py-1 text-[10px] font-bold uppercase tracking-widest rounded transition-colors ${topicViewMode === 'lista' ? 'bg-[#1A1A1E] text-white' : 'text-[#71717A] hover:text-white'}`}>Lista</button>
+                                      <button onClick={() => setTopicViewMode('grade')} className={`px-2.5 py-1 text-[10px] font-bold uppercase tracking-widest rounded transition-colors ${topicViewMode === 'grade' ? 'bg-[#1A1A1E] text-white' : 'text-[#71717A] hover:text-white'}`}>Grade</button>
+                                    </div>
                                     <button onClick={() => {
                                       const topicTitle = prompt("Nome do novo tópico/aula:");
                                       if (topicTitle) {
@@ -2876,14 +2881,14 @@ export function PosStudies() {
                                   </div>
                                 </div>
 
-                                <div className="p-4 space-y-2 bg-[#0A0A0B]/50">
+                                <div className={`p-4 bg-[#0A0A0B]/50 ${topicViewMode === 'grade' ? 'grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4' : 'space-y-2'}`}>
                                   {(!mod.topics || mod.topics.length === 0) ? (
                                     <p className="text-xs text-[#71717A] italic px-2">Módulo vazio. Adicione tópicos.</p>
                                   ) : mod.topics.map((topic: any, tIdx: number) => (
-                                    <div key={topic.id || tIdx} className="group/topic flex flex-col bg-[#111113] hover:bg-[#1A1A1E] border border-[rgba(255,255,255,0.04)] hover:border-cyan-500/30 rounded-xl transition-all overflow-hidden shadow-sm">
+                                    <div key={topic.id || tIdx} className={`group/topic flex flex-col bg-[#111113] hover:bg-[#1A1A1E] border border-[rgba(255,255,255,0.04)] hover:border-cyan-500/30 rounded-xl transition-all overflow-hidden shadow-sm ${topicViewMode === 'grade' ? 'min-h-[140px]' : ''}`}>
                                       
-                                      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 p-4">
-                                        <div className="flex items-center gap-4 flex-1 min-w-0">
+                                      <div className={`flex ${topicViewMode === 'grade' ? 'flex-col items-start h-full' : 'flex-col sm:flex-row sm:items-center'} justify-between gap-3 p-4 flex-1`}>
+                                        <div className="flex items-start gap-4 w-full">
                                           <button 
                                             onClick={(e) => {
                                               e.stopPropagation();
@@ -2891,7 +2896,7 @@ export function PosStudies() {
                                               updated[mIdx].topics[tIdx].status = cycleStatus(topic.status);
                                               updateCourse(selectedCourse.id, { next_topics: JSON.stringify(updated) });
                                             }}
-                                            className={`shrink-0 size-5 rounded-full border-2 flex items-center justify-center transition-all ${getStatusColor(topic.status)} z-10`}
+                                            className={`shrink-0 size-5 mt-0.5 rounded-full border-2 flex items-center justify-center transition-all ${getStatusColor(topic.status)} z-10`}
                                             title={`Status atual: ${getStatusLabel(topic.status)}. Clique para mudar.`}
                                           >
                                             {topic.status === 'concluido' && <CheckSquare className="size-3" />}
@@ -2907,8 +2912,8 @@ export function PosStudies() {
                                                 setLocalTags(topic.tags || '');
                                              }
                                           }}>
-                                            <span className={`text-sm font-bold truncate ${topic.status === 'concluido' ? 'text-[#71717A] line-through' : 'text-white'}`}>{topic.title}</span>
-                                            <span className={`text-[10px] uppercase tracking-widest font-bold mt-0.5 ${
+                                            <span className={`text-sm font-bold leading-tight ${topicViewMode === 'grade' ? 'line-clamp-2' : 'truncate'} ${topic.status === 'concluido' ? 'text-[#71717A] line-through' : 'text-white'}`}>{topic.title}</span>
+                                            <span className={`text-[10px] uppercase tracking-widest font-bold mt-1 ${
                                               topic.status === 'concluido' ? 'text-emerald-500' :
                                               topic.status === 'avançando' ? 'text-cyan-400' :
                                               topic.status === 'revisando' ? 'text-yellow-400' : 'text-[#71717A]'
@@ -2916,40 +2921,61 @@ export function PosStudies() {
                                           </div>
                                         </div>
 
-                                        <div className="flex items-center gap-2 mt-2 sm:mt-0 ml-9 sm:ml-0 shrink-0">
-                                          {topic.source ? (
-                                            <a href={topic.source.startsWith('http') ? topic.source : `https://${topic.source}`} target="_blank" rel="noopener noreferrer" className="text-[10px] font-bold text-cyan-400 bg-cyan-400/10 px-2 py-1 rounded border border-cyan-400/20 hover:bg-cyan-400/20 transition-colors flex items-center gap-1">
-                                              <Share2 className="size-3" /> Fonte
-                                            </a>
-                                          ) : (
-                                            <span className="text-[10px] text-[#3F3F46] px-2 py-1 italic">Sem fonte</span>
-                                          )}
-                                          <button onClick={(e) => {
-                                            e.stopPropagation();
-                                            const src = prompt("Cole o link (YouTube, PDF, Drive) da fonte de estudo:", topic.source || '');
-                                            if (src !== null) {
-                                              const updated = [...modules];
-                                              updated[mIdx].topics[tIdx].source = src;
-                                              updateCourse(selectedCourse.id, { next_topics: JSON.stringify(updated) });
-                                            }
-                                          }} className="opacity-0 group-hover/topic:opacity-100 p-1.5 text-[#A1A1AA] hover:text-white bg-white/5 rounded-lg transition-all" title="Adicionar/Editar Link">
-                                            <PenTool className="size-3.5" />
-                                          </button>
-                                          <label className="opacity-0 group-hover/topic:opacity-100 p-1.5 text-cyan-400 hover:text-white bg-cyan-500/10 hover:bg-cyan-500/30 rounded-lg transition-all cursor-pointer" title="Fazer Upload de PDF/Material">
-                                            {isUploading ? <Loader2 className="size-3.5 animate-spin" /> : <UploadCloud className="size-3.5" />}
-                                            <input type="file" className="hidden" disabled={isUploading} onChange={(e) => handleMaterialUpload(e, mIdx, tIdx)} />
-                                          </label>
-                                          <button onClick={(e) => {
-                                            e.stopPropagation();
-                                            if(confirm("Remover este tópico?")) {
-                                              const updated = [...modules];
-                                              updated[mIdx].topics = updated[mIdx].topics.filter((_: any, i: number) => i !== tIdx);
-                                              updateCourse(selectedCourse.id, { next_topics: JSON.stringify(updated) });
-                                            }
-                                          }} className="opacity-0 group-hover/topic:opacity-100 p-1.5 hover:bg-rose-500/10 text-rose-500 rounded-lg transition-all">
-                                            <Trash2 className="size-3.5" />
-                                          </button>
-                                        </div>
+                                        {topicViewMode === 'grade' ? (
+                                          <div className="flex flex-col gap-2 w-full mt-auto pt-4 border-t border-[rgba(255,255,255,0.04)] text-[10px] text-[#A1A1AA]">
+                                            <div className="flex items-center justify-between group-hover/topic:text-white transition-colors">
+                                              <span className="flex items-center gap-1.5"><FolderOpen className="size-3 text-cyan-500" /> Recursos</span>
+                                              <span className="font-bold">{(() => {
+                                                const rCount = (topic.source ? 1 : 0) + (topic.materials ? topic.materials.length : 0);
+                                                return rCount > 0 ? `${rCount} ${rCount === 1 ? 'item' : 'itens'}` : 'Vazio';
+                                              })()}</span>
+                                            </div>
+                                            <div className="flex items-center justify-between group-hover/topic:text-white transition-colors">
+                                              <span className="flex items-center gap-1.5"><FileText className="size-3 text-purple-500" /> Glossário (Painel)</span>
+                                              <span className="font-bold">{(() => {
+                                                if (!topic.notes) return 'Vazio';
+                                                const matches = topic.notes.match(/<h[1-4][^>]*>([\s\S]*?)<\/h[1-4]>/g);
+                                                const count = matches ? matches.filter((m: string) => m.replace(/<[^>]+>/g, '').trim().length > 0).length : 0;
+                                                return count > 0 ? `${count} ${count === 1 ? 'item' : 'itens'}` : 'Vazio';
+                                              })()}</span>
+                                            </div>
+                                          </div>
+                                        ) : (
+                                          <div className="flex items-center gap-2 mt-2 sm:mt-0 ml-9 sm:ml-0 shrink-0">
+                                            {topic.source ? (
+                                              <a href={topic.source.startsWith('http') ? topic.source : `https://${topic.source}`} target="_blank" rel="noopener noreferrer" className="text-[10px] font-bold text-cyan-400 bg-cyan-400/10 px-2 py-1 rounded border border-cyan-400/20 hover:bg-cyan-400/20 transition-colors flex items-center gap-1">
+                                                <Share2 className="size-3" /> Fonte
+                                              </a>
+                                            ) : (
+                                              <span className="text-[10px] text-[#3F3F46] px-2 py-1 italic">Sem fonte</span>
+                                            )}
+                                            <button onClick={(e) => {
+                                              e.stopPropagation();
+                                              const src = prompt("Cole o link (YouTube, PDF, Drive) da fonte de estudo:", topic.source || '');
+                                              if (src !== null) {
+                                                const updated = [...modules];
+                                                updated[mIdx].topics[tIdx].source = src;
+                                                updateCourse(selectedCourse.id, { next_topics: JSON.stringify(updated) });
+                                              }
+                                            }} className="opacity-0 group-hover/topic:opacity-100 p-1.5 text-[#A1A1AA] hover:text-white bg-white/5 rounded-lg transition-all" title="Adicionar/Editar Link">
+                                              <PenTool className="size-3.5" />
+                                            </button>
+                                            <label className="opacity-0 group-hover/topic:opacity-100 p-1.5 text-cyan-400 hover:text-white bg-cyan-500/10 hover:bg-cyan-500/30 rounded-lg transition-all cursor-pointer" title="Fazer Upload de PDF/Material">
+                                              {isUploading ? <Loader2 className="size-3.5 animate-spin" /> : <UploadCloud className="size-3.5" />}
+                                              <input type="file" className="hidden" disabled={isUploading} onChange={(e) => handleMaterialUpload(e, mIdx, tIdx)} />
+                                            </label>
+                                            <button onClick={(e) => {
+                                              e.stopPropagation();
+                                              if(confirm("Remover este tópico?")) {
+                                                const updated = [...modules];
+                                                updated[mIdx].topics = updated[mIdx].topics.filter((_: any, i: number) => i !== tIdx);
+                                                updateCourse(selectedCourse.id, { next_topics: JSON.stringify(updated) });
+                                              }
+                                            }} className="opacity-0 group-hover/topic:opacity-100 p-1.5 hover:bg-rose-500/10 text-rose-500 rounded-lg transition-all">
+                                              <Trash2 className="size-3.5" />
+                                            </button>
+                                          </div>
+                                        )}
                                       </div>
                                       
                                       {/* EXPANDED WORKSPACE MODAL */}
