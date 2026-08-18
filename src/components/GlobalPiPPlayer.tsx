@@ -98,11 +98,16 @@ export function GlobalPiPPlayer() {
   return (
     <div 
       className={cn(
-        "fixed bottom-20 right-4 md:bottom-6 md:right-6 z-[999999] w-80 md:w-96 bg-[#111113] border border-[rgba(255,255,255,0.1)] rounded-xl shadow-2xl overflow-hidden",
+        "fixed bottom-20 right-4 md:bottom-6 md:right-6 z-[999999] min-w-[250px] max-w-[90vw] bg-[#111113] border border-[rgba(255,255,255,0.1)] rounded-xl shadow-2xl flex flex-col",
         isDragging ? "transition-none" : "transition-transform duration-200 ease-out",
         !position.x && !position.y && "animate-in slide-in-from-bottom-5"
       )}
-      style={{ transform: `translate(${position.x}px, ${position.y}px)` }}
+      style={{ 
+        transform: `translate(${position.x}px, ${position.y}px)`,
+        resize: 'both',
+        overflow: 'hidden',
+        width: '384px' // default width (similar to w-96)
+      }}
     >
       <div 
         className="flex justify-between items-center p-2 border-b border-white/5 bg-[#1A1A1E] cursor-move select-none active:cursor-grabbing"
@@ -133,10 +138,10 @@ export function GlobalPiPPlayer() {
         </div>
       </div>
       
-      <div className="w-full aspect-video bg-black relative">
+      <div className="w-full flex-1 bg-black relative min-h-[150px]">
          <iframe 
            src={getSafeEmbedUrl(pipData.url, pipData.extra)} 
-           className="w-full h-full border-0" 
+           className="absolute inset-0 w-full h-full border-0" 
            allowFullScreen
            allow="autoplay; encrypted-media"
          ></iframe>

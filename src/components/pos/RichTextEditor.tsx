@@ -441,7 +441,15 @@ export function RichTextEditor({ content, onChange, placeholder, availableBooks,
         <ToolbarButton title="Linha Horizontal" onClick={() => editor.chain().focus().setHorizontalRule().run()} icon={Minus} />
       </div>
       
-      <EditorContent editor={editor} className="flex-1 overflow-y-auto custom-scrollbar min-h-0" onClick={() => editor.chain().focus().run()} />
+      <EditorContent 
+        editor={editor} 
+        className="flex-1 overflow-y-auto custom-scrollbar min-h-0 cursor-text" 
+        onClick={(e) => {
+          if (e.target === e.currentTarget) {
+            editor.chain().focus('end').run();
+          }
+        }} 
+      />
 
       {showMenu && (
         <div 

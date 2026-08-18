@@ -7,7 +7,7 @@ import {
   ChevronDown, ChevronUp, Search, Filter, LayoutGrid, List as ListIcon,
   ChevronRight, BookMarked, Book, Sparkles, FileText, Library, CheckSquare,
   TrendingUp, BarChart2, Video, PenTool, LayoutTemplate, Layers, AlertCircle,
-  MoreVertical, Share2, Star, FolderOpen, ArrowLeft, Download, X, UploadCloud, Loader2, ExternalLink, Link as LinkIcon, Pause, XCircle, Edit2, Camera, Headphones, Music, CloudRain, Minimize2, Maximize2, ArrowUpRight, Tag, LayoutPanelLeft, LayoutPanelTop, GripVertical, GripHorizontal, Settings2, MonitorPlay, History, Edit3, Globe, User, Table2, ImageIcon, GitMerge, CalendarDays
+  MoreVertical, Share2, Star, FolderOpen, ArrowLeft, Download, X, UploadCloud, Loader2, ExternalLink, Link as LinkIcon, Pause, XCircle, Edit2, Camera, Headphones, Music, CloudRain, Minimize2, Maximize2, ArrowUpRight, Tag, LayoutPanelLeft, LayoutPanelTop, GripVertical, GripHorizontal, Settings2, MonitorPlay, History, Edit3, Globe, User, Table2, ImageIcon, GitMerge, CalendarDays, FastForward, Pin
 } from "lucide-react";
 import { format, isToday, parseISO, startOfMonth, endOfMonth, startOfWeek, endOfWeek, addDays, subMonths, addMonths, isSameMonth, isSameDay } from "date-fns";
 import { ptBR } from "date-fns/locale";
@@ -102,6 +102,7 @@ export function PosStudies() {
   const [isAddingVideoToChannel, setIsAddingVideoToChannel] = useState<number | null>(null);
   const [newVideoUrl, setNewVideoUrl] = useState('');
   const [newVideoTitle, setNewVideoTitle] = useState('');
+  const [newVideoCoverUrl, setNewVideoCoverUrl] = useState('');
   const [activeTopicVideos, setActiveTopicVideos] = useState<any[]>(() => {
     try { const saved = localStorage.getItem('pos_activeTopicVideos'); return saved ? JSON.parse(saved) : []; } catch (e) { return []; }
   });
@@ -150,6 +151,29 @@ export function PosStudies() {
   const [localNotes, setLocalNotes] = useState("");
   const [localTags, setLocalTags] = useState("");
   const [tagInput, setTagInput] = useState("");
+
+  const [isGlobalSearchOpen, setIsGlobalSearchOpen] = useState(false);
+  const [globalSearchQuery, setGlobalSearchQuery] = useState("");
+  const [isNextTopicPromptOpen, setIsNextTopicPromptOpen] = useState(false);
+  
+  const [topicContentMode, setTopicContentMode] = useState<'notes' | 'exercises'>('notes');
+  const [newExerciseQ, setNewExerciseQ] = useState("");
+  const [newExerciseA, setNewExerciseA] = useState("");
+  const [revealedExercises, setRevealedExercises] = useState<number[]>([]);
+
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if ((e.metaKey || e.ctrlKey) && e.key === 'k') {
+        e.preventDefault();
+        setIsGlobalSearchOpen(prev => !prev);
+      }
+      if (e.key === 'Escape' && isGlobalSearchOpen) {
+        setIsGlobalSearchOpen(false);
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [isGlobalSearchOpen]);
 
   useEffect(() => { localStorage.setItem('pos_expandedTopicId', JSON.stringify(expandedTopicId)); }, [expandedTopicId]);
   useEffect(() => { localStorage.setItem('pos_activeTopicVideos', JSON.stringify(activeTopicVideos)); }, [activeTopicVideos]);
@@ -206,6 +230,72 @@ export function PosStudies() {
     }
     return vids;
   })();
+
+  const globalSearchResults = React.useMemo(() => {
+    if (!globalSearchQuery || globalSearchQuery.trim().length < 2) return [];
+    
+    const query = globalSearchQuery.toLowerCase().trim();
+    const results: any[] = [];
+    
+    courses.forEach(course => {
+      // Check course level
+      if (course.title.toLowerCase().includes(query) || (course.category && course.category.toLowerCase().includes(query))) {
+        results.push({
+          type: 'course',
+          courseId: course.id,
+          title: course.title,
+          subtitle: course.category || "Estudo",
+          matchType: 'Título do Curso'
+        });
+      }
+      
+      // Check modules and topics
+      try {
+        const mods = JSON.parse(course.next_topics || '[]');
+        mods.forEach((mod: any) => {
+          mod.topics?.forEach((top: any, tIdx: number) => {
+            const topId = top.id || tIdx;
+            
+            const titleMatch = top.title?.toLowerCase().includes(query);
+            const tagsMatch = top.tags?.toLowerCase().includes(query);
+            
+            // Extract plain text from notes for searching
+            let plainNotes = "";
+            if (top.notes) {
+               // simple regex to strip html
+               plainNotes = top.notes.replace(/<[^>]+>/g, ' ').toLowerCase();
+            }
+            const notesMatch = plainNotes.includes(query);
+            
+            if (titleMatch || tagsMatch || notesMatch) {
+               let snippet = "";
+               if (notesMatch) {
+                 const matchIdx = plainNotes.indexOf(query);
+                 const start = Math.max(0, matchIdx - 30);
+                 const end = Math.min(plainNotes.length, matchIdx + query.length + 30);
+                 snippet = "..." + plainNotes.substring(start, end).replace(/\s+/g, ' ') + "...";
+               } else if (tagsMatch) {
+                 snippet = `Tag: ${top.tags}`;
+               }
+               
+               results.push({
+                 type: 'topic',
+                 courseId: course.id,
+                 courseTitle: course.title,
+                 topicId: topId,
+                 title: top.title,
+                 subtitle: mod.title,
+                 matchType: titleMatch ? 'Título' : (notesMatch ? 'Anotações' : 'Tags'),
+                 snippet
+               });
+            }
+          });
+        });
+      } catch (e) {}
+    });
+    
+    return results.slice(0, 30); // Max 30 results for performance
+  }, [globalSearchQuery, courses]);
 
 
   const [previewReference, setPreviewReference] = useState<any>(null);
@@ -2801,6 +2891,17 @@ export function PosStudies() {
                                       <div className="absolute top-2 right-2 z-10 flex gap-2">
                                         <button onClick={(e) => {
                                           e.stopPropagation();
+                                          const newName = prompt("Renomear Módulo:", mod.title);
+                                          if (newName && newName.trim() !== '') {
+                                            const updated = [...modules];
+                                            updated[mIdx].title = newName.trim();
+                                            updateCourse(selectedCourse.id, { next_topics: JSON.stringify(updated) }, false);
+                                          }
+                                        }} className="p-1.5 bg-black/50 hover:bg-cyan-500/80 rounded-lg text-white backdrop-blur-sm border border-white/10 transition-colors opacity-0 group-hover:opacity-100" title="Renomear Módulo">
+                                          <Edit2 className="size-3" />
+                                        </button>
+                                        <button onClick={(e) => {
+                                          e.stopPropagation();
                                           const url = prompt("URL da Capa do Módulo (Imagem):", mod.cover_url || '');
                                           if (url !== null) {
                                             const updated = [...modules];
@@ -2854,6 +2955,17 @@ export function PosStudies() {
                                           <FolderOpen className="size-4 text-cyan-400" />
                                         </div>
                                         {mod.title}
+                                        <button onClick={(e) => {
+                                          e.stopPropagation();
+                                          const newName = prompt("Renomear Módulo:", mod.title);
+                                          if (newName && newName.trim() !== '') {
+                                            const updated = [...modules];
+                                            updated[mIdx].title = newName.trim();
+                                            updateCourse(selectedCourse.id, { next_topics: JSON.stringify(updated) }, false);
+                                          }
+                                        }} className="p-1.5 hover:bg-white/10 text-[#71717A] hover:text-white rounded-lg transition-colors" title="Renomear Módulo">
+                                          <Edit2 className="size-3" />
+                                        </button>
                                       </h4>
                                   <div className="flex items-center gap-2 relative z-10">
                                     <div className="flex items-center bg-white/5 border border-white/10 rounded-lg p-1 mr-2">
@@ -2912,7 +3024,20 @@ export function PosStudies() {
                                                 setLocalTags(topic.tags || '');
                                              }
                                           }}>
-                                            <span className={`text-sm font-bold leading-tight ${topicViewMode === 'grade' ? 'line-clamp-2' : 'truncate'} ${topic.status === 'concluido' ? 'text-[#71717A] line-through' : 'text-white'}`}>{topic.title}</span>
+                                            <div className="flex items-center gap-2 w-full">
+                                              <span className={`text-sm font-bold leading-tight ${topicViewMode === 'grade' ? 'line-clamp-2' : 'truncate'} ${topic.status === 'concluido' ? 'text-[#71717A] line-through' : 'text-white'}`}>{topic.title}</span>
+                                              <button onClick={(e) => {
+                                                e.stopPropagation();
+                                                const newName = prompt("Renomear tópico:", topic.title);
+                                                if (newName && newName.trim() !== '') {
+                                                  const updated = [...modules];
+                                                  updated[mIdx].topics[tIdx].title = newName.trim();
+                                                  updateCourse(selectedCourse.id, { next_topics: JSON.stringify(updated) }, false);
+                                                }
+                                              }} className="opacity-0 group-hover/topic:opacity-100 p-1 text-[#71717A] hover:text-white hover:bg-white/10 rounded transition-all shrink-0" title="Renomear Tópico">
+                                                <Edit2 className="size-3" />
+                                              </button>
+                                            </div>
                                             <span className={`text-[10px] uppercase tracking-widest font-bold mt-1 ${
                                               topic.status === 'concluido' ? 'text-emerald-500' :
                                               topic.status === 'avançando' ? 'text-cyan-400' :
@@ -2985,6 +3110,84 @@ export function PosStudies() {
                                             
                                             <div className="absolute top-0 left-0 w-full h-32 bg-gradient-to-b from-cyan-900/20 to-transparent pointer-events-none rounded-t-3xl"></div>
 
+                                            {/* PROMPT DE PRÓXIMO TÓPICO */}
+                                            {isNextTopicPromptOpen && (
+                                              <div className="absolute inset-0 z-[150] flex items-center justify-center bg-black/80 backdrop-blur-md animate-in fade-in" onClick={() => setIsNextTopicPromptOpen(false)}>
+                                                <div className="bg-[#111113] border border-white/10 p-6 rounded-3xl max-w-sm w-full shadow-2xl flex flex-col items-center text-center animate-in zoom-in-95" onClick={e => e.stopPropagation()}>
+                                                  <div className="w-16 h-16 rounded-full bg-cyan-500/10 flex items-center justify-center mb-4 border border-cyan-500/20">
+                                                    <FastForward className="size-8 text-cyan-400" />
+                                                  </div>
+                                                  <h3 className="text-xl font-black text-white mb-2">Próximo Tópico</h3>
+                                                  <p className="text-sm text-[#A1A1AA] mb-6">Antes de avançar, como fica o status deste tópico que você estava estudando?</p>
+                                                  
+                                                  <div className="flex flex-col gap-3 w-full">
+                                                    <button onClick={() => {
+                                                       const updated = [...modules];
+                                                       updated[mIdx].topics[tIdx].status = 'concluido';
+                                                       updateCourse(selectedCourse.id, { next_topics: JSON.stringify(updated) }, false);
+                                                       
+                                                       let nextId = null;
+                                                       if (tIdx < mod.topics.length - 1) {
+                                                         nextId = mod.topics[tIdx + 1].id || (tIdx + 1);
+                                                       } else if (mIdx < modules.length - 1 && modules[mIdx + 1].topics?.length > 0) {
+                                                         nextId = modules[mIdx + 1].topics[0].id || 0;
+                                                       }
+                                                       
+                                                       setIsNextTopicPromptOpen(false);
+                                                       if (nextId !== null) {
+                                                         setExpandedTopicId(nextId);
+                                                       } else {
+                                                         setExpandedTopicId(null);
+                                                         toast.success("Parabéns! Você chegou ao fim da trilha.");
+                                                       }
+                                                    }} className="w-full py-3 bg-emerald-500 hover:bg-emerald-400 text-black rounded-xl text-sm font-bold flex items-center justify-center gap-2 transition-colors">
+                                                      <CheckSquare className="size-4" /> Marcar como Concluído
+                                                    </button>
+                                                    
+                                                    <button onClick={() => {
+                                                       const updated = [...modules];
+                                                       updated[mIdx].topics[tIdx].status = 'revisando';
+                                                       updateCourse(selectedCourse.id, { next_topics: JSON.stringify(updated) }, false);
+                                                       
+                                                       let nextId = null;
+                                                       if (tIdx < mod.topics.length - 1) {
+                                                         nextId = mod.topics[tIdx + 1].id || (tIdx + 1);
+                                                       } else if (mIdx < modules.length - 1 && modules[mIdx + 1].topics?.length > 0) {
+                                                         nextId = modules[mIdx + 1].topics[0].id || 0;
+                                                       }
+                                                       
+                                                       setIsNextTopicPromptOpen(false);
+                                                       if (nextId !== null) {
+                                                         setExpandedTopicId(nextId);
+                                                       } else {
+                                                         setExpandedTopicId(null);
+                                                         toast.success("Fim da trilha alcançado.");
+                                                       }
+                                                    }} className="w-full py-3 bg-amber-500 hover:bg-amber-400 text-black rounded-xl text-sm font-bold flex items-center justify-center gap-2 transition-colors">
+                                                      <BookOpen className="size-4" /> Deixar para Revisar
+                                                    </button>
+                                                    
+                                                    <button onClick={() => {
+                                                       let nextId = null;
+                                                       if (tIdx < mod.topics.length - 1) {
+                                                         nextId = mod.topics[tIdx + 1].id || (tIdx + 1);
+                                                       } else if (mIdx < modules.length - 1 && modules[mIdx + 1].topics?.length > 0) {
+                                                         nextId = modules[mIdx + 1].topics[0].id || 0;
+                                                       }
+                                                       setIsNextTopicPromptOpen(false);
+                                                       if (nextId !== null) {
+                                                         setExpandedTopicId(nextId);
+                                                       } else {
+                                                         setExpandedTopicId(null);
+                                                       }
+                                                    }} className="w-full py-3 bg-white/5 hover:bg-white/10 text-white rounded-xl text-sm font-bold transition-colors">
+                                                      Apenas Avançar (Manter Status)
+                                                    </button>
+                                                  </div>
+                                                </div>
+                                              </div>
+                                            )}
+
                                             {/* Header do Modal */}
                                             <div className={cn("flex flex-col sm:flex-row sm:items-center justify-between gap-4 relative z-10 transition-all duration-300", isWorkspaceHeaderOpen ? "pb-6 border-b border-white/5" : "pb-0 mb-2 justify-end")}>
                                               {isWorkspaceHeaderOpen && (
@@ -2997,88 +3200,6 @@ export function PosStudies() {
                                                 </div>
                                               )}
                                               <div className="flex flex-wrap items-center gap-2 sm:gap-3 w-full sm:w-auto mt-4 sm:mt-0 justify-end">
-                                                {isWorkspaceHeaderOpen && (
-                                                  <div className="flex flex-wrap items-center gap-2 mr-0 sm:mr-2 border-r-0 sm:border-r border-white/10 pr-0 sm:pr-4 w-full sm:w-auto justify-end">
-                                                    {activeTopicTimer === (topic.id || tIdx) ? (
-                                                      <div className="flex flex-wrap items-center justify-center gap-2 bg-black/40 p-1.5 rounded-2xl sm:rounded-full border border-white/5 backdrop-blur-md w-full sm:w-auto">
-                                                        {isPomodoroMode && (
-                                                          <div className={cn("px-3 py-1 rounded-full text-[10px] font-bold uppercase tracking-widest border shrink-0 shadow-sm", 
-                                                            pomodoroPhase === 'study' ? "bg-orange-500/10 text-orange-400 border-orange-500/30" : "bg-emerald-500/10 text-emerald-400 border-emerald-500/30"
-                                                          )}>
-                                                            {pomodoroPhase === 'study' ? `🍅 Estudo (${pomodoroCyclesCompleted + 1}/4)` : (pomodoroPhase === 'short_break' ? '☕ Pausa Curta' : '🛋️ Pausa Longa')}
-                                                          </div>
-                                                        )}
-                                                        <div className="px-4 py-1.5 bg-cyan-900/30 rounded-full flex items-center justify-center min-w-[95px] shadow-[inset_0_0_10px_rgba(6,182,212,0.1)]">
-                                                           <span className={cn("text-lg font-mono font-bold tracking-wider", isTimerPaused ? "text-[#71717A] animate-pulse" : (isPomodoroMode && pomodoroPhase === 'study' ? "text-orange-400 drop-shadow-[0_0_8px_rgba(251,146,60,0.5)]" : isPomodoroMode ? "text-emerald-400 drop-shadow-[0_0_8px_rgba(16,185,129,0.5)]" : "text-cyan-400 drop-shadow-[0_0_8px_rgba(6,182,212,0.5)]"))}>
-                                                             {isPomodoroMode ? (() => {
-                                                                const target = pomodoroPhase === 'study' ? POMODORO_STUDY_SECONDS : pomodoroPhase === 'short_break' ? POMODORO_SHORT_BREAK_SECONDS : POMODORO_LONG_BREAK_SECONDS;
-                                                                const rem = Math.max(0, target - elapsedSeconds);
-                                                                return `${String(Math.floor(rem / 60)).padStart(2, '0')}:${String(rem % 60).padStart(2, '0')}`;
-                                                             })() : (
-                                                               `${String(Math.floor(elapsedSeconds / 3600)).padStart(2, '0')}:${String(Math.floor((elapsedSeconds % 3600) / 60)).padStart(2, '0')}:${String(elapsedSeconds % 60).padStart(2, '0')}`
-                                                             )}
-                                                           </span>
-                                                        </div>
-                                                        <button onClick={() => setIsTimerPaused(!isTimerPaused)} className="p-2.5 hover:bg-white/10 rounded-full text-white transition-colors" title={isTimerPaused ? "Retomar" : "Pausar"}>
-                                                          {isTimerPaused ? <Play className="size-4 fill-white" /> : <Pause className="size-4 fill-white" />}
-                                                        </button>
-                                                        <button onClick={() => {
-                                                           if (confirm("Cancelar a sessão atual? O tempo não será salvo.")) {
-                                                              setActiveTopicTimer(null);
-                                                              setElapsedSeconds(0);
-                                                              setIsTimerPaused(false);
-                                                              setPomodoroPhase('study');
-                                                              setPomodoroCyclesCompleted(0);
-                                                              setSessionAccumulatedSeconds(0);
-                                                           }
-                                                        }} className="p-2.5 hover:bg-rose-500/20 text-rose-500 rounded-full transition-colors" title="Cancelar">
-                                                          <XCircle className="size-4" />
-                                                        </button>
-                                                        <button onClick={async () => {
-                                                           let totalStudySeconds = sessionAccumulatedSeconds;
-                                                           if (!isPomodoroMode || pomodoroPhase === 'study') {
-                                                             totalStudySeconds += elapsedSeconds;
-                                                           }
-                                                           const durationMinutes = Math.max(1, Math.ceil(totalStudySeconds / 60));
-                                                           await addSession({
-                                                              course_id: selectedCourse.id,
-                                                              session_date: format(new Date(), 'yyyy-MM-dd'),
-                                                              duration_minutes: durationMinutes,
-                                                              module_name: mod.title,
-                                                              class_name: topic.title,
-                                                              summary: topic.notes || 'Sessão focada na ferramenta Topic Workspace.'
-                                                           });
-                                                           setActiveTopicTimer(null);
-                                                           setElapsedSeconds(0);
-                                                           setIsTimerPaused(false);
-                                                           setPomodoroPhase('study');
-                                                           setPomodoroCyclesCompleted(0);
-                                                           setSessionAccumulatedSeconds(0);
-                                                        }} className="px-5 py-2 bg-emerald-500 hover:bg-emerald-400 text-black rounded-full text-sm font-bold flex items-center gap-2 shadow-[0_0_15px_rgba(16,185,129,0.3)] transition-all">
-                                                          <CheckCircle2 className="size-4" /> Concluir
-                                                        </button>
-                                                      </div>
-                                                    ) : (
-                                                      <div className="flex flex-wrap items-center justify-start sm:justify-end gap-2 w-full sm:w-auto">
-                                                        <button onClick={() => {
-                                                           setActiveTopicTimer(topic.id || tIdx);
-                                                           setElapsedSeconds(0);
-                                                           setIsTimerPaused(false);
-                                                        }} className={cn("px-5 py-2.5 hover:brightness-110 text-black rounded-full text-sm font-bold flex items-center justify-center gap-2 transition-all", isPomodoroMode ? "bg-orange-500 shadow-[0_0_15px_rgba(249,115,22,0.3)]" : "bg-cyan-500 shadow-[0_0_15px_rgba(6,182,212,0.3)]")}>
-                                                          <Play className="size-4 fill-black" /> Iniciar Sessão
-                                                        </button>
-                                                        <button 
-                                                          onClick={() => setIsPomodoroMode(!isPomodoroMode)}
-                                                          className={cn("px-3 py-2.5 rounded-full text-xs font-bold transition-colors border", isPomodoroMode ? "bg-orange-500/10 text-orange-400 border-orange-500/20" : "bg-white/5 text-[#A1A1AA] border-white/5 hover:text-white")}
-                                                          title="Alternar entre Timer Crescente e Pomodoro (25m)"
-                                                        >
-                                                          {isPomodoroMode ? "🍅 Pomodoro" : "⏱️ Timer"}
-                                                        </button>
-                                                      </div>
-                                                    )}
-                                                  </div>
-                                                )}
-                                                  
                                                 <div className="flex items-center gap-2 ml-auto sm:ml-0">
                                                   {/* FOCUS MODE */}
                                                   {isWorkspaceHeaderOpen && (
@@ -3086,10 +3207,6 @@ export function PosStudies() {
                                                       <button onClick={() => setDesktopFocusMode("media")} className={cn("px-3 py-1.5 rounded-lg text-[10px] font-bold uppercase tracking-widest transition-colors", desktopFocusMode === "media" ? "bg-cyan-500/20 text-cyan-400" : "text-[#71717A] hover:text-white")} title="Modo Foco: Apenas Mídia">Mídia</button>
                                                       <button onClick={() => setDesktopFocusMode("both")} className={cn("px-3 py-1.5 rounded-lg text-[10px] font-bold uppercase tracking-widest transition-colors", desktopFocusMode === "both" ? "bg-white/10 text-white" : "text-[#71717A] hover:text-white")} title="Visão Padrão">Dividido</button>
                                                       <button onClick={() => setDesktopFocusMode("notes")} className={cn("px-3 py-1.5 rounded-lg text-[10px] font-bold uppercase tracking-widest transition-colors", desktopFocusMode === "notes" ? "bg-purple-500/20 text-purple-400" : "text-[#71717A] hover:text-white")} title="Modo Foco: Apenas Anotações">Anotações</button>
-                                                      <div className="w-px h-4 bg-white/10 mx-1"></div>
-                                                      <button onClick={() => window.open(window.location.href, '_blank')} className="px-3 py-1.5 rounded-lg text-[10px] font-bold uppercase tracking-widest text-[#71717A] hover:text-white transition-colors flex items-center gap-1.5" title="Abrir Workspace em Nova Aba">
-                                                        <ExternalLink className="size-3" /> Pop-out
-                                                      </button>
                                                     </div>
                                                   )}
                                                   <button onClick={() => setIsWorkspaceHeaderOpen(!isWorkspaceHeaderOpen)} className="p-2 bg-white/5 hover:bg-white/10 rounded-full transition-colors text-white backdrop-blur-md" title={isWorkspaceHeaderOpen ? "Ocultar Cabeçalho" : "Mostrar Cabeçalho"}>
@@ -3098,6 +3215,10 @@ export function PosStudies() {
                                                   <button onClick={() => setIsSidebarOpen(!isSidebarOpen)} className={cn("px-4 py-2 bg-black/40 border border-white/10 hover:bg-white/10 text-white rounded-full text-xs font-bold flex items-center gap-2 backdrop-blur-md transition-all shadow-[0_0_10px_rgba(0,0,0,0.5)]")} title="Recursos e Ferramentas">
                                                     <LayoutPanelLeft className={cn("size-4", isSidebarOpen ? "text-cyan-500" : "text-[#A1A1AA]")} />
                                                     <span className="hidden sm:inline">{isSidebarOpen ? "Ocultar" : "Recursos"}</span>
+                                                  </button>
+                                                  <button onClick={() => setIsNextTopicPromptOpen(true)} className="px-4 py-2 bg-gradient-to-r from-emerald-500/20 to-teal-500/20 border border-emerald-500/30 hover:border-emerald-400 hover:text-emerald-300 text-emerald-400 rounded-full text-xs font-bold flex items-center gap-2 backdrop-blur-md transition-all shadow-[0_0_15px_rgba(16,185,129,0.15)]" title="Próximo Tópico">
+                                                    <span className="hidden sm:inline">Avançar</span>
+                                                    <FastForward className="size-4" />
                                                   </button>
                                                   <button onClick={() => setExpandedTopicId(null)} className="p-2 bg-white/5 hover:bg-white/10 rounded-full transition-colors text-white backdrop-blur-md">
                                                     <X className="size-5" />
@@ -3212,88 +3333,182 @@ export function PosStudies() {
                                                   </div>
                                                 )}
                                                 <div className={cn("flex flex-col sm:flex-row sm:items-center justify-between mb-2 gap-2", mobileWorkspaceTab === "notes" ? "flex" : "hidden", desktopFocusMode === "media" ? "lg:hidden" : "lg:flex")}>
-                                                  <label className="text-[10px] uppercase tracking-widest text-[#71717A] font-bold flex items-center gap-2">
-                                                    <Edit2 className="size-3 text-purple-500" /> Anotações / Resumo (Salvas Automático)
-                                                  </label>
-                                                  <div className="flex items-center gap-2">
-                                                    <input 
-                                                      type="file" 
-                                                      accept="image/*" 
-                                                      capture="environment"
-                                                      id={`camera-${topic.id || tIdx}`}
-                                                      className="hidden"
-                                                      onChange={async (e) => {
-                                                        const file = e.target.files?.[0];
-                                                        if (!file) return;
-                                                        
-                                                        try {
-                                                          toast.loading("Analisando imagem...", { id: `upload-${topic.id || tIdx}` });
+                                                  <div className="flex bg-[#1A1A1E] p-1 rounded-lg border border-white/5">
+                                                    <button onClick={() => setTopicContentMode('notes')} className={cn("px-3 py-1.5 text-[10px] font-bold uppercase tracking-widest rounded-md transition-colors flex items-center gap-2", topicContentMode === 'notes' ? "bg-white/10 text-white shadow-sm" : "text-[#71717A] hover:text-[#A1A1AA]")}>
+                                                      <Edit2 className="size-3" /> Anotações
+                                                    </button>
+                                                    <button onClick={() => setTopicContentMode('exercises')} className={cn("px-3 py-1.5 text-[10px] font-bold uppercase tracking-widest rounded-md transition-colors flex items-center gap-2", topicContentMode === 'exercises' ? "bg-cyan-500/20 text-cyan-400 shadow-sm" : "text-[#71717A] hover:text-[#A1A1AA]")}>
+                                                      <Brain className="size-3" /> Flashcards
+                                                    </button>
+                                                  </div>
+                                                  {topicContentMode === 'notes' && (
+                                                    <div className="flex items-center gap-2">
+                                                      <input 
+                                                        type="file" 
+                                                        accept="image/*" 
+                                                        capture="environment"
+                                                        id={`camera-${topic.id || tIdx}`}
+                                                        className="hidden"
+                                                        onChange={async (e) => {
+                                                          const file = e.target.files?.[0];
+                                                          if (!file) return;
                                                           
-                                                          const maxSizeBytes = 5 * 1024 * 1024; // 5MB
-                                                          if (file.size > maxSizeBytes) {
-                                                            toast.error(`A imagem é muito pesada! O limite é de 5MB.`, { id: `upload-${topic.id || tIdx}` });
-                                                            return;
-                                                          }
+                                                          try {
+                                                            toast.loading("Analisando imagem...", { id: `upload-${topic.id || tIdx}` });
+                                                            
+                                                            const maxSizeBytes = 5 * 1024 * 1024; // 5MB
+                                                            if (file.size > maxSizeBytes) {
+                                                              toast.error(`A imagem é muito pesada! O limite é de 5MB.`, { id: `upload-${topic.id || tIdx}` });
+                                                              return;
+                                                            }
 
-                                                          const arrayBuffer = await file.arrayBuffer();
-                                                          const hashBuffer = await crypto.subtle.digest('SHA-256', arrayBuffer);
-                                                          const hashArray = Array.from(new Uint8Array(hashBuffer));
-                                                          const hashHex = hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
-                                                          
-                                                          const fileExt = file.name.split('.').pop() || 'jpg';
-                                                          const fileName = `session_${hashHex}.${fileExt}`;
-                                                          const filePath = `anotacoes/${fileName}`;
-                                                          
-                                                          toast.loading("Enviando imagem...", { id: `upload-${topic.id || tIdx}` });
-                                                          const { error } = await supabase.storage.from('livros').upload(filePath, file);
-                                                          
-                                                          if (error && !error.message.toLowerCase().includes('already exists') && !error.message.toLowerCase().includes('duplicate')) {
-                                                            throw error;
+                                                            const arrayBuffer = await file.arrayBuffer();
+                                                            const hashBuffer = await crypto.subtle.digest('SHA-256', arrayBuffer);
+                                                            const hashArray = Array.from(new Uint8Array(hashBuffer));
+                                                            const hashHex = hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
+                                                            
+                                                            const fileExt = file.name.split('.').pop() || 'jpg';
+                                                            const fileName = `session_${hashHex}.${fileExt}`;
+                                                            const filePath = `anotacoes/${fileName}`;
+                                                            
+                                                            toast.loading("Enviando imagem...", { id: `upload-${topic.id || tIdx}` });
+                                                            const { error } = await supabase.storage.from('livros').upload(filePath, file);
+                                                            
+                                                            if (error && !error.message.toLowerCase().includes('already exists') && !error.message.toLowerCase().includes('duplicate')) {
+                                                              throw error;
+                                                            }
+                                                            
+                                                            const { data } = supabase.storage.from('livros').getPublicUrl(filePath);
+                                                            
+                                                            const imgHtml = `<p><img src="${data.publicUrl}" alt="Anotação" style="max-width: 100%; border-radius: 8px; margin: 10px 0; border: 1px solid rgba(255,255,255,0.1);" /></p><p><br></p>`;
+                                                            
+                                                            setLocalNotes(prev => prev + imgHtml);
+                                                            
+                                                            toast.success("Imagem anexada à anotação!", { id: `upload-${topic.id || tIdx}` });
+                                                          } catch (err: any) {
+                                                            toast.error("Erro ao enviar imagem: " + err.message, { id: `upload-${topic.id || tIdx}` });
                                                           }
-                                                          
-                                                          const { data } = supabase.storage.from('livros').getPublicUrl(filePath);
-                                                          
-                                                          const imgHtml = `<p><img src="${data.publicUrl}" alt="Anotação" style="max-width: 100%; border-radius: 8px; margin: 10px 0; border: 1px solid rgba(255,255,255,0.1);" /></p><p><br></p>`;
-                                                          
-                                                          setLocalNotes(prev => prev + imgHtml);
-                                                          
-                                                          toast.success("Imagem anexada à anotação!", { id: `upload-${topic.id || tIdx}` });
-                                                        } catch (err: any) {
-                                                          toast.error("Erro ao enviar imagem: " + err.message, { id: `upload-${topic.id || tIdx}` });
+                                                        }}
+                                                      />
+                                                      <label htmlFor={`camera-${topic.id || tIdx}`} className="cursor-pointer h-6 w-6 flex items-center justify-center rounded-md bg-[#1A1A1E] hover:bg-emerald-500/20 text-emerald-400 border border-emerald-500/20 transition-colors" title="Tirar foto ou anexar imagem">
+                                                        <Camera className="size-3.5" />
+                                                      </label>
+                                                      <VoiceRecordButton 
+                                                        onTranscript={(t) => setLocalNotes(prev => prev + `<p>${t}</p>`)} 
+                                                        className="h-6 w-6 !p-1 bg-[#1A1A1E] hover:bg-purple-500/20 text-purple-400 border-purple-500/20"
+                                                        placeholder="Ditar anotação"
+                                                      />
+                                                    </div>
+                                                  )}
+                                                </div>
+                                                {topicContentMode === 'notes' ? (
+                                                  <div 
+                                                    className={cn("rounded-2xl overflow-hidden border border-white/5 focus-within:border-cyan-500/50 focus-within:shadow-[0_0_20px_rgba(6,182,212,0.1)] transition-all bg-[#0A0A0C] flex-1 flex-col group relative min-h-[400px] lg:flex", mobileWorkspaceTab === "notes" ? "flex" : "hidden", desktopFocusMode === "media" ? "lg:hidden" : "lg:flex")}
+                                                    onBlur={() => {
+                                                      const updated = [...modules];
+                                                      updated[mIdx].topics[tIdx].notes = localNotes;
+                                                      updateCourse(selectedCourse.id, { next_topics: JSON.stringify(updated) }, false);
+                                                    }}
+                                                  >
+                                                    <RichTextEditor 
+                                                      content={localNotes}
+                                                      onChange={(content) => {
+                                                        setLocalNotes(content);
+                                                        if (syncChannelRef.current) {
+                                                          syncChannelRef.current.postMessage({ type: 'SYNC_NOTES', payload: { topicId: expandedTopicId, notes: content } });
                                                         }
                                                       }}
-                                                    />
-                                                    <label htmlFor={`camera-${topic.id || tIdx}`} className="cursor-pointer h-6 w-6 flex items-center justify-center rounded-md bg-[#1A1A1E] hover:bg-emerald-500/20 text-emerald-400 border border-emerald-500/20 transition-colors" title="Tirar foto ou anexar imagem">
-                                                      <Camera className="size-3.5" />
-                                                    </label>
-                                                    <VoiceRecordButton 
-                                                      onTranscript={(t) => setLocalNotes(prev => prev + `<p>${t}</p>`)} 
-                                                      className="h-6 w-6 !p-1 bg-[#1A1A1E] hover:bg-purple-500/20 text-purple-400 border-purple-500/20"
-                                                      placeholder="Ditar anotação"
+                                                      availableBooks={availableBookQuotes.filter(q => (topic.books || []).includes(q.book_id))}
+                                                      availableVideos={availableVideos}
+                                                      availableMaterials={topic.materials || []}
                                                     />
                                                   </div>
-                                                </div>
-                                                <div 
-                                                  className={cn("rounded-2xl overflow-hidden border border-white/5 focus-within:border-cyan-500/50 focus-within:shadow-[0_0_20px_rgba(6,182,212,0.1)] transition-all bg-[#0A0A0C] flex-1 flex-col group relative min-h-[400px] lg:flex", mobileWorkspaceTab === "notes" ? "flex" : "hidden", desktopFocusMode === "media" ? "lg:hidden" : "lg:flex")}
-                                                  onBlur={() => {
-                                                    const updated = [...modules];
-                                                    updated[mIdx].topics[tIdx].notes = localNotes;
-                                                    updateCourse(selectedCourse.id, { next_topics: JSON.stringify(updated) }, false);
-                                                  }}
-                                                >
-                                                  <RichTextEditor 
-                                                    content={localNotes}
-                                                    onChange={(content) => {
-                                                      setLocalNotes(content);
-                                                      if (syncChannelRef.current) {
-                                                        syncChannelRef.current.postMessage({ type: 'SYNC_NOTES', payload: { topicId: expandedTopicId, notes: content } });
-                                                      }
-                                                    }}
-                                                    availableBooks={availableBookQuotes.filter(q => (topic.books || []).includes(q.book_id))}
-                                                    availableVideos={availableVideos}
-                                                    availableMaterials={topic.materials || []}
-                                                  />
-                                                </div>
+                                                ) : (
+                                                  <div className={cn("rounded-2xl overflow-y-auto custom-scrollbar border border-white/5 p-4 sm:p-6 transition-all bg-[#0A0A0C] flex-1 flex-col group relative min-h-[400px] lg:flex", mobileWorkspaceTab === "notes" ? "flex" : "hidden", desktopFocusMode === "media" ? "lg:hidden" : "lg:flex")}>
+                                                    <div className="flex flex-col h-full gap-6">
+                                                      <div className="bg-[#111113] border border-white/5 p-4 rounded-xl shadow-inner shrink-0">
+                                                        <h4 className="text-sm font-black text-white mb-3 flex items-center gap-2"><Plus className="size-4 text-cyan-400" /> Criar Novo Flashcard</h4>
+                                                        <div className="flex flex-col gap-3">
+                                                          <textarea 
+                                                            placeholder="Frente (Pergunta, Termo, ou Frase para traduzir)..." 
+                                                            className="w-full bg-[#1A1A1E] text-sm text-white rounded-lg p-3 border border-white/5 focus:border-cyan-500/50 focus:outline-none resize-none min-h-[60px]"
+                                                            value={newExerciseQ}
+                                                            onChange={e => setNewExerciseQ(e.target.value)}
+                                                          />
+                                                          <textarea 
+                                                            placeholder="Verso (Resposta ou Tradução)..." 
+                                                            className="w-full bg-[#1A1A1E] text-sm text-white rounded-lg p-3 border border-white/5 focus:border-cyan-500/50 focus:outline-none resize-none min-h-[60px]"
+                                                            value={newExerciseA}
+                                                            onChange={e => setNewExerciseA(e.target.value)}
+                                                          />
+                                                          <button 
+                                                            onClick={() => {
+                                                              if (!newExerciseQ.trim() || !newExerciseA.trim()) return;
+                                                              const updated = [...modules];
+                                                              const ex = { id: Date.now(), q: newExerciseQ.trim(), a: newExerciseA.trim() };
+                                                              if (!updated[mIdx].topics[tIdx].exercises) updated[mIdx].topics[tIdx].exercises = [];
+                                                              updated[mIdx].topics[tIdx].exercises.push(ex);
+                                                              updateCourse(selectedCourse.id, { next_topics: JSON.stringify(updated) }, false);
+                                                              setNewExerciseQ("");
+                                                              setNewExerciseA("");
+                                                            }}
+                                                            disabled={!newExerciseQ.trim() || !newExerciseA.trim()}
+                                                            className="self-end px-4 py-2 bg-cyan-500/20 text-cyan-400 hover:bg-cyan-500 hover:text-black font-bold text-xs rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
+                                                          >
+                                                            <CheckSquare className="size-3.5" /> Salvar Card
+                                                          </button>
+                                                        </div>
+                                                      </div>
+
+                                                      <div className="flex-1 flex flex-col gap-4">
+                                                        {topic.exercises && topic.exercises.length > 0 ? (
+                                                          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                                                            {topic.exercises.map((ex: any, exIdx: number) => {
+                                                              const isRevealed = revealedExercises.includes(ex.id);
+                                                              return (
+                                                                <div key={ex.id || exIdx} className="bg-[#1A1A1E] border border-white/5 rounded-xl overflow-hidden flex flex-col h-[200px] relative group shadow-lg">
+                                                                  <button 
+                                                                    onClick={() => {
+                                                                      if (confirm("Excluir este flashcard?")) {
+                                                                        const updated = [...modules];
+                                                                        updated[mIdx].topics[tIdx].exercises = updated[mIdx].topics[tIdx].exercises.filter((e: any) => e.id !== ex.id);
+                                                                        updateCourse(selectedCourse.id, { next_topics: JSON.stringify(updated) }, false);
+                                                                      }
+                                                                    }}
+                                                                    className="absolute top-2 right-2 p-1.5 bg-black/40 text-rose-500 opacity-0 group-hover:opacity-100 transition-opacity rounded-md hover:bg-rose-500/20 z-10"
+                                                                    title="Excluir"
+                                                                  >
+                                                                    <Trash2 className="size-3" />
+                                                                  </button>
+                                                                  <div className="flex-1 p-4 flex flex-col items-center justify-center text-center relative overflow-y-auto">
+                                                                    <div className="absolute top-2 left-2 text-[9px] font-black uppercase text-[#71717A] tracking-widest flex items-center gap-1"><BookOpen className="size-3" /> Frente</div>
+                                                                    <p className="text-sm font-medium text-white break-words w-full">{ex.q}</p>
+                                                                  </div>
+                                                                  <div className={cn("flex-1 p-4 flex flex-col items-center justify-center text-center relative overflow-y-auto transition-all duration-300 border-t border-white/5", isRevealed ? "bg-[#111113]" : "bg-black cursor-pointer hover:bg-white/5")} onClick={() => { if (!isRevealed) setRevealedExercises([...revealedExercises, ex.id]) }}>
+                                                                    {isRevealed ? (
+                                                                      <>
+                                                                        <div className="absolute top-2 left-2 text-[9px] font-black uppercase text-cyan-500/50 tracking-widest flex items-center gap-1"><CheckCircle2 className="size-3" /> Verso</div>
+                                                                        <p className="text-sm font-bold text-cyan-400 break-words w-full">{ex.a}</p>
+                                                                      </>
+                                                                    ) : (
+                                                                      <p className="text-xs font-bold text-[#A1A1AA] flex items-center gap-2"><CheckSquare className="size-4 text-cyan-500/50" /> Clique para revelar resposta</p>
+                                                                    )}
+                                                                  </div>
+                                                                </div>
+                                                              );
+                                                            })}
+                                                          </div>
+                                                        ) : (
+                                                          <div className="flex flex-col items-center justify-center h-[200px] text-center p-8 bg-[#1A1A1E] border border-dashed border-white/10 rounded-xl">
+                                                            <Brain className="size-8 text-[#A1A1AA] mb-3 opacity-50" />
+                                                            <p className="text-sm font-bold text-white mb-1">Nenhum Flashcard</p>
+                                                            <p className="text-xs text-[#71717A] max-w-[200px] mx-auto">Crie perguntas acima para começar a testar seus conhecimentos neste tópico.</p>
+                                                          </div>
+                                                        )}
+                                                      </div>
+                                                    </div>
+                                                  </div>
+                                                )}
                                               </div>
                                               {isSidebarOpen && (
                                                 <div className={cn("w-full lg:w-[320px] xl:w-[350px] shrink-0 bg-gradient-to-b from-[#111113]/95 to-[#0A0A0C]/95 backdrop-blur-2xl p-5 rounded-3xl border border-[rgba(255,255,255,0.06)] shadow-[0_8px_32px_rgba(0,0,0,0.4)] overflow-y-auto custom-scrollbar animate-in slide-in-from-right-4 fade-in duration-300 lg:flex flex-col gap-6", mobileWorkspaceTab === "resources" ? "flex" : "hidden", desktopFocusMode !== "both" ? "lg:hidden" : "lg:flex")}>
@@ -3619,29 +3834,57 @@ export function PosStudies() {
                                                     <ChevronDown className="size-3.5 transition-transform group-open:rotate-180 text-[#71717A] group-hover/summary:text-white" />
                                                   </summary>
                                                   <div className="flex flex-col gap-2">
-                                                    {availableVideos && availableVideos.length > 0 ? (
+                                                    {availableVideos && availableVideos.length > 0 ? (() => {
+                                                        const pinnedUrls = topic.topic_videos || [];
+                                                        const sortedVids = [...availableVideos].sort((a, b) => {
+                                                            const aPin = pinnedUrls.includes(a.url) ? 1 : 0;
+                                                            const bPin = pinnedUrls.includes(b.url) ? 1 : 0;
+                                                            return bPin - aPin;
+                                                        });
+                                                        return (
                                                       <div className="flex gap-3 overflow-x-auto pb-2 hide-scrollbar w-[100%]">
-                                                        {availableVideos.map((vid: any, idx: number) => {
+                                                        {sortedVids.map((vid: any, idx: number) => {
                                                           const thumb = getThumbnail(vid.url);
+                                                          const isPinned = pinnedUrls.includes(vid.url);
                                                           return (
-                                                            <div key={idx} className="w-32 shrink-0 bg-[#0A0A0C]/50 shadow-inner border border-[rgba(255,255,255,0.03)] hover:border-cyan-500/30 rounded-xl overflow-hidden group cursor-pointer transition-colors" onClick={() => {
-                                                               const event = new CustomEvent('reference-click', { detail: { refType: 'video', title: vid.title, url: vid.url, id: vid.id } });
-                                                               window.dispatchEvent(event);
-                                                            }}>
-                                                              <div className="h-20 relative bg-black">
+                                                            <div key={idx} className={cn("w-32 shrink-0 bg-[#0A0A0C]/50 shadow-inner rounded-xl overflow-hidden group transition-colors relative", isPinned ? "border-2 border-cyan-500/50 shadow-[0_0_15px_rgba(6,182,212,0.15)]" : "border border-[rgba(255,255,255,0.03)] hover:border-cyan-500/30")}>
+                                                              {isPinned && (
+                                                                <div className="absolute top-1 left-1 z-10 bg-cyan-500 text-black text-[8px] font-black uppercase px-1.5 py-0.5 rounded shadow-md flex items-center gap-1 pointer-events-none">
+                                                                  <CheckSquare className="size-2.5" /> Aula do Tópico
+                                                                </div>
+                                                              )}
+                                                              <button onClick={(e) => {
+                                                                 e.stopPropagation();
+                                                                 let newPinned = [...pinnedUrls];
+                                                                 if (isPinned) newPinned = newPinned.filter(u => u !== vid.url);
+                                                                 else newPinned.push(vid.url);
+                                                                 
+                                                                 const updated = [...modules];
+                                                                 updated[mIdx].topics[tIdx].topic_videos = newPinned;
+                                                                 updateCourse(selectedCourse.id, { next_topics: JSON.stringify(updated) }, false);
+                                                              }} className={cn("absolute top-1 right-1 z-20 p-1.5 rounded border backdrop-blur-md transition-all shadow-sm", isPinned ? "bg-cyan-500/20 border-cyan-500/30 text-cyan-400 hover:bg-rose-500/80 hover:text-white hover:border-rose-500" : "bg-black/60 border-white/10 text-white/50 hover:text-white opacity-0 group-hover:opacity-100")} title={isPinned ? "Desvincular deste tópico" : "Vincular como aula deste tópico"}>
+                                                                <Pin className="size-3" />
+                                                              </button>
+                                                              <div className="h-20 relative bg-black cursor-pointer" onClick={() => {
+                                                                 const event = new CustomEvent('reference-click', { detail: { refType: 'video', title: vid.title, url: vid.url, id: vid.id } });
+                                                                 window.dispatchEvent(event);
+                                                              }}>
                                                                 {thumb ? <img src={thumb} alt="thumb" className="w-full h-full object-cover opacity-70 group-hover:opacity-100 transition-opacity" /> : <Play className="size-6 text-white/20 absolute inset-0 m-auto" />}
                                                                 <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 bg-black/40 transition-opacity">
                                                                   <Play className="size-6 text-white" />
                                                                 </div>
                                                               </div>
-                                                              <div className="p-2">
+                                                              <div className="p-2 cursor-pointer" onClick={() => {
+                                                                 const event = new CustomEvent('reference-click', { detail: { refType: 'video', title: vid.title, url: vid.url, id: vid.id } });
+                                                                 window.dispatchEvent(event);
+                                                              }}>
                                                                 <p className="text-[10px] font-bold text-white line-clamp-2 leading-tight" title={vid.title}>{vid.title}</p>
                                                               </div>
                                                             </div>
                                                           );
                                                         })}
                                                       </div>
-                                                    ) : (
+                                                    )})() : (
                                                        <div className="text-[10px] text-[#71717A] italic py-2 border border-dashed border-white/5 rounded-lg text-center bg-[#111113]">Nenhum vídeo salvo na Videoteca.</div>
                                                     )}
                                                   </div>
@@ -4047,15 +4290,16 @@ export function PosStudies() {
                                    <div className="flex flex-col sm:flex-row gap-3 mb-4 p-3 bg-[#1A1A1E] border border-cyan-500/20 rounded-xl">
                                      <input type="text" placeholder="Título (Ex: Aula 1 - Base)" value={newVideoTitle} onChange={e => setNewVideoTitle(e.target.value)} className="flex-1 bg-[#111113] border border-white/5 rounded-lg px-3 py-2 text-xs text-white focus:outline-none focus:border-cyan-500/50" />
                                      <input type="url" placeholder="URL da Mídia (YouTube, .mp3, .pdf)" value={newVideoUrl} onChange={e => setNewVideoUrl(e.target.value)} className="flex-1 bg-[#111113] border border-white/5 rounded-lg px-3 py-2 text-xs text-white focus:outline-none focus:border-cyan-500/50" />
+                                     <input type="url" placeholder="Capa/Thumbnail (Opcional)" value={newVideoCoverUrl} onChange={e => setNewVideoCoverUrl(e.target.value)} className="flex-1 bg-[#111113] border border-white/5 rounded-lg px-3 py-2 text-xs text-white focus:outline-none focus:border-cyan-500/50" />
                                      <button onClick={() => {
                                        if (!newVideoTitle || !newVideoUrl) return;
                                        let s: any = {};
                                        try { s = JSON.parse(selectedCourse.description || '{}'); } catch(e){}
                                        if (s.youtube_channels && s.youtube_channels[idx]) {
                                          if (!s.youtube_channels[idx].videos) s.youtube_channels[idx].videos = [];
-                                         s.youtube_channels[idx].videos.push({ id: Date.now().toString(), title: newVideoTitle, url: newVideoUrl });
+                                         s.youtube_channels[idx].videos.push({ id: Date.now().toString(), title: newVideoTitle, url: newVideoUrl, cover_url: newVideoCoverUrl });
                                          updateCourse(selectedCourse.id, { description: JSON.stringify(s) }, false);
-                                         setNewVideoTitle(''); setNewVideoUrl(''); setIsAddingVideoToChannel(null);
+                                         setNewVideoTitle(''); setNewVideoUrl(''); setNewVideoCoverUrl(''); setIsAddingVideoToChannel(null);
                                        }
                                      }} className="px-4 py-2 bg-cyan-600 hover:bg-cyan-500 text-white font-bold text-xs rounded-lg transition-colors w-full sm:w-auto">Salvar</button>
                                    </div>
@@ -4063,7 +4307,7 @@ export function PosStudies() {
 
                                  <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3">
                                    {ch.videos?.map((vid: any, vIdx: number) => {
-                                     const thumb = getThumbnail(vid.url);
+                                     const thumb = vid.cover_url || getThumbnail(vid.url);
                                      return (
                                        <div key={vid.id || vIdx} className="bg-[#1A1A1E] border border-white/5 rounded-xl overflow-hidden group hover:border-cyan-500/30 transition-colors shadow-sm">
                                          <div className="h-24 bg-black relative flex items-center justify-center group-hover:opacity-90 cursor-pointer" onClick={() => {
@@ -4076,18 +4320,33 @@ export function PosStudies() {
                                               <Play className="size-8 text-white drop-shadow-lg" />
                                            </div>
                                          </div>
-                                         <div className="p-3 flex items-start justify-between">
+                                         <div className="p-3 flex items-start justify-between gap-2">
                                            <span className="text-xs font-bold text-white line-clamp-2 pr-2">{vid.title}</span>
-                                           <button onClick={() => {
-                                             let s: any = {};
-                                             try { s = JSON.parse(selectedCourse.description || '{}'); } catch(e){}
-                                             if (s.youtube_channels && s.youtube_channels[idx] && s.youtube_channels[idx].videos) {
-                                               s.youtube_channels[idx].videos = s.youtube_channels[idx].videos.filter((_:any, i:number) => i !== vIdx);
-                                               updateCourse(selectedCourse.id, { description: JSON.stringify(s) }, false);
-                                             }
-                                           }} className="text-rose-500/50 hover:text-rose-500 transition-colors">
-                                             <Trash2 className="size-3.5" />
-                                           </button>
+                                           <div className="flex flex-col gap-2 shrink-0">
+                                             <button onClick={() => {
+                                               let s: any = {};
+                                               try { s = JSON.parse(selectedCourse.description || '{}'); } catch(e){}
+                                               if (s.youtube_channels && s.youtube_channels[idx] && s.youtube_channels[idx].videos) {
+                                                 const newTitle = prompt("Renomear Mídia:", vid.title);
+                                                 if (newTitle && newTitle.trim() !== '') {
+                                                   s.youtube_channels[idx].videos[vIdx].title = newTitle.trim();
+                                                   updateCourse(selectedCourse.id, { description: JSON.stringify(s) }, false);
+                                                 }
+                                               }
+                                             }} className="text-[#A1A1AA] hover:text-white transition-colors" title="Renomear">
+                                               <Edit2 className="size-3.5" />
+                                             </button>
+                                             <button onClick={() => {
+                                               let s: any = {};
+                                               try { s = JSON.parse(selectedCourse.description || '{}'); } catch(e){}
+                                               if (s.youtube_channels && s.youtube_channels[idx] && s.youtube_channels[idx].videos) {
+                                                 s.youtube_channels[idx].videos = s.youtube_channels[idx].videos.filter((_:any, i:number) => i !== vIdx);
+                                                 updateCourse(selectedCourse.id, { description: JSON.stringify(s) }, false);
+                                               }
+                                             }} className="text-rose-500/50 hover:text-rose-500 transition-colors" title="Excluir">
+                                               <Trash2 className="size-3.5" />
+                                             </button>
+                                           </div>
                                          </div>
                                        </div>
                                      );
@@ -4461,6 +4720,13 @@ export function PosStudies() {
             )}
           </div>
           <div className="flex flex-wrap items-center gap-3 shrink-0">
+            <button 
+              onClick={() => setIsGlobalSearchOpen(true)}
+              className="flex items-center gap-2 px-5 py-3.5 bg-[#111113] hover:bg-[#1A1A1E] text-[#A1A1AA] hover:text-white rounded-2xl text-sm font-bold transition-all border border-white/10"
+              title="Buscar em todos os materiais"
+            >
+              <Search className="size-4" /> Buscar... <kbd className="hidden md:inline-block ml-2 text-[10px] px-1.5 py-0.5 rounded bg-white/10 border border-white/5 font-mono">Cmd+K</kbd>
+            </button>
             <button 
               onClick={() => setIsCreatingCourse(true)}
               className="flex items-center gap-2 px-8 py-3.5 bg-gradient-to-r from-cyan-600 to-blue-600 hover:from-cyan-500 hover:to-blue-500 text-white rounded-2xl text-sm font-bold transition-all shadow-[0_0_20px_rgba(6,182,212,0.2)] hover:shadow-[0_0_30px_rgba(6,182,212,0.4)] hover:-translate-y-0.5 border border-white/10"
@@ -5022,6 +5288,97 @@ export function PosStudies() {
                   </blockquote>
                 </div>
               )}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* GLOBAL SEARCH MODAL */}
+      {isGlobalSearchOpen && (
+        <div className="fixed inset-0 z-[99999] flex items-start justify-center pt-[15vh] p-4 bg-black/60 backdrop-blur-md" onClick={() => setIsGlobalSearchOpen(false)}>
+          <div className="bg-[#0A0A0C] border border-white/10 rounded-2xl w-full max-w-3xl flex flex-col shadow-2xl animate-in zoom-in-95 duration-200 overflow-hidden" onClick={e => e.stopPropagation()}>
+            <div className="relative flex items-center px-4 border-b border-white/5 bg-[#111113]">
+               <Search className="size-5 text-[#71717A] shrink-0" />
+               <input 
+                 autoFocus
+                 type="text" 
+                 value={globalSearchQuery}
+                 onChange={e => setGlobalSearchQuery(e.target.value)}
+                 placeholder="O que você quer estudar ou revisar hoje? (Cursos, Módulos, Tags, Anotações...)"
+                 className="w-full bg-transparent border-none px-4 py-5 text-lg text-white focus:outline-none focus:ring-0 placeholder-[#71717A]"
+               />
+               <button onClick={() => setIsGlobalSearchOpen(false)} className="p-1.5 bg-white/5 hover:bg-white/10 rounded-lg text-[#A1A1AA] hover:text-white transition-colors shrink-0">
+                 <kbd className="text-[10px] font-mono px-1.5">ESC</kbd>
+               </button>
+            </div>
+            
+            <div className="max-h-[60vh] overflow-y-auto custom-scrollbar bg-[#0A0A0C]/50">
+               {globalSearchQuery.trim().length > 0 && globalSearchQuery.trim().length < 2 && (
+                  <div className="p-8 text-center text-[#71717A] text-sm">Digite pelo menos 2 caracteres...</div>
+               )}
+               
+               {globalSearchQuery.trim().length >= 2 && globalSearchResults.length === 0 && (
+                  <div className="p-12 flex flex-col items-center justify-center text-[#71717A]">
+                     <Search className="size-10 mb-4 opacity-20" />
+                     <p className="text-sm font-bold">Nenhum resultado encontrado.</p>
+                     <p className="text-xs mt-1">Tente usar outros termos.</p>
+                  </div>
+               )}
+
+               {globalSearchResults.length > 0 && (
+                 <div className="p-2 space-y-1">
+                   {globalSearchResults.map((res, i) => (
+                      <div 
+                        key={`${res.type}-${res.courseId}-${res.topicId || i}`}
+                        className="group flex flex-col sm:flex-row sm:items-center justify-between gap-3 p-3 rounded-xl hover:bg-white/5 cursor-pointer transition-colors"
+                        onClick={() => {
+                          setSelectedCourseId(res.courseId);
+                          if (res.type === 'topic') {
+                            setCourseTab('Módulos');
+                            setExpandedTopicId(res.topicId);
+                          } else if (res.type === 'course') {
+                            setCourseTab('Módulos');
+                          }
+                          setIsGlobalSearchOpen(false);
+                          setGlobalSearchQuery("");
+                        }}
+                      >
+                         <div className="flex items-start gap-3 min-w-0">
+                            <div className="p-2 bg-[#1A1A1E] rounded-lg border border-white/5 shrink-0 group-hover:border-cyan-500/30 group-hover:text-cyan-400 transition-colors">
+                              {res.type === 'course' ? <BookOpen className="size-4" /> : <FileText className="size-4" />}
+                            </div>
+                            <div className="min-w-0 flex-1">
+                               <div className="flex items-center gap-2 mb-0.5">
+                                 <span className="text-sm font-bold text-white group-hover:text-cyan-400 transition-colors truncate">{res.title}</span>
+                                 <span className="text-[9px] uppercase tracking-widest font-bold px-1.5 py-0.5 rounded bg-[#1A1A1E] text-[#A1A1AA] border border-white/5 shrink-0">{res.matchType}</span>
+                               </div>
+                               <div className="text-[10px] text-[#71717A] uppercase tracking-widest font-bold truncate">
+                                  {res.type === 'topic' ? `${res.courseTitle} • ${res.subtitle}` : res.subtitle}
+                               </div>
+                               {res.snippet && (
+                                 <div className="mt-1.5 text-xs text-[#A1A1AA] italic line-clamp-2 leading-relaxed pl-2 border-l-2 border-white/10 group-hover:border-cyan-500/30">
+                                    "{res.snippet}"
+                                 </div>
+                               )}
+                            </div>
+                         </div>
+                         <div className="hidden sm:flex shrink-0">
+                            <div className="w-8 h-8 rounded-full bg-[#1A1A1E] flex items-center justify-center opacity-0 group-hover:opacity-100 transition-all border border-white/5 group-hover:border-cyan-500/30 group-hover:text-cyan-400">
+                               <ChevronRight className="size-4" />
+                            </div>
+                         </div>
+                      </div>
+                   ))}
+                 </div>
+               )}
+            </div>
+            
+            <div className="p-3 border-t border-white/5 bg-[#111113] flex items-center justify-between text-[10px] text-[#71717A] uppercase tracking-widest font-bold">
+               <div className="flex items-center gap-3">
+                 <span className="flex items-center gap-1"><kbd className="bg-[#1A1A1E] px-1 rounded border border-white/5 font-mono">↑↓</kbd> Navegar</span>
+                 <span className="flex items-center gap-1"><kbd className="bg-[#1A1A1E] px-1 rounded border border-white/5 font-mono">Enter</kbd> Selecionar</span>
+               </div>
+               <div>{globalSearchResults.length} resultados</div>
             </div>
           </div>
         </div>
