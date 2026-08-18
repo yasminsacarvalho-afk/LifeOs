@@ -161,6 +161,12 @@ export function PosStudies() {
   const [newExerciseA, setNewExerciseA] = useState("");
   const [revealedExercises, setRevealedExercises] = useState<number[]>([]);
 
+  // Area modal states
+  const [areaModalData, setAreaModalData] = useState<{ area: string, courses: any[] } | null>(null);
+  const [areaModalSearch, setAreaModalSearch] = useState("");
+  const [areaModalStatus, setAreaModalStatus] = useState("todos");
+  const [areaModalDuration, setAreaModalDuration] = useState("todos");
+
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
       if ((e.metaKey || e.ctrlKey) && e.key === 'k') {
@@ -605,6 +611,21 @@ export function PosStudies() {
     } catch (err: any) {
       console.error(err);
       toast.error(`Falha ao exportar anotações: ${err.message || "Erro desconhecido"}.`, { id: 'export-notes' });
+    }
+  };
+  const handleShareCourse = async (course: any) => {
+    try {
+      let token = course.share_token;
+      if (!token || !course.is_public) {
+        token = token || crypto.randomUUID();
+        const success = await updateCourse(course.id, { is_public: true, share_token: token }, false);
+        if (!success) throw new Error("Falha ao atualizar curso para público.");
+      }
+      const shareUrl = `${window.location.origin}/public/course/${token}`;
+      await navigator.clipboard.writeText(shareUrl);
+      toast.success("Link público copiado! Qualquer pessoa com este link terá acesso somente leitura.");
+    } catch (err: any) {
+      toast.error(err.message || "Erro ao compartilhar.");
     }
   };
 
@@ -1540,6 +1561,14 @@ export function PosStudies() {
                        <div key={area} className="space-y-4">
                           <h3 className="text-xl md:text-2xl font-black text-white px-3 border-l-4 border-cyan-500 flex items-center gap-2">
                              {area} <span className="text-xs font-bold text-[#71717A] bg-white/5 px-2 py-0.5 rounded-md border border-white/5">{areaCourses.length}</span>
+                             {areaCourses.length > 0 && (
+                               <button 
+                                 onClick={() => { setAreaModalData({ area, courses: areaCourses }); setAreaModalSearch(""); setAreaModalStatus("todos"); setAreaModalDuration("todos"); }}
+                                 className="ml-auto text-xs font-bold text-cyan-400 hover:text-cyan-300 hover:underline flex items-center gap-1"
+                               >
+                                 Ver Todos <ArrowUpRight className="size-3" />
+                               </button>
+                             )}
                           </h3>
                           <div className="flex overflow-x-auto gap-4 pb-4 hide-scrollbar snap-x snap-mandatory">
                              {areaCourses.map(course => {
@@ -1697,6 +1726,20 @@ export function PosStudies() {
                         })()}
                         <div className="absolute bottom-3 left-4 z-20 flex items-center gap-2">
                           {course.knowledge_area && <span className="px-2 py-0.5 bg-cyan-500/20 backdrop-blur-md rounded border border-cyan-500/30 text-[9px] font-bold text-cyan-400 uppercase tracking-wider">{course.knowledge_area}</span>}
+                          {(() => {
+                             try {
+                               const p = JSON.parse(course.description || '{}');
+                               if (p.price || p.purchase_type || p.purchased !== undefined) {
+                                  const formatLabel = p.purchase_type === 'mensalidade' ? '/mês' : p.purchase_type === '1_ano' ? ' (1 Ano)' : '';
+                                  return (
+                                    <span className={cn("px-2 py-0.5 backdrop-blur-md rounded border text-[9px] font-bold uppercase tracking-wider", p.purchased ? "bg-emerald-500/20 border-emerald-500/30 text-emerald-400" : "bg-amber-500/20 border-amber-500/30 text-amber-400")}>
+                                      {p.purchased ? 'Comprado' : (p.price ? `R$ ${p.price}${formatLabel}` : 'Quero Comprar')}
+                                    </span>
+                                  );
+                               }
+                             } catch(e) {}
+                             return null;
+                          })()}
                         </div>
                       </div>
                       <div className="p-4 flex-1 flex flex-col">
@@ -2134,16 +2177,25 @@ export function PosStudies() {
              <div className="flex flex-col gap-4 mt-2">
                 <div className="flex flex-col sm:flex-row justify-between items-start gap-6">
                    <h1 className="text-3xl sm:text-4xl font-black text-white leading-tight tracking-tight drop-shadow-md">{selectedCourse.title}</h1>
-                   <button 
-                      onClick={() => {
-                         if (selectedCourse.course_url) {
-                            window.dispatchEvent(new CustomEvent('global-pip', { detail: { url: selectedCourse.course_url, title: selectedCourse.title, refType: 'video' } }));
-                         }
-                      }} 
-                      className="flex items-center gap-2 px-5 py-2.5 bg-[#111113] hover:bg-cyan-500/10 text-[#A1A1AA] hover:text-cyan-400 border border-white/10 hover:border-cyan-500/30 rounded-2xl transition-all shadow-xl hover:shadow-[0_0_20px_rgba(6,182,212,0.15)] text-sm font-bold shrink-0"
-                   >
-                      <Minimize2 className="size-4" /> Minimizar (PiP)
-                   </button>
+                   <div className="flex gap-2 items-center flex-wrap justify-end">
+                     <button 
+                       onClick={() => handleShareCourse(selectedCourse)} 
+                       className="flex items-center gap-2 px-5 py-2.5 bg-[#111113] hover:bg-indigo-500/10 text-[#A1A1AA] hover:text-indigo-400 border border-white/10 hover:border-indigo-500/30 rounded-2xl transition-all shadow-xl hover:shadow-[0_0_20px_rgba(99,102,241,0.15)] text-sm font-bold shrink-0"
+                       title="Compartilhar Publicamente (Somente Leitura)"
+                     >
+                       <Share2 className="size-4" /> Compartilhar
+                     </button>
+                     <button 
+                        onClick={() => {
+                           if (selectedCourse.course_url) {
+                              window.dispatchEvent(new CustomEvent('global-pip', { detail: { url: selectedCourse.course_url, title: selectedCourse.title, refType: 'video' } }));
+                           }
+                        }} 
+                        className="flex items-center gap-2 px-5 py-2.5 bg-[#111113] hover:bg-cyan-500/10 text-[#A1A1AA] hover:text-cyan-400 border border-white/10 hover:border-cyan-500/30 rounded-2xl transition-all shadow-xl hover:shadow-[0_0_20px_rgba(6,182,212,0.15)] text-sm font-bold shrink-0"
+                     >
+                        <Minimize2 className="size-4" /> Minimizar (PiP)
+                     </button>
+                   </div>
                 </div>
                 <div className="flex items-center gap-4 border-b border-[rgba(255,255,255,0.06)] pb-6">
                    <div className="flex items-center gap-4">
@@ -2246,6 +2298,13 @@ export function PosStudies() {
                    return null;
                  })()}
                  <div className="flex items-center gap-2 relative z-20 shrink-0 mt-2 md:mt-0">
+                   <button 
+                     onClick={() => handleShareCourse(selectedCourse)} 
+                     className="p-2.5 bg-indigo-500/20 hover:bg-indigo-500/30 backdrop-blur-md rounded-xl text-indigo-400 border border-indigo-500/20 transition-colors shadow-lg"
+                     title="Compartilhar Curso Publicamente (Somente Leitura)"
+                   >
+                     <Share2 className="size-4" />
+                   </button>
                    <button 
                      onClick={() => {
                        setNewCourse(selectedCourse as any);
@@ -4754,6 +4813,130 @@ export function PosStudies() {
       </div>
       )}
 
+      {/* MODAL ÁREA VER TODOS */}
+      {areaModalData && (
+        <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
+          <div className="absolute inset-0 bg-black/80 backdrop-blur-sm" onClick={() => setAreaModalData(null)}></div>
+          <div className="relative bg-[#0A0A0C] border border-white/10 rounded-3xl w-full max-w-6xl max-h-[90vh] flex flex-col shadow-2xl animate-in zoom-in-95 duration-300 overflow-hidden">
+            <div className="flex items-center justify-between p-6 border-b border-white/10 bg-[#111113] shrink-0">
+               <h2 className="text-2xl font-black text-white flex items-center gap-3">
+                  <div className="w-10 h-10 rounded-full bg-cyan-500/20 text-cyan-400 flex items-center justify-center border border-cyan-500/30">
+                    {(areaModalData.area || "C").charAt(0)}
+                  </div>
+                  {areaModalData.area} <span className="text-sm font-bold text-[#71717A] bg-white/5 px-3 py-1 rounded-full">{areaModalData.courses.length} itens</span>
+               </h2>
+               <button onClick={() => setAreaModalData(null)} className="p-2 hover:bg-white/10 rounded-xl text-gray-400 hover:text-white transition-colors">
+                  <X className="size-6" />
+               </button>
+            </div>
+            
+            <div className="p-6 border-b border-white/5 bg-[#111113]/50 flex flex-col md:flex-row gap-4 shrink-0">
+               <div className="flex-1 relative">
+                 <Search className="absolute left-3 top-1/2 -translate-y-1/2 size-4 text-gray-500" />
+                 <input 
+                   type="text" 
+                   placeholder="Buscar por título..."
+                   value={areaModalSearch}
+                   onChange={e => setAreaModalSearch(e.target.value)}
+                   className="w-full bg-[#1A1A1E] border border-white/10 rounded-xl pl-10 pr-4 py-2.5 text-sm text-white focus:border-cyan-500 focus:outline-none transition-colors"
+                 />
+               </div>
+               <div className="flex flex-col sm:flex-row gap-4">
+                 <select 
+                   value={areaModalStatus}
+                   onChange={e => setAreaModalStatus(e.target.value)}
+                   className="bg-[#1A1A1E] border border-white/10 rounded-xl px-4 py-2.5 text-sm font-bold text-[#A1A1AA] focus:text-white focus:border-cyan-500 outline-none"
+                 >
+                   <option value="todos">Todos os Status</option>
+                   <option value="fila">Na Fila (Planejado)</option>
+                   <option value="em_andamento">Em Andamento</option>
+                   <option value="concluido">Concluídos</option>
+                 </select>
+                 <select 
+                   value={areaModalDuration}
+                   onChange={e => setAreaModalDuration(e.target.value)}
+                   className="bg-[#1A1A1E] border border-white/10 rounded-xl px-4 py-2.5 text-sm font-bold text-[#A1A1AA] focus:text-white focus:border-cyan-500 outline-none"
+                 >
+                   <option value="todos">Qualquer Duração</option>
+                   <option value="curto">Curtos ({"<"} 10h)</option>
+                   <option value="medio">Médios (10 - 40h)</option>
+                   <option value="longo">Longos ({">"} 40h)</option>
+                 </select>
+               </div>
+            </div>
+
+            <div className="flex-1 overflow-y-auto p-6 bg-[#0A0A0C] custom-scrollbar">
+               <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 xl:grid-cols-4 gap-4">
+                 {(() => {
+                    const filtered = areaModalData.courses.filter(c => {
+                       if (areaModalSearch && !c.title.toLowerCase().includes(areaModalSearch.toLowerCase())) return false;
+                       if (areaModalStatus !== "todos" && c.status !== areaModalStatus) return false;
+                       if (areaModalDuration !== "todos") {
+                          const h = c.total_hours || 0;
+                          if (areaModalDuration === "curto" && h >= 10) return false;
+                          if (areaModalDuration === "medio" && (h < 10 || h > 40)) return false;
+                          if (areaModalDuration === "longo" && h <= 40) return false;
+                       }
+                       return true;
+                    });
+                    
+                    if (filtered.length === 0) return <div className="col-span-full py-12 text-center text-gray-500 text-sm font-bold uppercase tracking-widest">Nenhum item encontrado com esses filtros.</div>;
+
+                    return filtered.map(course => {
+                       const percent = course.total_hours ? Math.min(100, Math.round((course.completed_hours / course.total_hours) * 100)) : 0;
+                       let coverUrl = null;
+                       if (course.category === 'Conteúdo' && course.course_url) {
+                          if (course.course_url.includes('youtube') || course.course_url.includes('youtu.be')) {
+                             let thumbId = course.course_url.includes('v=') ? course.course_url.split('v=')[1]?.split('&')[0] : course.course_url.split('/').pop()?.split('&')[0];
+                             if(thumbId) coverUrl = `https://img.youtube.com/vi/${thumbId}/maxresdefault.jpg`;
+                          }
+                       }
+                       if (!coverUrl) {
+                          try { const p = JSON.parse(course.description || '{}'); if (p.cover_url) coverUrl = p.cover_url; } catch(e){}
+                       }
+
+                       return (
+                         <div key={course.id} onClick={() => { setAreaModalData(null); setSelectedCourseId(course.id); }} className="bg-[#111113] border border-[rgba(255,255,255,0.04)] rounded-2xl overflow-hidden hover:border-cyan-500/50 hover:shadow-[0_0_20px_rgba(6,182,212,0.15)] transition-all group cursor-pointer shadow-lg flex flex-col h-full min-h-[220px]">
+                           <div className="h-32 w-full relative overflow-hidden bg-gradient-to-br from-[#1A1A1E] to-[#111113] flex items-center justify-center shrink-0">
+                             {coverUrl ? (
+                                <img src={coverUrl} className="absolute inset-0 w-full h-full object-cover opacity-60 group-hover:opacity-100 group-hover:scale-110 transition-all duration-700 z-0" />
+                             ) : (
+                                <Layers className="size-10 text-cyan-500/20 group-hover:scale-110 transition-transform duration-500 z-0" />
+                             )}
+                             <div className="absolute top-2 left-2 flex gap-1 z-20">
+                                <span className="px-2 py-0.5 bg-black/60 backdrop-blur-md rounded border border-white/10 text-[9px] font-bold text-white uppercase tracking-wider">{course.category}</span>
+                             </div>
+                           </div>
+                           <div className="p-4 flex-1 flex flex-col">
+                             <h4 className="font-bold text-sm text-white leading-tight mb-2 group-hover:text-cyan-400 transition-colors line-clamp-2">{course.title}</h4>
+                             <div className="mt-auto pt-4 border-t border-white/5">
+                               {course.category !== 'Conteúdo' ? (
+                                 <>
+                                   <div className="flex justify-between items-end mb-1.5">
+                                     <div className="text-[10px] font-bold text-[#71717A] uppercase tracking-widest">{course.completed_hours}h / {course.total_hours}h</div>
+                                     <div className="text-[10px] font-bold text-cyan-400">{percent}%</div>
+                                   </div>
+                                   <div className="h-1 w-full bg-[#1A1A1E] rounded-full overflow-hidden">
+                                     <div className="h-full bg-cyan-500 rounded-full" style={{ width: `${percent}%` }}></div>
+                                   </div>
+                                 </>
+                               ) : (
+                                 <div className="flex items-center gap-2 text-cyan-400 text-[10px] font-bold uppercase tracking-widest">
+                                   <MonitorPlay className="size-3" /> Assistir
+                                 </div>
+                               )}
+                             </div>
+                           </div>
+                         </div>
+                       );
+                    });
+                 })()}
+               </div>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* MODAL CRIAÇÃO REAL */}
       {isCreatingCourse && (
         <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-in fade-in">
@@ -4862,6 +5045,61 @@ export function PosStudies() {
                   className="w-full bg-[#1A1A1E] border border-[rgba(255,255,255,0.06)] rounded-xl px-4 py-3 text-sm text-white focus:border-cyan-500 focus:outline-none transition-colors"
                   placeholder="Ex: 40"
                 />
+              </div>
+
+              <div className="md:col-span-2 border-t border-[rgba(255,255,255,0.06)] pt-6 mt-2 mb-2">
+                <h4 className="text-sm font-bold text-white mb-4 flex items-center gap-2"><div className="w-2 h-2 rounded-full bg-amber-500"></div> Informações de Compra (Wishlist)</h4>
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                  <div>
+                    <label className="text-[10px] uppercase tracking-widest text-[#71717A] font-bold mb-2 block">Situação</label>
+                    <select
+                      value={(() => { try { const p = JSON.parse(newCourse.description || '{}'); return p.purchased ? 'comprado' : 'quero_comprar'; } catch(e){ return 'quero_comprar'; } })()}
+                      onChange={e => {
+                        let s: any = {};
+                        try { s = JSON.parse(newCourse.description || '{}'); } catch(e){}
+                        s.purchased = e.target.value === 'comprado';
+                        setNewCourse({...newCourse, description: JSON.stringify(s)});
+                      }}
+                      className="w-full bg-[#1A1A1E] border border-[rgba(255,255,255,0.06)] rounded-xl px-4 py-3 text-sm text-white focus:border-amber-500 focus:outline-none transition-colors"
+                    >
+                      <option value="quero_comprar">Quero Comprar</option>
+                      <option value="comprado">Já Comprei</option>
+                    </select>
+                  </div>
+                  <div>
+                    <label className="text-[10px] uppercase tracking-widest text-[#71717A] font-bold mb-2 block">Preço (R$)</label>
+                    <input 
+                      type="number" step="0.01" min="0" 
+                      value={(() => { try { const p = JSON.parse(newCourse.description || '{}'); return p.price || ''; } catch(e){ return ''; } })()}
+                      onChange={e => {
+                        let s: any = {};
+                        try { s = JSON.parse(newCourse.description || '{}'); } catch(e){}
+                        s.price = e.target.value ? Number(e.target.value) : undefined;
+                        setNewCourse({...newCourse, description: JSON.stringify(s)});
+                      }}
+                      className="w-full bg-[#1A1A1E] border border-[rgba(255,255,255,0.06)] rounded-xl px-4 py-3 text-sm text-white focus:border-amber-500 focus:outline-none transition-colors"
+                      placeholder="Ex: 497.00"
+                    />
+                  </div>
+                  <div>
+                    <label className="text-[10px] uppercase tracking-widest text-[#71717A] font-bold mb-2 block">Formato de Acesso</label>
+                    <select
+                      value={(() => { try { const p = JSON.parse(newCourse.description || '{}'); return p.purchase_type || 'vitalicio'; } catch(e){ return 'vitalicio'; } })()}
+                      onChange={e => {
+                        let s: any = {};
+                        try { s = JSON.parse(newCourse.description || '{}'); } catch(e){}
+                        s.purchase_type = e.target.value;
+                        setNewCourse({...newCourse, description: JSON.stringify(s)});
+                      }}
+                      className="w-full bg-[#1A1A1E] border border-[rgba(255,255,255,0.06)] rounded-xl px-4 py-3 text-sm text-white focus:border-amber-500 focus:outline-none transition-colors"
+                    >
+                      <option value="vitalicio">Vitalício</option>
+                      <option value="1_ano">Acesso por 1 Ano</option>
+                      <option value="mensalidade">Mensalidade (Assinatura)</option>
+                      <option value="gratuito">Gratuito</option>
+                    </select>
+                  </div>
+                </div>
               </div>
 
               <div className="md:col-span-2">
