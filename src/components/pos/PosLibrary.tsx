@@ -17,7 +17,8 @@ import { usePosLibrary } from "@/hooks/use-pos-library";
 import { 
   Plus, Trash2, BookOpen, Star, Play, Pause, Bookmark, Brain, Sparkles, 
   TrendingUp, Clock, Calendar as CalendarIcon, AlignLeft, Target, CheckCircle2, Edit2, Edit3, RotateCcw, X, ExternalLink, ChevronLeft, ChevronRight, FileText, Loader2, BarChart2,
-  Activity, Sun, MonitorSmartphone, CalendarDays, Trophy, Cloud, AppWindow, Download, Upload, Headphones, AlertTriangle, CalendarClock, ShoppingCart, Youtube, Camera, Users, Book, Globe, Search
+  Activity, Sun, MonitorSmartphone, CalendarDays, Trophy, Cloud, AppWindow, Download, Upload, Headphones, AlertTriangle, CalendarClock, ShoppingCart, Youtube, Camera, Users, Book, Globe, Search,
+  List as ListIcon, Tag, BookMarked, ChevronDown, ChevronUp
 } from "lucide-react";
 import { format, isToday, parseISO, differenceInDays } from "date-fns";
 import { ptBR } from "date-fns/locale";
@@ -213,6 +214,9 @@ export function PosLibrary() {
   const [driveSearch, setDriveSearch] = useState("");
   const [driveVisibleCount, setDriveVisibleCount] = useState(10);
   const [isScanning, setIsScanning] = useState(false);
+  const [sessionTagInput, setSessionTagInput] = useState("");
+  const [webSearchQuery, setWebSearchQuery] = useState("");
+  const [dictionaryQuery, setDictionaryQuery] = useState("");
 
   const handleScanBook = async (file: File) => {
     setIsScanning(true);
@@ -632,11 +636,8 @@ export function PosLibrary() {
          console.warn("GPS permission denied or unavailable");
       }, { timeout: 10000 });
     }
-
-    if (book.resource_link) {
-      window.open(book.resource_link, '_blank');
-    }
   };
+
 
   const cancelReadingSession = (id: string) => {
     saveActiveSessions(activeSessions.filter(s => s.id !== id));
@@ -1811,103 +1812,118 @@ Link original: ${book.buy_link || ''}`;
         <PosLibraryAchievements books={books} sessions={sessions} />
       </div>
 
-      {/* Tabela de Sessões Ativas Seguras -> MODAL FIXO TELA CHEIA */}
-      {activeSessions.length > 0 && (
-         <div className="fixed inset-0 z-[999] flex flex-col items-center justify-start bg-black/95 backdrop-blur-md p-4 sm:p-8 overflow-y-auto pt-16 pb-24 animate-in fade-in zoom-in-95 duration-500">
-            <h3 className="text-2xl md:text-4xl font-black text-white mb-8 flex items-center gap-3">
-              <span className="flex size-4 rounded-full bg-rose-500 animate-pulse"></span>
-              Gravando Sessão
-            </h3>
-            
-            <div className="w-full max-w-3xl space-y-6 pb-20">
-               {activeSessions.map(session => {
-                  const book = books.find(b => b.id === session.bookId);
-                  const progressUnit = book?.progress_unit || 'páginas';
-                  
-                  return (
-                    <div key={session.id} className="bg-[#111113] border border-rose-500/50 rounded-3xl p-6 md:p-8 shadow-[0_0_50px_rgba(225,29,72,0.15)] flex flex-col gap-8 ">
-                       {/* Efeito de brilho no fundo */}
-                       <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[200%] h-32 bg-rose-500/10 blur-[50px] pointer-events-none rounded-full"></div>
+      {/* Workspace de Sessão de Leitura Imersiva */}
+      {activeSessions.length > 0 && (() => {
+         const session = activeSessions[0];
+         const book = books.find(b => b.id === session.bookId);
+         const progressUnit = book?.progress_unit || 'páginas';
+         
+         return createPortal(
+          <div className="fixed inset-0 z-[999] flex items-center justify-center bg-black/95 backdrop-blur-xl animate-in fade-in duration-300 sm:p-4">
+            <div className="w-full h-[100dvh] sm:h-[95vh] sm:max-h-[1000px] sm:w-[98vw] max-w-[1600px] flex flex-col bg-[#0A0A0C] sm:rounded-[32px] overflow-hidden shadow-2xl relative border border-[rgba(255,255,255,0.04)]">
+              
+              {/* Header */}
+              <div className="flex-none h-16 md:h-20 flex items-center justify-between px-4 md:px-8 border-b border-[rgba(255,255,255,0.04)] bg-[#0A0A0C] relative z-20">
+                 <div className="flex items-center gap-4 min-w-0">
+                    <button onClick={() => cancelReadingSession(session.id)} className="p-2 -ml-2 text-[#71717A] hover:text-white hover:bg-white/5 rounded-full transition-colors flex-shrink-0" title="Cancelar e fechar">
+                      <X className="size-5 md:size-6" />
+                    </button>
+                    <div className="min-w-0">
+                      <h2 className="text-white font-bold text-lg md:text-xl truncate flex items-center gap-3">
+                         <span className="flex size-2.5 rounded-full bg-rose-500 animate-pulse shrink-0"></span>
+                         {session.bookTitle}
+                      </h2>
+                      <p className="text-[10px] md:text-xs text-[#A1A1AA] uppercase tracking-widest font-bold">Workspace de Leitura</p>
+                    </div>
+                 </div>
+                 
+                 <div className="flex items-center gap-3 md:gap-4 shrink-0">
+                    <div className="flex flex-col items-end hidden sm:flex">
+                       <span className="text-rose-500 font-bold text-xl md:text-2xl tracking-widest font-mono leading-none">
+                         <LiveTimer session={session} />
+                       </span>
+                       <span className="text-[9px] uppercase tracking-widest text-[#71717A] font-bold">Decorridos</span>
+                    </div>
+                    <button 
+                      onClick={() => {
+                        if (session.status === 'paused') {
+                          saveActiveSessions(activeSessions.map(s => s.id === session.id ? { ...s, status: 'active', startTime: Date.now() } : s));
+                        } else {
+                          const activeMs = Date.now() - session.startTime;
+                          saveActiveSessions(activeSessions.map(s => s.id === session.id ? { ...s, status: 'paused', accumulatedTime: (s.accumulatedTime || 0) + activeMs } : s));
+                        }
+                      }}
+                      className={cn("size-10 md:size-12 rounded-full flex items-center justify-center transition-all shadow-lg", session.status === 'paused' ? "bg-emerald-500 text-white hover:bg-emerald-400" : "bg-amber-500/20 text-amber-500 hover:bg-amber-500/30 border border-amber-500/20")}
+                    >
+                      {session.status === 'paused' ? <Play className="size-5 md:size-6" fill="currentColor" /> : <Pause className="size-5 md:size-6" fill="currentColor" />}
+                    </button>
+                    <button onClick={() => handleFinishSession(session)} className="px-4 py-2 md:px-6 md:py-3 rounded-full bg-rose-600 text-white hover:bg-rose-500 text-xs md:text-sm font-bold shadow-[0_0_20px_rgba(225,29,72,0.4)] transition-all flex items-center gap-2 group">
+                      <CheckCircle2 className="size-4 md:size-5 group-hover:scale-110 transition-transform" /> <span className="hidden sm:inline">Concluir Sessão</span>
+                    </button>
+                 </div>
+              </div>
 
-                       <div className="flex flex-col md:flex-row md:items-center justify-between gap-6 relative z-10">
-                         <div className="flex-1">
-                            <h4 className="text-white font-black text-2xl md:text-3xl mb-2 line-clamp-2">{session.bookTitle}</h4>
-                            <p className="text-sm md:text-base text-[#A1A1AA] flex flex-wrap items-center gap-2">
-                               <Clock className={cn("size-5 shrink-0", session.status === 'paused' ? "text-amber-500" : "text-rose-500")} /> 
-                               <span className="font-bold text-white text-xl md:text-2xl tracking-widest font-mono">
-                                 <LiveTimer session={session} />
-                               </span> <span className="shrink-0">{session.status === 'paused' ? 'pausado' : 'decorridos'}</span>
-                               <span className="text-[#71717A] md:ml-2 text-xs md:text-sm shrink-0">(Iniciado às {format(new Date(session.startTime), 'HH:mm')})</span>
-                            </p>
-                            <p className="text-xs text-indigo-400 font-bold uppercase tracking-widest mt-3 flex items-center gap-2 bg-indigo-500/10 w-fit px-3 py-1.5 rounded-lg border border-indigo-500/20">
-                               <BookOpen className="size-4" /> Medida de Leitura: {progressUnit}
-                            </p>
-                         </div>
-                         
-                         <div className="flex flex-col gap-3 md:w-48 shrink-0">
-                            <button onClick={() => handleFinishSession(session)} className="w-full py-4 rounded-xl bg-rose-600 text-white hover:bg-rose-500 text-sm font-bold shadow-[0_0_20px_rgba(225,29,72,0.4)] transition-all flex items-center justify-center gap-2 group">
-                               <CheckCircle2 className="size-5 group-hover:scale-110 transition-transform" /> Concluir
-                            </button>
-                            <button 
-                              onClick={() => {
-                                if (session.status === 'paused') {
-                                  saveActiveSessions(activeSessions.map(s => s.id === session.id ? { ...s, status: 'active', startTime: Date.now() } : s));
-                                } else {
-                                  const activeMs = Date.now() - session.startTime;
-                                  saveActiveSessions(activeSessions.map(s => s.id === session.id ? { ...s, status: 'paused', accumulatedTime: (s.accumulatedTime || 0) + activeMs } : s));
-                                }
-                              }}
-                              className="w-full py-3 rounded-xl bg-amber-500/20 text-amber-500 hover:bg-amber-500/30 text-xs uppercase tracking-widest font-bold border border-amber-500/20 transition-colors flex items-center justify-center gap-2"
-                            >
-                              {session.status === 'paused' ? <><Play className="size-4" /> Retomar Sessão</> : <><Pause className="size-4" /> Pausar Sessão</>}
-                            </button>
-                            <button onClick={() => cancelReadingSession(session.id)} className="w-full py-2 rounded-xl bg-transparent text-[#71717A] hover:text-white hover:bg-white/5 text-xs uppercase tracking-widest font-bold transition-colors">
-                               Cancelar Sessão
-                            </button>
-                         </div>
-                       </div>
+              {/* Corpo */}
+              <div className="flex-1 flex flex-col lg:flex-row min-h-0 relative">
+                 
+                 {/* Sidebar Esquerda (Metadados e Ferramentas) - 35% */}
+                 <div className="w-full lg:w-[35%] flex flex-col min-h-0 lg:border-r border-b lg:border-b-0 border-[rgba(255,255,255,0.04)] bg-[#0A0A0C] z-10 overflow-y-auto custom-scrollbar shrink-0 max-h-[40vh] lg:max-h-full">
+                    <div className="p-5 md:p-8 space-y-6 md:space-y-8">
                        
-                       <div className="border-t border-[rgba(255,255,255,0.06)] pt-6  z-10 space-y-5">
-                          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                       {/* Capa e Progresso */}
+                       <div className="flex gap-4">
+                         <div className="w-16 h-24 md:w-20 md:h-28 bg-black/50 rounded-lg flex-shrink-0 border border-[rgba(255,255,255,0.05)] overflow-hidden">
+                           {book?.cover_url ? <img src={book.cover_url} alt="Cover" className="w-full h-full object-cover" /> : <BookOpen className="size-8 text-[#3F3F46] m-auto mt-6 md:mt-10" />}
+                         </div>
+                         <div className="flex flex-col justify-center w-full">
+                           <h3 className="text-white text-sm md:text-base font-bold mb-2">Progresso da Sessão</h3>
+                           <div className="space-y-3 md:space-y-4">
                              <div>
-                               <label className="text-[10px] uppercase tracking-widest text-[#71717A] font-bold mb-2 flex items-center gap-2"><BookOpen className="size-3 text-rose-500" /> Ponto Atual ({progressUnit})</label>
+                               <label className="text-[10px] uppercase tracking-widest text-[#71717A] font-bold mb-1.5 flex items-center gap-1.5"><BookOpen className="size-3 text-rose-500" /> Parou em qual {progressUnit}?</label>
                                <input 
                                  type="text" 
                                  value={session.chapters_read || ""}
                                  onChange={(e) => saveActiveSessions(activeSessions.map(s => s.id === session.id ? { ...s, chapters_read: e.target.value } : s))}
-                                 placeholder={`Onde você parou? (Ex: Cap. 4 ou 250 ${progressUnit})`}
-                                 className="w-full bg-[#1A1A1E] border border-[rgba(255,255,255,0.06)] rounded-xl px-4 py-3 text-sm text-white focus:border-rose-500 focus:outline-none transition-colors"
+                                 placeholder="Ex: Cap. 4 ou 250"
+                                 className="w-full bg-[#111113] border border-[rgba(255,255,255,0.06)] rounded-lg px-3 py-2 text-sm text-white focus:border-rose-500 focus:outline-none"
                                />
                              </div>
                              <div>
-                               <label className="text-[10px] uppercase tracking-widest text-[#71717A] font-bold mb-2 flex items-center gap-2"><BookOpen className="size-3 text-emerald-500" /> Quantidade Lida (Opcional)</label>
+                               <label className="text-[10px] uppercase tracking-widest text-[#71717A] font-bold mb-1.5 flex items-center gap-1.5"><TrendingUp className="size-3 text-emerald-500" /> Quantidade lida (Opcional)</label>
                                <input 
                                  type="number" min="1" 
                                  value={session.pages_read || ""}
                                  onChange={(e) => saveActiveSessions(activeSessions.map(s => s.id === session.id ? { ...s, pages_read: e.target.value ? Number(e.target.value) : "" } : s))}
-                                 placeholder={`Quantos ${progressUnit} foram lidos?`}
-                                 className="w-full bg-[#1A1A1E] border border-[rgba(255,255,255,0.06)] rounded-xl px-4 py-3 text-sm text-white focus:border-rose-500 focus:outline-none transition-colors"
+                                 placeholder={`Quantos ${progressUnit}?`}
+                                 className="w-full bg-[#111113] border border-[rgba(255,255,255,0.06)] rounded-lg px-3 py-2 text-sm text-white focus:border-rose-500 focus:outline-none"
                                />
                              </div>
-                          </div>
+                           </div>
+                         </div>
+                       </div>
+                       
+                       <div className="h-px w-full bg-[rgba(255,255,255,0.04)]"></div>
 
-                          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                             <div>
-                               <label className="text-[10px] uppercase tracking-widest text-[#71717A] font-bold mb-2 block">Onde Li?</label>
+                       {/* Metadados de Contexto */}
+                       <div>
+                         <h3 className="text-white text-sm md:text-base font-bold mb-4 flex items-center gap-2"><Target className="size-4 text-indigo-400" /> Contexto da Leitura</h3>
+                         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                            <div>
+                               <label className="text-[10px] uppercase tracking-widest text-[#71717A] font-bold mb-1.5 block">Onde Li?</label>
                                <input 
                                  type="text" 
                                  value={session.location || ""}
                                  placeholder="Automático (GPS) ou digite..."
                                  onChange={(e) => saveActiveSessions(activeSessions.map(s => s.id === session.id ? { ...s, location: e.target.value } : s))}
-                                 className="w-full bg-[#1A1A1E] border border-[rgba(255,255,255,0.06)] rounded-xl px-4 py-3 text-sm text-white focus:border-rose-500 focus:outline-none transition-colors"
+                                 className="w-full bg-[#111113] border border-[rgba(255,255,255,0.06)] rounded-lg px-3 py-2 text-sm text-white focus:border-rose-500 focus:outline-none"
                                />
                              </div>
                              <div>
-                               <label className="text-[10px] uppercase tracking-widest text-[#71717A] font-bold mb-2 block">Como Li?</label>
+                               <label className="text-[10px] uppercase tracking-widest text-[#71717A] font-bold mb-1.5 block">Como Li?</label>
                                <select 
                                  value={session.device || "Livro Físico"}
                                  onChange={(e) => saveActiveSessions(activeSessions.map(s => s.id === session.id ? { ...s, device: e.target.value } : s))}
-                                 className="w-full bg-[#1A1A1E] border border-[rgba(255,255,255,0.06)] rounded-xl px-4 py-3 text-sm text-white focus:border-rose-500 focus:outline-none transition-colors"
+                                 className="w-full bg-[#111113] border border-[rgba(255,255,255,0.06)] rounded-lg px-3 py-2 text-sm text-white focus:border-rose-500 focus:outline-none"
                                >
                                  <option value="Livro Físico">Físico</option>
                                  <option value="Kindle">Kindle</option>
@@ -1918,11 +1934,11 @@ Link original: ${book.buy_link || ''}`;
                                </select>
                              </div>
                              <div>
-                               <label className="text-[10px] uppercase tracking-widest text-[#71717A] font-bold mb-2 block">Nível</label>
+                               <label className="text-[10px] uppercase tracking-widest text-[#71717A] font-bold mb-1.5 block">Nível</label>
                                <select 
                                  value={session.difficulty || "Fácil"}
                                  onChange={(e) => saveActiveSessions(activeSessions.map(s => s.id === session.id ? { ...s, difficulty: e.target.value } : s))}
-                                 className="w-full bg-[#1A1A1E] border border-[rgba(255,255,255,0.06)] rounded-xl px-4 py-3 text-sm text-white focus:border-rose-500 focus:outline-none transition-colors"
+                                 className="w-full bg-[#111113] border border-[rgba(255,255,255,0.06)] rounded-lg px-3 py-2 text-sm text-white focus:border-rose-500 focus:outline-none"
                                >
                                  <option value="Muito Fácil">Muito Fácil</option>
                                  <option value="Fácil">Fácil</option>
@@ -1932,91 +1948,281 @@ Link original: ${book.buy_link || ''}`;
                                </select>
                              </div>
                              <div>
-                               <label className="text-[10px] uppercase tracking-widest text-[#71717A] font-bold mb-2 block">Foco (1-10)</label>
+                               <label className="text-[10px] uppercase tracking-widest text-[#71717A] font-bold mb-1.5 block">Foco (1-10)</label>
                                <input 
                                  type="number" min="1" max="10" 
                                  value={session.concentration_level || 8}
                                  onChange={(e) => saveActiveSessions(activeSessions.map(s => s.id === session.id ? { ...s, concentration_level: Number(e.target.value) } : s))}
-                                 className="w-full bg-[#1A1A1E] border border-[rgba(255,255,255,0.06)] rounded-xl px-4 py-3 text-sm text-white focus:border-rose-500 focus:outline-none transition-colors"
+                                 className="w-full bg-[#111113] border border-[rgba(255,255,255,0.06)] rounded-lg px-3 py-2 text-sm text-white focus:border-rose-500 focus:outline-none"
                                />
                              </div>
-                          </div>
+                         </div>
+                       </div>
+                       
+                       <div className="h-px w-full bg-[rgba(255,255,255,0.04)]"></div>
 
-                          <div>
-                            <div className="flex items-center justify-between mb-2">
-                              <label className="text-[10px] uppercase tracking-widest text-[#71717A] font-bold flex items-center gap-2"><Edit2 className="size-3 text-purple-500" /> Anotações / Resumo (Salvas Automático)</label>
-                              <div className="flex items-center gap-2">
+                       {/* Recursos / Ferramentas */}
+                       <div>
+                         <h3 className="text-white text-sm md:text-base font-bold mb-4 flex items-center gap-2"><ListIcon className="size-4 text-cyan-400" /> Recursos da Sessão</h3>
+                         <div className="space-y-4">
+                            <details open className="group [&_summary::-webkit-details-marker]:hidden">
+                              <summary className="text-[11px] text-[#A1A1AA] hover:text-white uppercase tracking-widest font-bold mb-3 flex items-center justify-between cursor-pointer list-none transition-colors group/summary bg-white/5 hover:bg-white/10 px-3 py-2.5 rounded-xl border border-[rgba(255,255,255,0.04)] shadow-sm">
+                                <div className="flex items-center gap-2">
+                                  <div className="p-1 rounded-md bg-cyan-500/20 text-cyan-400 group-hover/summary:scale-110 transition-transform">
+                                    <ListIcon className="size-3.5" />
+                                  </div>
+                                  Glossário de Anotações
+                                </div>
+                                <ChevronDown className="size-3.5 transition-transform group-open:rotate-180 text-[#71717A] group-hover/summary:text-white" />
+                              </summary>
+                              <div className="flex flex-col gap-1 max-h-56 overflow-y-auto custom-scrollbar pr-1 bg-[#111113] p-2 rounded-xl border border-[rgba(255,255,255,0.06)] shadow-inner">
+                                {(() => {
+                                  if (typeof window === 'undefined' || !session.notes) return <span className="text-[10px] text-[#71717A] italic text-center py-2">Nenhum título criado.</span>;
+                                  const doc = new DOMParser().parseFromString(session.notes, 'text/html');
+                                  const headings = Array.from(doc.querySelectorAll('h1, h2, h3, h4'));
+                                  const items = headings.map((h, i) => ({
+                                    title: h.textContent || '',
+                                    level: parseInt(h.tagName.replace('H', '')),
+                                    index: i
+                                  })).filter(h => h.title.replace(/\u200B/g, '').replace(/[\u00A0\u1680\u180e\u2000-\u2009\u200a\u200b\u202f\u205f\u3000]/g, '').trim() !== '');
+
+                                  if (items.length === 0) return <span className="text-[10px] text-[#71717A] italic text-center py-2">Nenhum título criado nas anotações.</span>;
+                                  
+                                  return items.map((item, idx) => (
+                                    <button
+                                      key={idx}
+                                      onClick={() => {
+                                        const editorEl = document.querySelector('.ProseMirror');
+                                        if (editorEl) {
+                                          const domHeadings = Array.from(editorEl.querySelectorAll('h1, h2, h3, h4'));
+                                          const target = domHeadings[item.index] as HTMLElement;
+                                          if (target) {
+                                            target.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                                            target.style.transition = 'all 0.5s ease';
+                                            const oldBg = target.style.backgroundColor;
+                                            target.style.backgroundColor = 'rgba(6, 182, 212, 0.2)';
+                                            target.style.borderRadius = '4px';
+                                            target.style.padding = '0 4px';
+                                            setTimeout(() => {
+                                              target.style.backgroundColor = oldBg;
+                                            }, 1500);
+                                          }
+                                        }
+                                      }}
+                                      className={cn("text-left w-full py-1 rounded-lg transition-colors group/item overflow-hidden block shrink-0", 
+                                        item.level === 4 ? "my-1" : "px-2 hover:bg-white/5"
+                                      )}
+                                      title={item.title}
+                                    >
+                                      {item.level === 4 ? (
+                                        <div className="flex items-center gap-2 px-2 py-1.5 bg-gradient-to-r from-cyan-500/10 to-cyan-500/5 border-l-2 border-cyan-500 rounded-r-lg group-hover/item:from-cyan-500/20 transition-all w-full shrink-0 min-h-[28px]">
+                                          <BookMarked className="w-4 h-4 text-cyan-400 shrink-0" />
+                                          <span className="text-xs font-bold text-white truncate flex-1 min-w-0">{item.title}</span>
+                                        </div>
+                                      ) : (
+                                        <div className={cn("truncate text-xs py-0.5 w-full",
+                                          item.level === 1 ? "font-bold text-white" : 
+                                          item.level === 2 ? "text-[#E4E4E7] pl-2 font-medium" : 
+                                          "text-[#A1A1AA] pl-4 text-[11px]"
+                                        )}>
+                                          {item.title}
+                                        </div>
+                                      )}
+                                    </button>
+                                  ));
+                                })()}
+                              </div>
+                            </details>
+
+                            <details open className="group [&_summary::-webkit-details-marker]:hidden">
+                              <summary className="text-[11px] text-[#A1A1AA] hover:text-white uppercase tracking-widest font-bold mb-3 flex items-center justify-between cursor-pointer list-none transition-colors group/summary bg-white/5 hover:bg-white/10 px-3 py-2.5 rounded-xl border border-[rgba(255,255,255,0.04)] shadow-sm">
+                                <div className="flex items-center gap-2">
+                                  <div className="p-1 rounded-md bg-cyan-500/20 text-cyan-400 group-hover/summary:scale-110 transition-transform">
+                                    <Tag className="size-3.5" />
+                                  </div>
+                                  Tags da Sessão
+                                </div>
+                                <ChevronDown className="size-3.5 transition-transform group-open:rotate-180 text-[#71717A] group-hover/summary:text-white" />
+                              </summary>
+                              <div className="w-full bg-[#111113] border border-[rgba(255,255,255,0.06)] rounded-xl p-3 min-h-[56px] flex flex-wrap items-center gap-2 focus-within:border-cyan-500/40 focus-within:shadow-[0_0_15px_rgba(6,182,212,0.1)] transition-all shadow-inner">
+                                {(session.tags || "").split(',').map((t: string) => t.trim()).filter(Boolean).map((tag: string, idx: number) => (
+                                  <span key={idx} className="bg-cyan-500/10 text-cyan-400 px-2 py-1 rounded-md text-xs font-bold flex items-center gap-1.5 border border-cyan-500/20">
+                                    {tag}
+                                    <button 
+                                      onClick={() => {
+                                        const newTags = (session.tags || "").split(',').map((t: string) => t.trim()).filter(Boolean).filter((_: any, i: number) => i !== idx).join(', ');
+                                        saveActiveSessions(activeSessions.map(s => s.id === session.id ? { ...s, tags: newTags } : s));
+                                      }}
+                                      className="hover:text-white transition-colors"
+                                    >
+                                      <X className="size-3" />
+                                    </button>
+                                  </span>
+                                ))}
                                 <input 
-                                  type="file" 
-                                  accept="image/*" 
-                                  capture="environment"
-                                  id={`camera-${session.id}`}
-                                  className="hidden"
-                                  onChange={async (e) => {
-                                    const file = e.target.files?.[0];
-                                    if (!file) return;
-                                    
-                                    try {
-                                      toast.loading("Analisando imagem...", { id: `upload-${session.id}` });
-                                      
-                                      const maxSizeBytes = 5 * 1024 * 1024; // 5MB
-                                      if (file.size > maxSizeBytes) {
-                                        toast.error(`A imagem é muito pesada! O limite é de 5MB.`, { id: `upload-${session.id}` });
-                                        return;
+                                  placeholder={session.tags ? "Adicionar..." : "Digite a tag e aperte Enter..."}
+                                  value={sessionTagInput}
+                                  onChange={(e) => setSessionTagInput(e.target.value)}
+                                  onKeyDown={(e) => {
+                                    if (e.key === 'Enter' && sessionTagInput.trim()) {
+                                      e.preventDefault();
+                                      const currentTags = (session.tags || "").split(',').map((t: string) => t.trim()).filter(Boolean);
+                                      if (!currentTags.includes(sessionTagInput.trim())) {
+                                        const newTags = [...currentTags, sessionTagInput.trim()].join(', ');
+                                        saveActiveSessions(activeSessions.map(s => s.id === session.id ? { ...s, tags: newTags } : s));
+                                        setSessionTagInput("");
                                       }
-
-                                      const arrayBuffer = await file.arrayBuffer();
-                                      const hashBuffer = await crypto.subtle.digest('SHA-256', arrayBuffer);
-                                      const hashArray = Array.from(new Uint8Array(hashBuffer));
-                                      const hashHex = hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
-                                      
-                                      const fileExt = file.name.split('.').pop() || 'jpg';
-                                      const fileName = `session_${hashHex}.${fileExt}`;
-                                      const filePath = `anotacoes/${fileName}`;
-                                      
-                                      toast.loading("Enviando imagem...", { id: `upload-${session.id}` });
-                                      const { error } = await supabase.storage.from('livros').upload(filePath, file);
-                                      
-                                      if (error && !error.message.toLowerCase().includes('already exists') && !error.message.toLowerCase().includes('duplicate')) {
-                                        throw error;
-                                      }
-                                      
-                                      const { data } = supabase.storage.from('livros').getPublicUrl(filePath);
-                                      
-                                      const imgHtml = `<p><img src="${data.publicUrl}" alt="Trecho do Livro" style="max-width: 100%; border-radius: 8px; margin: 10px 0; border: 1px solid rgba(255,255,255,0.1);" /></p><p><br></p>`;
-                                      
-                                      saveActiveSessions(activeSessions.map(s => s.id === session.id ? { ...s, notes: (s.notes || "") + imgHtml } : s));
-                                      
-                                      toast.success("Imagem anexada à anotação!", { id: `upload-${session.id}` });
-                                    } catch (err: any) {
-                                      toast.error("Erro ao enviar imagem: " + err.message, { id: `upload-${session.id}` });
                                     }
                                   }}
-                                />
-                                <label htmlFor={`camera-${session.id}`} className="cursor-pointer h-6 w-6 flex items-center justify-center rounded-md bg-[#1A1A1E] hover:bg-emerald-500/20 text-emerald-400 border border-emerald-500/20 transition-colors" title="Tirar foto ou anexar imagem">
-                                  <Camera className="size-3.5" />
-                                </label>
-                                <VoiceRecordButton 
-                                  onTranscript={(t) => saveActiveSessions(activeSessions.map(s => s.id === session.id ? { ...s, notes: (s.notes || "") + `<p>${t}</p>` } : s))} 
-                                  className="h-6 w-6 !p-1 bg-[#1A1A1E] hover:bg-purple-500/20 text-purple-400 border-purple-500/20"
-                                  placeholder="Ditar anotação"
+                                  className="flex-1 min-w-[120px] bg-transparent border-none focus:outline-none focus:ring-0 text-sm text-white p-1 placeholder:text-zinc-600"
                                 />
                               </div>
-                            </div>
-                            <div className="rounded-xl border border-[rgba(255,255,255,0.06)] focus-within:border-purple-500/50 transition-colors bg-[#1A1A1E]">
-                              <RichTextEditor 
-                                content={session.notes || ""}
-                                onChange={(content) => saveActiveSessions(activeSessions.map(s => s.id === session.id ? { ...s, notes: content } : s))}
-                              />
-                            </div>
-                          </div>
+                            </details>
+
+                            {/* NOVA SESSÃO DE PESQUISA */}
+                            <details open className="group [&_summary::-webkit-details-marker]:hidden">
+                              <summary className="text-[11px] text-[#A1A1AA] hover:text-white uppercase tracking-widest font-bold mb-3 flex items-center justify-between cursor-pointer list-none transition-colors group/summary bg-white/5 hover:bg-white/10 px-3 py-2.5 rounded-xl border border-[rgba(255,255,255,0.04)] shadow-sm">
+                                <div className="flex items-center gap-2">
+                                  <div className="p-1 rounded-md bg-cyan-500/20 text-cyan-400 group-hover/summary:scale-110 transition-transform">
+                                    <Search className="size-3.5" />
+                                  </div>
+                                  Pesquisa Rápida
+                                </div>
+                                <ChevronDown className="size-3.5 transition-transform group-open:rotate-180 text-[#71717A] group-hover/summary:text-white" />
+                              </summary>
+                              <div className="flex flex-col gap-2">
+                                <div className="flex bg-[#111113] border border-[rgba(255,255,255,0.06)] rounded-xl overflow-hidden focus-within:border-emerald-500/50 transition-colors shadow-inner">
+                                  <div className="flex-1 px-3 flex items-center gap-2">
+                                    <Search className="size-3 text-[#71717A]" />
+                                    <input 
+                                      type="text" placeholder="Pesquisar na Web..."
+                                      value={webSearchQuery}
+                                      onChange={e => setWebSearchQuery(e.target.value)}
+                                      onKeyDown={e => {
+                                        if(e.key === 'Enter' && webSearchQuery.trim()) {
+                                          window.open(`https://www.google.com/search?q=${encodeURIComponent(webSearchQuery.trim())}`, '_blank');
+                                        }
+                                      }}
+                                      className="w-full bg-transparent border-none text-xs text-white py-2.5 focus:outline-none"
+                                    />
+                                  </div>
+                                  <button onClick={() => {
+                                      if(webSearchQuery.trim()) window.open(`https://www.google.com/search?q=${encodeURIComponent(webSearchQuery.trim())}`, '_blank');
+                                  }} className="px-3 bg-cyan-500/10 text-cyan-400 hover:bg-cyan-500/20 font-bold text-xs transition-colors border-l border-[rgba(255,255,255,0.04)]">
+                                    Ir
+                                  </button>
+                                </div>
+
+                                <div className="flex bg-[#111113] border border-[rgba(255,255,255,0.06)] rounded-xl overflow-hidden focus-within:border-indigo-500/50 transition-colors shadow-inner">
+                                  <div className="flex-1 px-3 flex items-center gap-2">
+                                    <BookOpen className="size-3 text-[#71717A]" />
+                                    <input 
+                                      type="text" placeholder="Dicionário (Dicio)..."
+                                      value={dictionaryQuery}
+                                      onChange={e => setDictionaryQuery(e.target.value)}
+                                      onKeyDown={e => {
+                                        if(e.key === 'Enter' && dictionaryQuery.trim()) {
+                                          window.open(`https://www.dicio.com.br/${encodeURIComponent(dictionaryQuery.trim().toLowerCase().replace(/\s+/g, '-'))}/`, '_blank');
+                                        }
+                                      }}
+                                      className="w-full bg-transparent border-none text-xs text-white py-2.5 focus:outline-none"
+                                    />
+                                  </div>
+                                  <button onClick={() => {
+                                      if(dictionaryQuery.trim()) window.open(`https://www.dicio.com.br/${encodeURIComponent(dictionaryQuery.trim().toLowerCase().replace(/\s+/g, '-'))}/`, '_blank');
+                                  }} className="px-3 bg-cyan-500/10 text-cyan-400 hover:bg-cyan-500/20 font-bold text-xs transition-colors border-l border-[rgba(255,255,255,0.04)]">
+                                    Definir
+                                  </button>
+                                </div>
+                              </div>
+                            </details>
+                         </div>
                        </div>
                     </div>
-                  )
-               })}
+                 </div>
+                 
+                 {/* Área Principal (RichTextEditor) - 65% */}
+                 <div className="w-full lg:w-[65%] flex flex-col bg-[#0A0A0C] min-h-0 relative z-20 flex-1">
+                    <div className="flex-none p-4 md:p-6 pb-3 border-b border-[rgba(255,255,255,0.04)] flex justify-between items-end">
+                       <div>
+                         <h3 className="text-white font-bold flex items-center gap-2 text-sm md:text-base"><Edit2 className="size-4 text-purple-500" /> Resenha e Anotações</h3>
+                         <p className="text-[10px] md:text-xs text-[#71717A] mt-1 hidden sm:block">Escreva livremente, os dados são salvos automaticamente.</p>
+                       </div>
+                       
+                       <div className="flex items-center gap-2">
+                          <input 
+                            type="file" 
+                            accept="image/*" 
+                            capture="environment"
+                            id={`camera-${session.id}`}
+                            className="hidden"
+                            onChange={async (e) => {
+                              const file = e.target.files?.[0];
+                              if (!file) return;
+                              
+                              try {
+                                toast.loading("Analisando imagem...", { id: `upload-${session.id}` });
+                                
+                                const maxSizeBytes = 5 * 1024 * 1024;
+                                if (file.size > maxSizeBytes) {
+                                  toast.error(`A imagem é muito pesada! O limite é de 5MB.`, { id: `upload-${session.id}` });
+                                  return;
+                                }
+
+                                const arrayBuffer = await file.arrayBuffer();
+                                const hashBuffer = await crypto.subtle.digest('SHA-256', arrayBuffer);
+                                const hashArray = Array.from(new Uint8Array(hashBuffer));
+                                const hashHex = hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
+                                
+                                const fileExt = file.name.split('.').pop() || 'jpg';
+                                const fileName = `session_${hashHex}.${fileExt}`;
+                                const filePath = `anotacoes/${fileName}`;
+                                
+                                toast.loading("Enviando imagem...", { id: `upload-${session.id}` });
+                                const { error } = await supabase.storage.from('livros').upload(filePath, file);
+                                
+                                if (error && !error.message.toLowerCase().includes('already exists') && !error.message.toLowerCase().includes('duplicate')) {
+                                  throw error;
+                                }
+                                
+                                const { data } = supabase.storage.from('livros').getPublicUrl(filePath);
+                                
+                                const imgHtml = `<p><img src="${data.publicUrl}" alt="Trecho do Livro" style="max-width: 100%; border-radius: 8px; margin: 10px 0; border: 1px solid rgba(255,255,255,0.1);" /></p><p><br></p>`;
+                                
+                                saveActiveSessions(activeSessions.map(s => s.id === session.id ? { ...s, notes: (s.notes || "") + imgHtml } : s));
+                                
+                                toast.success("Imagem anexada à anotação!", { id: `upload-${session.id}` });
+                              } catch (err: any) {
+                                toast.error("Erro ao enviar imagem: " + err.message, { id: `upload-${session.id}` });
+                              }
+                            }}
+                          />
+                          <label htmlFor={`camera-${session.id}`} className="cursor-pointer h-8 w-8 md:h-10 md:w-10 flex items-center justify-center rounded-lg bg-[#111113] hover:bg-emerald-500/20 text-emerald-400 border border-[rgba(255,255,255,0.04)] hover:border-emerald-500/30 transition-colors shadow-sm" title="Tirar foto ou anexar imagem">
+                            <Camera className="size-4 md:size-5" />
+                          </label>
+                          <VoiceRecordButton 
+                            onTranscript={(t) => saveActiveSessions(activeSessions.map(s => s.id === session.id ? { ...s, notes: (s.notes || "") + `<p>${t}</p>` } : s))} 
+                            className="h-8 w-8 md:h-10 md:w-10 !p-2 bg-[#111113] hover:bg-purple-500/20 text-purple-400 border-[rgba(255,255,255,0.04)] hover:border-purple-500/30 rounded-lg shadow-sm"
+                            placeholder="Ditar anotação"
+                          />
+                       </div>
+                    </div>
+                    
+                    <div className="flex-1 overflow-hidden relative">
+                       <RichTextEditor 
+                         content={session.notes || ""}
+                         onChange={(content) => saveActiveSessions(activeSessions.map(s => s.id === session.id ? { ...s, notes: content } : s))}
+                         placeholder="Comece a digitar seu resumo, pensamentos e notas de leitura..."
+                       />
+                    </div>
+                 </div>
+              </div>
+              
             </div>
-         </div>
-      )}
+          </div>,
+          document.body
+         );
+      })()}
 
 
 

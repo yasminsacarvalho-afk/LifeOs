@@ -1,4 +1,5 @@
 import React, { useState, useMemo } from 'react';
+import { createPortal } from 'react-dom';
 import { PosBook, PosReadingSession } from '@/hooks/use-pos-library';
 import { ChevronDown, ChevronUp, Share2, Download, FileText, BookOpen, Clock, Calendar, Flame, Star, Quote, Edit3, Users, Globe, Tags, Award, TrendingUp, Zap, Brain, Lightbulb, Map, Sparkles, X } from 'lucide-react';
 import { cn } from '@/lib/utils';
@@ -117,8 +118,8 @@ export function PosLibraryYearlySummary({ books, sessions }: { books: PosBook[],
 
          chartData.forEach(d => d.hours = Math.round(d.hours * 10) / 10);
 
-         return (
-            <div className="fixed inset-0 z-[200] flex items-center justify-center bg-black/80 backdrop-blur-sm p-4 animate-in fade-in">
+         return createPortal(
+            <div className="fixed inset-0 z-[999] flex items-center justify-center bg-black/80 backdrop-blur-sm p-4 animate-in fade-in">
                <div className="bg-[#0A0A0C] w-full max-w-5xl max-h-[90vh] overflow-y-auto rounded-3xl border border-[rgba(255,255,255,0.1)] p-6 md:p-8 relative custom-scrollbar">
                   <button onClick={() => setSelectedYearModal(null)} className="absolute top-6 right-6 p-2 bg-white/5 hover:bg-white/10 rounded-full text-white transition-colors z-10">
                      <X className="size-5" />
@@ -268,7 +269,8 @@ export function PosLibraryYearlySummary({ books, sessions }: { books: PosBook[],
 
                   </div>
                </div>
-            </div>
+            </div>,
+            document.body
          );
       })()}
     </div>
