@@ -7,7 +7,7 @@ import {
   ChevronDown, ChevronUp, Search, Filter, LayoutGrid, List as ListIcon,
   ChevronRight, BookMarked, Book, Sparkles, FileText, Library, CheckSquare,
   TrendingUp, BarChart2, Video, PenTool, LayoutTemplate, Layers, AlertCircle,
-  MoreVertical, Share2, Star, FolderOpen, ArrowLeft, Download, X, UploadCloud, Loader2, ExternalLink, Link as LinkIcon, Pause, XCircle, Edit2, Camera, Headphones, Music, CloudRain, Minimize2, Maximize2, ArrowUpRight, Tag, LayoutPanelLeft, LayoutPanelTop, GripVertical, GripHorizontal, Settings2, MonitorPlay, History, Edit3, Globe, User, Table2, ImageIcon, GitMerge, CalendarDays, FastForward, Pin
+  MoreVertical, Share2, Star, FolderOpen, ArrowLeft, Download, X, UploadCloud, Loader2, ExternalLink, Link as LinkIcon, Pause, XCircle, Edit2, Camera, Headphones, Music, CloudRain, Minimize2, Maximize2, ArrowUpRight, Tag, LayoutPanelLeft, LayoutPanelTop, GripVertical, GripHorizontal, Settings2, MonitorPlay, History, Edit3, Globe, User, Table2, ImageIcon, GitMerge, CalendarDays, FastForward, Pin, Tablet, HardDrive, Cloud, Users
 } from "lucide-react";
 import { format, isToday, parseISO, startOfMonth, endOfMonth, startOfWeek, endOfWeek, addDays, subMonths, addMonths, isSameMonth, isSameDay } from "date-fns";
 import { ptBR } from "date-fns/locale";
@@ -73,6 +73,8 @@ export function PosStudies() {
   const [isEditingCourse, setIsEditingCourse] = useState(false);
   const [coverMode, setCoverMode] = useState<"url" | "upload">("url");
   const coverInputRef = React.useRef<HTMLInputElement>(null);
+  const [portraitMode, setPortraitMode] = useState<"url" | "upload">("url");
+  const portraitInputRef = React.useRef<HTMLInputElement>(null);
   const [searchQuery, setSearchQuery] = useState("");
   const [referenceModalTarget, setReferenceModalTarget] = useState<{ mIdx: number, tIdx: number } | null>(null);
   const [referenceSearchQuery, setReferenceSearchQuery] = useState('');
@@ -1865,9 +1867,12 @@ export function PosStudies() {
                          } catch(e) {}
                          return <div className="absolute inset-0 flex items-center justify-center bg-[#1A1A1E]"><Book className="size-8 text-[#71717A]/30 group-hover:scale-125 transition-transform duration-500" /></div>;
                       })()}
-                      <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/20 to-transparent opacity-80 group-hover:opacity-100 transition-opacity"></div>
-                      <div className="absolute bottom-3 left-3 right-3 text-left">
-                        <h4 className="font-bold text-white text-[10px] sm:text-xs leading-tight line-clamp-2">{course.title}</h4>
+                      <div className="absolute inset-0 bg-gradient-to-t from-[#0A0A0C] via-[#0A0A0C]/40 to-transparent opacity-70 group-hover:opacity-100 transition-opacity duration-500"></div>
+                      <div className="absolute bottom-0 left-0 right-0 p-4 md:p-5 transform translate-y-1 group-hover:translate-y-0 transition-transform duration-500">
+                        <h4 className="font-serif font-bold text-transparent [-webkit-text-stroke:1px_rgba(255,255,255,0.5)] group-hover:[-webkit-text-stroke:0px] group-hover:text-white/95 text-[16px] md:text-[20px] leading-tight line-clamp-3 drop-shadow-[0_0_10px_rgba(255,255,255,0.15)] uppercase tracking-[0.1em] transition-all duration-500">
+                          {course.title}
+                        </h4>
+                        <div className="h-0.5 w-8 bg-cyan-500 mt-3 rounded-full opacity-0 group-hover:opacity-100 transition-opacity duration-500 shadow-[0_0_8px_rgba(6,182,212,0.6)]"></div>
                       </div>
                     </div>
                   );
@@ -2233,7 +2238,12 @@ export function PosStudies() {
     const percent = selectedCourse.total_hours ? Math.min(100, Math.round((selectedCourse.completed_hours / selectedCourse.total_hours) * 100)) : 0;
     
     let coverUrl = "";
-    try { const p = JSON.parse(selectedCourse.description || '{}'); coverUrl = p.cover_url || ""; } catch(e){}
+    let portraitUrl = "";
+    try { 
+      const p = JSON.parse(selectedCourse.description || '{}'); 
+      coverUrl = p.cover_url || ""; 
+      portraitUrl = p.portrait_url || coverUrl;
+    } catch(e){}
 
     return (
       <div className="animate-in fade-in slide-in-from-right-8 duration-500 flex flex-col min-h-screen">
@@ -2425,6 +2435,16 @@ export function PosStudies() {
                       </button>
                     </div>
                   </div>
+
+                  {/* Portrait Cover Image */}
+                  {portraitUrl && (
+                    <div className="w-full flex justify-center py-4">
+                       <div className="w-[200px] md:w-[240px] aspect-[3/4] rounded-2xl overflow-hidden shadow-[0_20px_50px_rgba(0,0,0,0.5)] border border-[rgba(255,255,255,0.1)] relative group">
+                          <img src={portraitUrl} alt="Capa Retrato" className="w-full h-full object-cover opacity-90 group-hover:opacity-100 group-hover:scale-105 transition-all duration-700" />
+                          <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-transparent pointer-events-none"></div>
+                       </div>
+                    </div>
+                  )}
 
                   {/* Top Metrics Grid */}
                   <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
@@ -2810,6 +2830,107 @@ export function PosStudies() {
 
              {courseTab === "Módulos" && (
                <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-300">
+                  
+                  {/* OBRAS BASE (LIVROS) */}
+                  <div className="bg-[#111113] border border-[rgba(255,255,255,0.04)] rounded-2xl p-6 shadow-lg relative z-20">
+                     <div className="flex flex-col md:flex-row justify-between md:items-center gap-4 mb-4 border-b border-[rgba(255,255,255,0.06)] pb-4">
+                       <div>
+                         <h3 className="text-lg font-bold text-white flex items-center gap-2"><Book className="size-5 text-emerald-500" /> Obras Base (Livros)</h3>
+                         <p className="text-xs text-[#A1A1AA] mt-1">Selecione os livros e obras da sua biblioteca de leitura que norteiam este estudo.</p>
+                       </div>
+                       <div className="relative group">
+                         <button className="bg-[#1A1A1E] border border-white/5 hover:border-emerald-500/50 text-white px-4 py-2.5 rounded-xl text-sm font-bold flex items-center gap-2 transition-all">
+                           <Plus className="size-4 text-emerald-400" /> Adicionar Obra
+                         </button>
+                         {/* Dropdown de Livros */}
+                         <div className="absolute right-0 top-full mt-2 w-[300px] bg-[#111113] border border-white/10 rounded-2xl shadow-[0_20px_50px_rgba(0,0,0,0.5)] overflow-hidden opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all z-50 transform origin-top-right">
+                            <div className="max-h-[300px] overflow-y-auto custom-scrollbar p-2 flex flex-col gap-1">
+                               {books.length === 0 ? (
+                                  <div className="text-xs text-[#71717A] p-4 text-center">Nenhum livro na sua biblioteca. Adicione-os primeiro na aba "Leitura".</div>
+                               ) : books.map(book => {
+                                  let baseBooks: string[] = [];
+                                  try { const p = JSON.parse(selectedCourse.description || '{}'); baseBooks = p.base_books || []; } catch(e){}
+                                  const isSelected = baseBooks.includes(book.id);
+                                  if (isSelected) return null;
+                                  return (
+                                    <button key={book.id} onClick={async () => {
+                                       let s: any = { days: [] as number[], time: "19:00" };
+                                       try { const p = JSON.parse(selectedCourse.description || '{}'); if (p.days) s = p; } catch(err){}
+                                       s.base_books = baseBooks;
+                                       s.base_books.push(book.id);
+                                       await updateCourse(selectedCourse.id, { description: JSON.stringify(s) });
+                                    }} className="w-full flex items-center gap-3 p-2 hover:bg-white/5 rounded-xl transition-colors text-left group/btn">
+                                       <div className="w-8 h-10 bg-[#1A1A1E] rounded overflow-hidden shrink-0 border border-white/5">
+                                          {book.cover_url ? <img src={book.cover_url} className="w-full h-full object-cover opacity-80 group-hover/btn:opacity-100"/> : <Book className="size-3 text-emerald-500 m-auto mt-3"/>}
+                                       </div>
+                                       <div className="flex flex-col flex-1 min-w-0">
+                                         <span className="text-sm text-white font-bold truncate group-hover/btn:text-emerald-400">{book.title}</span>
+                                         <span className="text-[10px] text-[#A1A1AA] truncate">{book.author}</span>
+                                       </div>
+                                    </button>
+                                  );
+                               })}
+                            </div>
+                         </div>
+                       </div>
+                     </div>
+
+                     {/* Livros Selecionados */}
+                     {(() => {
+                        let baseBooks: string[] = [];
+                        try { const p = JSON.parse(selectedCourse.description || '{}'); baseBooks = p.base_books || []; } catch(e){}
+                        if (baseBooks.length === 0) return <div className="text-sm text-[#A1A1AA] italic p-4 text-center border border-dashed border-[rgba(255,255,255,0.06)] rounded-xl">Nenhuma obra base vinculada. Use o botão acima para adicionar.</div>;
+                        return (
+                          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+                             {baseBooks.map(bId => {
+                                const b = books.find(book => book.id === bId);
+                                if (!b) return null;
+                                return (
+                                  <div key={bId} className="flex items-center gap-4 bg-transparent p-2 rounded-2xl hover:bg-white/5 transition-colors relative group">
+                                     <button onClick={async () => {
+                                        let s: any = { days: [] as number[], time: "19:00" };
+                                        try { const p = JSON.parse(selectedCourse.description || '{}'); if (p.days) s = p; } catch(err){}
+                                        s.base_books = baseBooks.filter(id => id !== bId);
+                                        await updateCourse(selectedCourse.id, { description: JSON.stringify(s) });
+                                     }} className="absolute -top-1 -right-1 p-1.5 bg-rose-500 text-white rounded-full opacity-0 group-hover:opacity-100 transition-opacity shadow-lg scale-75 hover:scale-100 z-10" title="Remover"><X className="size-3"/></button>
+                                     <div className="w-16 h-24 bg-[#0A0A0C] rounded-lg overflow-hidden shrink-0 border border-white/10 shadow-[0_8px_16px_rgba(0,0,0,0.4)] group-hover:shadow-[0_12px_24px_rgba(0,0,0,0.6)] group-hover:-translate-y-1 transition-all duration-300 cursor-pointer" onClick={() => {
+                                         const event = new CustomEvent('reference-click', { detail: { refType: 'book', title: b.title, id: b.id } });
+                                         window.dispatchEvent(event);
+                                     }}>
+                                        {b.cover_url ? <img src={b.cover_url} className="w-full h-full object-cover opacity-90 group-hover:opacity-100 transition-opacity"/> : <Book className="size-6 text-emerald-500/50 m-auto mt-8"/>}
+                                     </div>
+                                     <div className="flex flex-col min-w-0 flex-1 justify-center py-1">
+                                       <span className="text-[15px] text-white/90 font-medium truncate group-hover:text-white transition-colors cursor-pointer drop-shadow-sm" onClick={() => {
+                                           const event = new CustomEvent('reference-click', { detail: { refType: 'book', title: b.title, id: b.id } });
+                                           window.dispatchEvent(event);
+                                       }}>{b.title}</span>
+                                       <span className="text-xs text-[#71717A] truncate font-light mt-0.5">{b.author}</span>
+                                       <div className="flex flex-wrap items-center gap-3 mt-3 opacity-60 group-hover:opacity-100 transition-opacity">
+                                          {b.format && (
+                                             <span className="flex items-center gap-1.5 text-[9px] uppercase tracking-widest text-emerald-400">
+                                                {b.format.toLowerCase().includes('fisico') || b.format.toLowerCase().includes('físico') ? <Book className="size-3"/> : <Tablet className="size-3"/>}
+                                                {b.format}
+                                             </span>
+                                          )}
+                                          {b.storage_location && (
+                                             <span className="flex items-center gap-1.5 text-[9px] uppercase tracking-widest text-cyan-400">
+                                                {b.storage_location.toLowerCase().includes('drive') ? <Cloud className="size-3"/> : 
+                                                 b.storage_location.toLowerCase().includes('estante') ? <Library className="size-3"/> :
+                                                 b.storage_location.toLowerCase().includes('emprestado') ? <Users className="size-3"/> :
+                                                 <HardDrive className="size-3"/>}
+                                                {b.storage_location}
+                                             </span>
+                                          )}
+                                       </div>
+                                     </div>
+                                  </div>
+                                );
+                             })}
+                          </div>
+                        );
+                     })()}
+                  </div>
+
                   <div className="bg-[#111113] border border-[rgba(255,255,255,0.04)] rounded-2xl p-6 shadow-lg">
                     <div className="flex flex-col sm:flex-row justify-between sm:items-center gap-4 mb-6 border-b border-[rgba(255,255,255,0.06)] pb-4">
                       <div>
@@ -4494,6 +4615,14 @@ export function PosStudies() {
           {/* Sidebar */}
           {courseTab !== "Visão Geral" && (
             <div className="w-full lg:w-80 shrink-0 space-y-6">
+              {/* Sidebar Portrait Cover */}
+              {portraitUrl && (
+                <div className="w-full aspect-[3/4] rounded-3xl overflow-hidden shadow-[0_20px_50px_rgba(0,0,0,0.5)] border border-[rgba(255,255,255,0.1)] relative group mb-6">
+                  <img src={portraitUrl} alt="Capa Retrato" className="w-full h-full object-cover opacity-90 group-hover:opacity-100 group-hover:scale-105 transition-all duration-700" />
+                  <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-transparent pointer-events-none"></div>
+                </div>
+              )}
+
              <div className="bg-[#111113] border border-[rgba(255,255,255,0.04)] rounded-3xl p-6">
                 <h3 className="text-sm font-bold text-white mb-4 uppercase tracking-widest">Informações</h3>
                 <div className="space-y-4">
@@ -4583,22 +4712,39 @@ export function PosStudies() {
                                   const b = books.find(book => book.id === bId);
                                   if (!b) return null;
                                   return (
-                                    <div key={bId} className="flex items-center gap-3 bg-[#1A1A1E] p-2 rounded-xl border border-white/5 hover:border-emerald-500/30 transition-all group cursor-pointer" onClick={() => {
+                                    <div key={bId} className="flex items-center gap-3 bg-transparent p-2 rounded-xl hover:bg-white/5 transition-all group cursor-pointer" onClick={() => {
                                       const event = new CustomEvent('reference-click', { detail: { refType: 'book', title: b.title, id: b.id } });
                                       window.dispatchEvent(event);
                                     }}>
-                                       <div className="w-10 h-14 rounded overflow-hidden bg-black shrink-0 relative border border-white/10 group-hover:border-emerald-500/50 transition-colors shadow-sm">
+                                       <div className="w-12 h-16 rounded overflow-hidden bg-black shrink-0 relative border border-white/5 shadow-md group-hover:-translate-y-0.5 group-hover:shadow-lg transition-all duration-300">
                                          {b.cover_url ? (
                                            <img src={b.cover_url} alt={b.title} className="w-full h-full object-cover opacity-80 group-hover:opacity-100 transition-opacity" />
                                          ) : (
                                            <div className="w-full h-full flex items-center justify-center bg-emerald-500/10">
-                                             <Book className="size-4 text-emerald-500" />
+                                             <Book className="size-5 text-emerald-500/50" />
                                            </div>
                                          )}
                                        </div>
-                                       <div className="flex flex-col min-w-0 flex-1">
-                                          <span className="text-xs text-white truncate font-bold group-hover:text-emerald-400 transition-colors">{b.title}</span>
-                                          <span className="text-[10px] text-[#A1A1AA] truncate mt-0.5">{b.author || 'Livro'}</span>
+                                       <div className="flex flex-col min-w-0 flex-1 justify-center py-1">
+                                          <span className="text-[13px] text-white/90 truncate font-medium group-hover:text-emerald-400 transition-colors drop-shadow-sm">{b.title}</span>
+                                          <span className="text-[10px] text-[#71717A] truncate font-light mt-0.5">{b.author || 'Livro'}</span>
+                                          <div className="flex flex-wrap items-center gap-2 mt-2 opacity-60 group-hover:opacity-100 transition-opacity">
+                                             {b.format && (
+                                                <span className="flex items-center gap-1.5 text-[8px] uppercase tracking-widest text-emerald-400">
+                                                   {b.format.toLowerCase().includes('fisico') || b.format.toLowerCase().includes('físico') ? <Book className="size-2.5"/> : <Tablet className="size-2.5"/>}
+                                                   {b.format}
+                                                </span>
+                                             )}
+                                             {b.storage_location && (
+                                                <span className="flex items-center gap-1.5 text-[8px] uppercase tracking-widest text-cyan-400">
+                                                   {b.storage_location.toLowerCase().includes('drive') ? <Cloud className="size-2.5"/> : 
+                                                    b.storage_location.toLowerCase().includes('estante') ? <Library className="size-2.5"/> :
+                                                    b.storage_location.toLowerCase().includes('emprestado') ? <Users className="size-2.5"/> :
+                                                    <HardDrive className="size-2.5"/>}
+                                                   {b.storage_location}
+                                                </span>
+                                             )}
+                                          </div>
                                        </div>
                                     </div>
                                   );
@@ -5221,6 +5367,54 @@ export function PosStudies() {
                                 let s: any = { days: [] as number[], time: "19:00" };
                                 try { const p = JSON.parse(newCourse.description || '{}'); if (p.days) s = p; } catch(err){}
                                 s.cover_url = ev.target?.result as string;
+                                setNewCourse({...newCourse, description: JSON.stringify(s)});
+                             };
+                             reader.readAsDataURL(file);
+                          }
+                       }}
+                    />
+                  </div>
+                )}
+              </div>
+
+              <div className="md:col-span-2">
+                <div className="flex items-center justify-between mb-2">
+                   <label className="text-[10px] uppercase tracking-widest text-[#71717A] font-bold">Capa Retrato (Lateral)</label>
+                   <div className="flex items-center gap-2 bg-[#1A1A1E] p-1 rounded-lg border border-white/5">
+                      <button type="button" onClick={() => setPortraitMode("url")} className={cn("text-[10px] px-3 py-1 font-bold rounded-md transition-all", portraitMode === "url" ? "bg-cyan-500/20 text-cyan-400" : "text-[#71717A] hover:text-white")}>Link (URL)</button>
+                      <button type="button" onClick={() => setPortraitMode("upload")} className={cn("text-[10px] px-3 py-1 font-bold rounded-md transition-all", portraitMode === "upload" ? "bg-cyan-500/20 text-cyan-400" : "text-[#71717A] hover:text-white")}>Upload Foto</button>
+                   </div>
+                </div>
+                {portraitMode === "url" ? (
+                  <input 
+                    type="url" 
+                    value={(() => { try { const p = JSON.parse(newCourse.description || '{}'); return p.portrait_url || ""; } catch(e){ return ""; } })()}
+                    onChange={e => {
+                       let s: any = { days: [] as number[], time: "19:00" };
+                       try { const p = JSON.parse(newCourse.description || '{}'); if (p.days) s = p; } catch(e){}
+                       s.portrait_url = e.target.value;
+                       setNewCourse({...newCourse, description: JSON.stringify(s)});
+                    }}
+                    className="w-full bg-[#1A1A1E] border border-[rgba(255,255,255,0.06)] rounded-xl px-4 py-3 text-sm text-white focus:border-cyan-500 focus:outline-none transition-colors"
+                    placeholder="https://... (Deixe em branco para usar a capa principal)"
+                  />
+                ) : (
+                  <div className="flex items-center gap-3">
+                    <button type="button" onClick={() => portraitInputRef.current?.click()} className="flex items-center gap-2 px-4 py-3 bg-[#1A1A1E] border border-[rgba(255,255,255,0.06)] rounded-xl text-sm font-bold text-white hover:border-cyan-500 transition-colors flex-1 justify-center shadow-inner">
+                       <UploadCloud className="size-5 text-cyan-500" /> 
+                       {(() => { try { const p = JSON.parse(newCourse.description || '{}'); return p.portrait_url?.startsWith('data:image') ? "Trocar Foto Retrato..." : "Selecionar Foto Retrato..."; } catch(e){ return "Selecionar Foto Retrato..."; } })()}
+                    </button>
+                    {(() => { try { const p = JSON.parse(newCourse.description || '{}'); return p.portrait_url?.startsWith('data:image') ? <div className="h-[46px] w-[34px] rounded-lg overflow-hidden shrink-0 border border-white/10"><img src={p.portrait_url} className="w-full h-full object-cover"/></div> : null; } catch(e){ return null; } })()}
+                    <input 
+                       type="file" accept="image/*" ref={portraitInputRef} className="hidden"
+                       onChange={e => {
+                          const file = e.target.files?.[0];
+                          if (file) {
+                             const reader = new FileReader();
+                             reader.onload = (ev) => {
+                                let s: any = { days: [] as number[], time: "19:00" };
+                                try { const p = JSON.parse(newCourse.description || '{}'); if (p.days) s = p; } catch(err){}
+                                s.portrait_url = ev.target?.result as string;
                                 setNewCourse({...newCourse, description: JSON.stringify(s)});
                              };
                              reader.readAsDataURL(file);
