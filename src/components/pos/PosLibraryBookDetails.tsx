@@ -700,7 +700,10 @@ export function PosLibraryBookDetails({ book, sessions, onClose, onUpdate, onDel
                         )}
                         {session.notes && (
                           <div className="mt-3 bg-[#1A1A1E] p-3 rounded-lg border border-[rgba(255,255,255,0.02)]">
-                            <p className="text-[#A1A1AA] text-xs leading-relaxed whitespace-pre-wrap">{session.notes}</p>
+                            <div 
+                              className="text-[#A1A1AA] text-xs leading-relaxed [&_p]:mb-2 last:[&_p]:mb-0 [&_ul]:list-disc [&_ul]:pl-4 [&_ol]:list-decimal [&_ol]:pl-4 [&_strong]:text-white [&_a]:text-cyan-400"
+                              dangerouslySetInnerHTML={{ __html: session.notes }}
+                            />
                           </div>
                         )}
                       </div>

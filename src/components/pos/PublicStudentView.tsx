@@ -58,7 +58,7 @@ export function PublicStudentView({ token }: { token: string }) {
           </div>
           <div>
             <h1 className="text-sm font-bold truncate max-w-sm md:max-w-xl">{course.title}</h1>
-            <p className="text-[10px] text-gray-400 uppercase tracking-widest">{course.instructor || 'Academia Operacional'}</p>
+            <p className="text-[10px] text-gray-400 uppercase tracking-widest">{course.instructor || 'O Polimata'}</p>
           </div>
         </div>
       </header>

@@ -238,7 +238,7 @@ export function PdfEditor({ url, filename = "Documento", onClose, onSave }: PdfE
            base64: savedPdf,
            filename: newFilename,
            mimeType: 'application/pdf',
-           path: ["Academia Operacional", "Anotações PDF"]
+           path: ["O Polimata", "Anotações PDF"]
         }),
         headers: { 'Content-Type': 'text/plain' }
       });

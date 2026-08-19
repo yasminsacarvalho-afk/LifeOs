@@ -460,7 +460,7 @@ export function RichTextEditor({ content, onChange, placeholder, availableBooks,
             <>
               <div className="flex border-b border-white/5 p-1 bg-[#1A1A1E]">
                 <button onClick={() => setActiveFilter('quotes')} className={cn("flex-1 text-[10px] font-bold py-1.5 rounded-md transition-all flex items-center justify-center gap-1.5", activeFilter === 'quotes' ? "bg-emerald-500/20 text-emerald-400" : "text-[#71717A] hover:text-[#A1A1AA]")}><Book className="size-3"/> Citações</button>
-                <button onClick={() => setActiveFilter('videos')} className={cn("flex-1 text-[10px] font-bold py-1.5 rounded-md transition-all flex items-center justify-center gap-1.5", activeFilter === 'videos' ? "bg-cyan-500/20 text-cyan-400" : "text-[#71717A] hover:text-[#A1A1AA]")}><Play className="size-3"/> Videoteca</button>
+                <button onClick={() => setActiveFilter('videos')} className={cn("flex-1 text-[10px] font-bold py-1.5 rounded-md transition-all flex items-center justify-center gap-1.5", activeFilter === 'videos' ? "bg-cyan-500/20 text-cyan-400" : "text-[#71717A] hover:text-[#A1A1AA]")}><Play className="size-3"/> Vídeos & Conteúdos</button>
                 <button onClick={() => setActiveFilter('materials')} className={cn("flex-1 text-[10px] font-bold py-1.5 rounded-md transition-all flex items-center justify-center gap-1.5", activeFilter === 'materials' ? "bg-fuchsia-500/20 text-fuchsia-400" : "text-[#71717A] hover:text-[#A1A1AA]")}><FolderOpen className="size-3"/> Anexos</button>
               </div>
               

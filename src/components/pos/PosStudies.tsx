@@ -170,6 +170,7 @@ export function PosStudies() {
   const [metadataSearchUrl, setMetadataSearchUrl] = useState('');
   
   const [webSearchQuery, setWebSearchQuery] = useState('');
+  const [globalVideosSearch, setGlobalVideosSearch] = useState('');
   const [dictionaryQuery, setDictionaryQuery] = useState('');
 
   const [activeTopicTimer, setActiveTopicTimer] = useState<string | number | null>(null);
@@ -273,6 +274,27 @@ export function PosStudies() {
     }
     return vids;
   })();
+
+  const allAvailableVideosForEditor = (() => {
+    let combined = [...availableVideos];
+    const globalContents = courses.filter(c => c.category === 'Conteúdo');
+    globalContents.forEach(c => {
+       let vidUrl = c.course_url;
+       if (!vidUrl) {
+           try {
+               const p = JSON.parse(c.description || '{}');
+               if (p.youtube_channels && p.youtube_channels[0] && p.youtube_channels[0].videos[0]) {
+                   vidUrl = p.youtube_channels[0].videos[0].url;
+               }
+           } catch(e) {}
+       }
+       if (vidUrl && !combined.some(v => v.url === vidUrl)) {
+           combined.push({ url: vidUrl, title: c.title, channelName: c.instructor || 'Conteúdo', refType: 'video' });
+       }
+    });
+    return combined;
+  })();
+
 
   const globalSearchResults = React.useMemo(() => {
     if (!globalSearchQuery || globalSearchQuery.trim().length < 2) return [];
@@ -562,7 +584,7 @@ export function PosStudies() {
            base64: base64Data,
            filename: file.name,
            mimeType: file.type || 'application/octet-stream',
-           path: ["Academia Operacional", selectedCourse.title, moduleTitle]
+           path: ["O Polimata", selectedCourse.title, moduleTitle]
         }),
         headers: { 'Content-Type': 'text/plain' }
       });
@@ -636,7 +658,7 @@ export function PosStudies() {
            base64: base64Data,
            filename: `Anotacoes_${selectedCourse.title.replace(/[^a-z0-9]/gi, '_')}.html`,
            mimeType: 'text/html',
-           path: ["Academia Operacional", selectedCourse.title]
+           path: ["O Polimata", selectedCourse.title]
         }),
         headers: { 'Content-Type': 'text/plain' }
       });
@@ -2280,6 +2302,7 @@ export function PosStudies() {
                 </h3>
                 <div className="bg-[#0A0A0C] rounded-3xl border border-[rgba(255,255,255,0.06)] shadow-2xl overflow-hidden transition-all duration-500 hover:border-white/10">
                    <RichTextEditor 
+                      availableVideos={allAvailableVideosForEditor}
                       initialValue={selectedCourse.study_notes || ""} 
                       onChange={(val) => updateCourse(selectedCourse.id, { study_notes: val })} 
                    />
@@ -3654,7 +3677,7 @@ export function PosStudies() {
                                                         }
                                                       }}
                                                       availableBooks={availableBookQuotes.filter(q => (topic.books || []).includes(q.book_id))}
-                                                      availableVideos={availableVideos}
+                                                      availableVideos={allAvailableVideosForEditor}
                                                       availableMaterials={topic.materials || []}
                                                     />
                                                   </div>
@@ -3949,6 +3972,80 @@ export function PosStudies() {
                                                         })}
                                                       </div>
                                                     )}
+                                                  </div>
+                                                </details>
+
+                                                <details open className="group [&_summary::-webkit-details-marker]:hidden">
+                                                  <summary className="text-[11px] text-[#A1A1AA] hover:text-white uppercase tracking-widest font-bold mb-3 flex items-center justify-between cursor-pointer list-none transition-colors group/summary bg-white/5 hover:bg-white/10 px-3 py-2.5 rounded-xl border border-[rgba(255,255,255,0.04)] shadow-sm">
+                                                    <div className="flex items-center gap-2">
+                                                      <div className="p-1 rounded-md bg-cyan-500/20 text-cyan-400 group-hover/summary:scale-110 transition-transform">
+                                                        <Video className="size-3.5" />
+                                                      </div>
+                                                      Vídeos & Conteúdos
+                                                    </div>
+                                                    <ChevronDown className="size-3.5 transition-transform group-open:rotate-180 text-[#71717A] group-hover/summary:text-white" />
+                                                  </summary>
+                                                  <div className="flex flex-col gap-2">
+                                                    {(() => {
+                                                       const globalContents = courses.filter(c => c.category === 'Conteúdo' && (!globalVideosSearch || c.title.toLowerCase().includes(globalVideosSearch.toLowerCase())));
+                                                       return (
+                                                         <div className="flex flex-col gap-2">
+                                                           <input 
+                                                             type="text"
+                                                             placeholder="Buscar vídeo..."
+                                                             value={globalVideosSearch}
+                                                             onChange={(e) => setGlobalVideosSearch(e.target.value)}
+                                                             className="w-full bg-[#111113] border border-[rgba(255,255,255,0.06)] rounded-lg px-3 py-2 text-xs text-white placeholder-[#71717A] focus:outline-none focus:border-cyan-500/50 shadow-inner"
+                                                           />
+                                                           {globalContents.length === 0 ? (
+                                                              <div className="text-[10px] text-[#71717A] text-center p-3">Nenhum vídeo encontrado.</div>
+                                                           ) : (
+                                                              <div className="flex flex-col gap-2 max-h-64 overflow-y-auto custom-scrollbar pr-1">
+                                                           {globalContents.map(c => {
+                                                              let vidUrl = c.course_url;
+                                                              if (!vidUrl) {
+                                                                  try {
+                                                                      const p = JSON.parse(c.description || '{}');
+                                                                      if (p.youtube_channels && p.youtube_channels[0] && p.youtube_channels[0].videos[0]) {
+                                                                          vidUrl = p.youtube_channels[0].videos[0].url;
+                                                                      }
+                                                                  } catch(e) {}
+                                                              }
+                                                              const thumb = c.cover_url || (vidUrl ? getThumbnail(vidUrl) : null);
+                                                              
+                                                              return (
+                                                              <div key={c.id} className="flex items-center justify-between p-2.5 bg-[#0A0A0C]/50 border border-[rgba(255,255,255,0.03)] rounded-xl group hover:border-cyan-500/40 hover:bg-cyan-500/10 transition-all shadow-inner">
+                                                                <div className="flex items-center gap-3 overflow-hidden flex-1 cursor-pointer" onClick={() => {
+                                                                   if (vidUrl) {
+                                                                       setActiveTopicVideos(prev => prev.some(v => v.url === vidUrl) ? prev : [...prev, { refType: 'video', url: vidUrl, title: c.title }]);
+                                                                   } else {
+                                                                       toast.error("Nenhum link de vídeo encontrado neste conteúdo.");
+                                                                   }
+                                                                }}>
+                                                                  {thumb ? (
+                                                                     <div className="w-12 h-8 rounded shrink-0 bg-[#27272A] overflow-hidden border border-white/5 relative">
+                                                                       <img src={thumb} alt="thumb" className="w-full h-full object-cover opacity-80 group-hover:opacity-100 transition-opacity" />
+                                                                       <div className="absolute inset-0 flex items-center justify-center bg-black/20 group-hover:bg-transparent transition-colors">
+                                                                           <Play className="size-3 text-white shadow-sm opacity-80 group-hover:scale-110 transition-transform" />
+                                                                       </div>
+                                                                     </div>
+                                                                  ) : (
+                                                                     <div className="w-8 h-8 rounded-lg shrink-0 bg-[#111113] flex items-center justify-center border border-cyan-500/20 shadow-inner group-hover:bg-cyan-500/10 transition-colors">
+                                                                       <Play className="size-3.5 text-cyan-400" />
+                                                                     </div>
+                                                                  )}
+                                                                  <div className="flex flex-col">
+                                                                    <span className="text-xs font-bold text-white group-hover:text-cyan-400 transition-colors line-clamp-1">{c.title}</span>
+                                                                    <span className="text-[9px] text-[#A1A1AA] mt-0.5 line-clamp-1">{c.instructor || 'Conteúdo'}</span>
+                                                                  </div>
+                                                                </div>
+                                                              </div>
+                                                           )})}
+                                                         </div>
+                                                       )}
+                                                         </div>
+                                                       );
+                                                    })()}
                                                   </div>
                                                 </details>
 
@@ -4388,7 +4485,7 @@ export function PosStudies() {
                                </span>
                              </div>
                              <div className="flex-1 p-0 overflow-y-auto custom-scrollbar">
-                               <RichTextEditor content={videotecaNotes} onChange={setVideotecaNotes} placeholder="Escreva suas anotações aqui..." />
+                               <RichTextEditor content={videotecaNotes} onChange={setVideotecaNotes} placeholder="Escreva suas anotações aqui..." availableVideos={allAvailableVideosForEditor} />
                              </div>
                            </div>
                            
@@ -4950,14 +5047,14 @@ export function PosStudies() {
               </div>
               <div>
                 <h1 className="text-4xl md:text-5xl lg:text-6xl font-black text-transparent bg-clip-text bg-gradient-to-r from-white via-zinc-100 to-zinc-400 tracking-tighter drop-shadow-sm pb-1">
-                  {activeTab === "Visão Geral" ? "Academia Operacional" : 
+                  {activeTab === "Visão Geral" ? "O Polimata" : 
                     activeTab === "Concluídos" ? "Histórico de Conclusões" :
                     activeTab}
                 </h1>
                 {activeTab === "Visão Geral" && (
                   <div className="text-[9px] md:text-[11px] text-cyan-400/80 font-black uppercase tracking-[0.3em] mt-1 flex items-center gap-2">
                     <span className="w-1.5 h-1.5 rounded-full bg-cyan-400 animate-pulse shadow-[0_0_10px_rgba(34,211,238,0.8)]"></span>
-                    Ecossistema de Alta Performance
+                    Foco, Disciplina e Constancia
                   </div>
                 )}
               </div>
