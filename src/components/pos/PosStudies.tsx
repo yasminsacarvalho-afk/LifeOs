@@ -43,6 +43,41 @@ const getThumbnail = (url: string) => {
   return null;
 };
 
+const compressImage = (file: File, maxWidth: number = 800, maxHeight: number = 800, quality: number = 0.7): Promise<string> => {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.readAsDataURL(file);
+    reader.onload = (event) => {
+      const img = new Image();
+      img.src = event.target?.result as string;
+      img.onload = () => {
+        const canvas = document.createElement('canvas');
+        let width = img.width;
+        let height = img.height;
+        if (width > height) {
+          if (width > maxWidth) {
+            height = Math.round((height * maxWidth) / width);
+            width = maxWidth;
+          }
+        } else {
+          if (height > maxHeight) {
+            width = Math.round((width * maxHeight) / height);
+            height = maxHeight;
+          }
+        }
+        canvas.width = width;
+        canvas.height = height;
+        const ctx = canvas.getContext('2d');
+        if (!ctx) return resolve(event.target?.result as string);
+        ctx.drawImage(img, 0, 0, width, height);
+        resolve(canvas.toDataURL('image/jpeg', quality));
+      };
+      img.onerror = () => resolve(event.target?.result as string);
+    };
+    reader.onerror = () => reject('Error reading file');
+  });
+};
+
 export function PosStudies() {
   const { courses, sessions, loading, addCourse, updateCourse, deleteCourse, addSession } = usePosStudies();
   const { books, sessions: readingSessions } = usePosLibrary();
@@ -1549,7 +1584,7 @@ export function PosStudies() {
             );
          }
 
-         if (viewMode === "por_area" || (viewMode === "cards" && activeTab === "Trilhas")) {
+         if (viewMode === "por_area") {
             const grouped = filteredList.reduce((acc, course) => {
                  const area = course.knowledge_area || 'Outras Áreas';
                  if (!acc[area]) acc[area] = [];
@@ -1663,7 +1698,7 @@ export function PosStudies() {
          if (viewMode === "cards") {
            // Original grid logic
            return (
-             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 animate-in fade-in duration-500">
+             <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-4 animate-in fade-in duration-500">
                {filteredList.map(course => {
                   if (course.category === 'Conteúdo') {
                     let thumbUrl = null;
@@ -1678,6 +1713,8 @@ export function PosStudies() {
                     if (!thumbUrl) {
                        try { const p = JSON.parse(course.description || '{}'); if (p.cover_url) thumbUrl = p.cover_url; } catch(e){}
                     }
+                    const isPosterMode = (() => { try { const p = JSON.parse(course.description || '{}'); return p.hide_title; } catch(e){ return false; } })();
+                    
                     return (
                       <div key={course.id} onClick={() => {
                           setSelectedCourseId(course.id);
@@ -1685,27 +1722,38 @@ export function PosStudies() {
                           if (course.course_url) {
                               window.dispatchEvent(new CustomEvent('global-pip', { detail: { url: course.course_url, title: course.title, refType: 'video' } }));
                           }
-                      }} className="bg-[#111113] border border-[rgba(255,255,255,0.04)] rounded-2xl overflow-hidden hover:border-cyan-500/50 hover:shadow-[0_0_20px_rgba(6,182,212,0.15)] transition-all group cursor-pointer shadow-lg flex flex-col h-full min-h-[260px]">
-                         <div className="h-40 w-full relative overflow-hidden bg-[#0A0A0A] flex items-center justify-center shrink-0">
+                      }} className="bg-[#111113] border border-[rgba(255,255,255,0.04)] rounded-2xl overflow-hidden hover:border-cyan-500/50 hover:shadow-[0_0_20px_rgba(6,182,212,0.15)] transition-all group cursor-pointer shadow-lg relative flex flex-col aspect-[705/900]">
+                         {/* AJUSTE DE TAMANHO DO CARD: A proporção do card é definida pela classe 'aspect-[705/900]' na div pai acima. Altere para testar outros tamanhos (ex: aspect-[3/4], aspect-[2/3], etc). */}
+                         <div className="absolute inset-0 w-full h-full bg-[#0A0A0A] flex items-center justify-center shrink-0 z-0">
                             {thumbUrl ? (
-                               <img src={thumbUrl} className="absolute inset-0 w-full h-full object-cover opacity-80 group-hover:opacity-100 group-hover:scale-105 transition-all duration-700 z-0" />
+                               <img src={thumbUrl} className={cn("absolute inset-0 w-full h-full object-cover group-hover:scale-105 transition-all duration-700 z-0", isPosterMode ? "opacity-100" : "opacity-60 group-hover:opacity-100")} />
                             ) : (
                                <MonitorPlay className="size-10 text-[#A1A1AA]/30 z-0" />
                             )}
-                            <div className="absolute inset-0 bg-black/40 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity duration-300 z-10">
-                               <div className="w-12 h-12 rounded-full bg-cyan-500/90 flex items-center justify-center shadow-[0_0_20px_rgba(6,182,212,0.6)]">
-                                  <Play className="size-5 text-white ml-1" />
-                               </div>
-                            </div>
-                            <div className="absolute top-3 left-3 flex gap-2 z-20">
-                               <span className="px-2 py-1 bg-black/60 backdrop-blur-md rounded border border-white/10 text-[9px] font-bold text-white uppercase tracking-wider">{course.knowledge_area || "Mídia"}</span>
+                         </div>
+                         {!isPosterMode ? (
+                            <div className="absolute inset-0 bg-gradient-to-t from-[#050505] via-[#050505]/60 to-transparent z-10 transition-opacity duration-300 pointer-events-none"></div>
+                         ) : (
+                            <div className="absolute inset-x-0 bottom-0 h-24 bg-gradient-to-t from-[#050505]/80 to-transparent z-10 pointer-events-none"></div>
+                         )}
+                         
+                         <div className="absolute top-3 left-3 flex gap-2 z-20">
+                            {!isPosterMode && <span className="px-2 py-1 bg-black/60 backdrop-blur-md rounded border border-white/10 text-[9px] font-bold text-white uppercase tracking-wider">{course.knowledge_area || "Mídia"}</span>}
+                         </div>
+                         
+                         <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity duration-300 z-20 pointer-events-none">
+                            <div className="w-14 h-14 rounded-full bg-cyan-500/90 flex items-center justify-center shadow-[0_0_30px_rgba(6,182,212,0.6)] group-hover:scale-110 transition-transform pointer-events-auto">
+                               <Play className="size-6 text-white ml-1" />
                             </div>
                          </div>
-                         <div className="p-4 flex-1 flex flex-col bg-gradient-to-b from-[#111113] to-[#0A0A0C] z-20">
-                            <h4 className="font-bold text-sm text-white leading-tight line-clamp-3 group-hover:text-cyan-400 transition-colors">{course.title}</h4>
-                            <div className="mt-auto pt-4 flex items-center justify-between border-t border-white/5">
-                               <div className="flex items-center gap-2 text-cyan-400 text-[10px] font-bold uppercase tracking-widest">
-                                  <MonitorPlay className="size-3" /> Assistir / Anotar
+
+                         <div className="mt-auto p-5 z-20 flex flex-col justify-end w-full">
+                            {!isPosterMode && (
+                               <h4 className="font-bold text-lg text-white leading-tight line-clamp-3 group-hover:text-cyan-400 transition-colors drop-shadow-md">{course.title}</h4>
+                            )}
+                            <div className={cn("flex items-center justify-between border-white/20", !isPosterMode ? "mt-3 pt-3 border-t" : "mt-auto")}>
+                               <div className="flex items-center gap-2 text-cyan-400 text-xs font-bold uppercase tracking-widest drop-shadow-md">
+                                  <MonitorPlay className="size-4" /> Assistir / Anotar
                                </div>
                             </div>
                          </div>
@@ -1713,48 +1761,61 @@ export function PosStudies() {
                     );
                   }
 
-                  const percent = course.total_hours ? Math.min(100, Math.round((course.completed_hours / course.total_hours) * 100)) : 0;
-                  const isCompleted = course.status === 'concluido';
-                  return (
-                    <div key={course.id} onClick={() => setSelectedCourseId(course.id)} className="bg-[#111113] border border-[rgba(255,255,255,0.04)] rounded-2xl overflow-hidden hover:border-cyan-500/30 transition-all group cursor-pointer shadow-lg flex flex-col">
-                      <div className="h-24 w-full relative overflow-hidden bg-gradient-to-br from-[#1A1A1E] to-[#111113] flex items-center justify-center">
-                        <div className="absolute inset-0 bg-gradient-to-t from-[#111113] to-transparent z-10"></div>
+                    const percent = course.total_hours ? Math.min(100, Math.round((course.completed_hours / course.total_hours) * 100)) : 0;
+                    const isCompleted = course.status === 'concluido';
+                    let hasCover = false;
+                    try { const p = JSON.parse(course.description || '{}'); if (p.cover_url) hasCover = true; } catch(e){}
+                    
+                    const isPosterMode = hasCover || (() => { try { const p = JSON.parse(course.description || '{}'); return p.hide_title; } catch(e){ return false; } })();
+                    return (
+                    <div key={course.id} onClick={() => setSelectedCourseId(course.id)} className="bg-[#111113] border border-[rgba(255,255,255,0.04)] rounded-2xl overflow-hidden hover:border-cyan-500/30 transition-all group cursor-pointer shadow-lg relative flex flex-col aspect-[705/900]">
+                       {/* AJUSTE DE TAMANHO DO CARD: A proporção do card é definida pela classe 'aspect-[705/900]' na div pai acima. Altere para testar outros tamanhos (ex: aspect-[3/4], aspect-[2/3], etc). */}
+                      <div className="absolute inset-0 w-full h-full bg-gradient-to-br from-[#1A1A1E] to-[#111113] flex items-center justify-center z-0">
                         {(() => {
                            try {
                              const p = JSON.parse(course.description || '{}');
-                             if (p.cover_url) return <img src={p.cover_url} alt="Cover" className="absolute inset-0 w-full h-full object-cover opacity-40 group-hover:opacity-80 group-hover:scale-105 transition-all duration-500 z-0" />;
+                             if (p.cover_url) return <img src={p.cover_url} alt="Cover" className={cn("absolute inset-0 w-full h-full object-cover group-hover:scale-105 transition-all duration-500 z-0", isPosterMode ? "opacity-100" : "opacity-60 group-hover:opacity-90")} />;
                            } catch(e) {}
-                           return <GraduationCap className="size-10 text-cyan-500/20 group-hover:scale-110 transition-transform duration-500 z-0" />;
+                           return <GraduationCap className="size-12 text-cyan-500/20 group-hover:scale-110 transition-transform duration-500 z-0" />;
                         })()}
-                        <div className="absolute bottom-3 left-4 z-20 flex items-center gap-2">
-                          {course.knowledge_area && <span className="px-2 py-0.5 bg-cyan-500/20 backdrop-blur-md rounded border border-cyan-500/30 text-[9px] font-bold text-cyan-400 uppercase tracking-wider">{course.knowledge_area}</span>}
-                          {(() => {
-                             try {
-                               const p = JSON.parse(course.description || '{}');
-                               if (p.price || p.purchase_type || p.purchased !== undefined) {
-                                  const formatLabel = p.purchase_type === 'mensalidade' ? '/mês' : p.purchase_type === '1_ano' ? ' (1 Ano)' : '';
-                                  return (
-                                    <span className={cn("px-2 py-0.5 backdrop-blur-md rounded border text-[9px] font-bold uppercase tracking-wider", p.purchased ? "bg-emerald-500/20 border-emerald-500/30 text-emerald-400" : "bg-amber-500/20 border-amber-500/30 text-amber-400")}>
-                                      {p.purchased ? 'Comprado' : (p.price ? `R$ ${p.price}${formatLabel}` : 'Quero Comprar')}
-                                    </span>
-                                  );
-                               }
-                             } catch(e) {}
-                             return null;
-                          })()}
-                        </div>
                       </div>
-                      <div className="p-4 flex-1 flex flex-col">
-                        <h4 className={cn("font-bold text-base leading-tight mb-1 group-hover:text-cyan-400 transition-colors line-clamp-2", isCompleted ? "text-[#A1A1AA]" : "text-white")}>{course.title}</h4>
-                        <div className="mt-auto pt-4">
-                          <div className="flex justify-between items-end mb-2">
-                            <div className="text-[10px] font-bold text-[#71717A] uppercase tracking-widest">{course.completed_hours}h / {course.total_hours}h</div>
-                            <div className="text-xs font-bold text-white">{percent}%</div>
-                          </div>
-                          <div className="h-1 w-full bg-[#1A1A1E] rounded-full overflow-hidden mb-4">
-                            <div className={cn("h-full rounded-full", isCompleted ? "bg-emerald-500" : "bg-cyan-500")} style={{ width: `${percent}%` }}></div>
-                          </div>
-                        </div>
+                      {!isPosterMode && (
+                         <div className="absolute inset-0 bg-gradient-to-t from-[#050505] via-[#050505]/70 to-transparent z-10 transition-opacity duration-300 pointer-events-none"></div>
+                      )}
+                      
+                      <div className="absolute top-4 left-4 z-20 flex flex-col items-start gap-2">
+                        {course.knowledge_area && !isPosterMode && <span className="px-2.5 py-1 bg-cyan-500/20 backdrop-blur-md rounded-lg border border-cyan-500/30 text-[10px] font-bold text-cyan-300 uppercase tracking-wider">{course.knowledge_area}</span>}
+                        {(() => {
+                           try {
+                             const p = JSON.parse(course.description || '{}');
+                             if (p.price || p.purchase_type || p.purchased !== undefined) {
+                                const formatLabel = p.purchase_type === 'mensalidade' ? '/mês' : p.purchase_type === '1_ano' ? ' (1 Ano)' : '';
+                                return (
+                                  <span className={cn("px-2.5 py-1 backdrop-blur-md rounded-lg border text-[10px] font-bold uppercase tracking-wider", p.purchased ? "bg-emerald-500/20 border-emerald-500/30 text-emerald-300" : "bg-amber-500/20 border-amber-500/30 text-amber-300")}>
+                                    {p.purchased ? 'Comprado' : (p.price ? `R$ ${p.price}${formatLabel}` : 'Quero Comprar')}
+                                  </span>
+                                );
+                             }
+                           } catch(e) {}
+                           return null;
+                        })()}
+                      </div>
+                      
+                      <div className="mt-auto p-5 z-20 flex flex-col w-full">
+                        {!isPosterMode && (
+                           <>
+                             <h4 className={cn("font-bold text-lg leading-tight mb-2 group-hover:text-cyan-400 transition-colors line-clamp-3 drop-shadow-md", isCompleted ? "text-[#A1A1AA]" : "text-white")}>{course.title}</h4>
+                             <div className="mt-2">
+                               <div className="flex justify-between items-end mb-2">
+                                 <div className="text-xs font-bold uppercase tracking-widest text-[#A1A1AA]">{course.completed_hours}h / {course.total_hours}h</div>
+                                 <div className="text-sm font-bold text-white drop-shadow-md">{percent}%</div>
+                               </div>
+                               <div className="h-1.5 w-full bg-black/50 rounded-full overflow-hidden border border-white/5">
+                                 <div className={cn("h-full rounded-full shadow-[0_0_8px_currentColor]", isCompleted ? "bg-emerald-500" : "bg-cyan-500")} style={{ width: `${percent}%` }}></div>
+                               </div>
+                             </div>
+                           </>
+                        )}
                       </div>
                     </div>
                   );
@@ -1867,13 +1928,7 @@ export function PosStudies() {
                          } catch(e) {}
                          return <div className="absolute inset-0 flex items-center justify-center bg-[#1A1A1E]"><Book className="size-8 text-[#71717A]/30 group-hover:scale-125 transition-transform duration-500" /></div>;
                       })()}
-                      <div className="absolute inset-0 bg-gradient-to-t from-[#0A0A0C] via-[#0A0A0C]/40 to-transparent opacity-70 group-hover:opacity-100 transition-opacity duration-500"></div>
-                      <div className="absolute bottom-0 left-0 right-0 p-4 md:p-5 transform translate-y-1 group-hover:translate-y-0 transition-transform duration-500">
-                        <h4 className="font-serif font-bold text-transparent [-webkit-text-stroke:1px_rgba(255,255,255,0.5)] group-hover:[-webkit-text-stroke:0px] group-hover:text-white/95 text-[16px] md:text-[20px] leading-tight line-clamp-3 drop-shadow-[0_0_10px_rgba(255,255,255,0.15)] uppercase tracking-[0.1em] transition-all duration-500">
-                          {course.title}
-                        </h4>
-                        <div className="h-0.5 w-8 bg-cyan-500 mt-3 rounded-full opacity-0 group-hover:opacity-100 transition-opacity duration-500 shadow-[0_0_8px_rgba(6,182,212,0.6)]"></div>
-                      </div>
+                      <div className="absolute inset-0 bg-black/0 group-hover:bg-black/20 transition-colors duration-500"></div>
                     </div>
                   );
                })}
@@ -4873,7 +4928,13 @@ export function PosStudies() {
 
   return (
     <div className="p-4 md:p-8 max-w-[1600px] mx-auto pb-24 text-white font-sans">
-      
+      {loading && courses.length === 0 ? (
+        <div className="flex flex-col items-center justify-center h-[50vh] animate-in fade-in duration-1000">
+          <div className="w-12 h-12 border-4 border-cyan-500 border-t-transparent rounded-full animate-spin mb-6"></div>
+          <p className="text-cyan-400 font-black uppercase tracking-[0.3em] text-sm animate-pulse drop-shadow-[0_0_10px_rgba(6,182,212,0.5)]">Carregando Acervo...</p>
+        </div>
+      ) : (
+        <>
       {/* HERO HEADER */}
       {!selectedCourseId && (
         <div className="flex flex-col gap-4 bg-gradient-to-br from-[#0A0A0A] to-[#111113] p-8 md:p-12 rounded-[2rem] border border-[rgba(255,255,255,0.05)] shadow-2xl relative overflow-hidden mb-10 group/hero">
@@ -5012,7 +5073,7 @@ export function PosStudies() {
             </div>
 
             <div className="flex-1 overflow-y-auto p-6 bg-[#0A0A0C] custom-scrollbar">
-               <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 xl:grid-cols-4 gap-4">
+               <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-4">
                  {(() => {
                     const filtered = areaModalData.courses.filter(c => {
                        if (areaModalSearch && !c.title.toLowerCase().includes(areaModalSearch.toLowerCase())) return false;
@@ -5041,37 +5102,52 @@ export function PosStudies() {
                           try { const p = JSON.parse(course.description || '{}'); if (p.cover_url) coverUrl = p.cover_url; } catch(e){}
                        }
 
+                       let hasCover = false;
+                       try { const p = JSON.parse(course.description || '{}'); if (p.cover_url) hasCover = true; } catch(e){}
+                       
+                       const isPosterMode = hasCover || (() => { try { const p = JSON.parse(course.description || '{}'); return p.hide_title; } catch(e){ return false; } })();
+
                        return (
-                         <div key={course.id} onClick={() => { setAreaModalData(null); setSelectedCourseId(course.id); }} className="bg-[#111113] border border-[rgba(255,255,255,0.04)] rounded-2xl overflow-hidden hover:border-cyan-500/50 hover:shadow-[0_0_20px_rgba(6,182,212,0.15)] transition-all group cursor-pointer shadow-lg flex flex-col h-full min-h-[220px]">
-                           <div className="h-32 w-full relative overflow-hidden bg-gradient-to-br from-[#1A1A1E] to-[#111113] flex items-center justify-center shrink-0">
+                         <div key={course.id} onClick={() => { setAreaModalData(null); setSelectedCourseId(course.id); }} className="bg-[#111113] border border-[rgba(255,255,255,0.04)] rounded-2xl overflow-hidden hover:border-cyan-500/50 hover:shadow-[0_0_20px_rgba(6,182,212,0.15)] transition-all group cursor-pointer shadow-lg relative flex flex-col aspect-[705/900]">
+                            {/* AJUSTE DE TAMANHO DO CARD: A proporção do card é definida pela classe 'aspect-[705/900]' na div pai acima. Altere para testar outros tamanhos (ex: aspect-[3/4], aspect-[2/3], etc). */}
+                           <div className="absolute inset-0 w-full h-full bg-gradient-to-br from-[#1A1A1E] to-[#111113] flex items-center justify-center z-0">
                              {coverUrl ? (
-                                <img src={coverUrl} className="absolute inset-0 w-full h-full object-cover opacity-60 group-hover:opacity-100 group-hover:scale-110 transition-all duration-700 z-0" />
+                                <img src={coverUrl} className={cn("absolute inset-0 w-full h-full object-cover group-hover:scale-110 transition-all duration-700 z-0", isPosterMode ? "opacity-100" : "opacity-60 group-hover:opacity-100")} />
                              ) : (
-                                <Layers className="size-10 text-cyan-500/20 group-hover:scale-110 transition-transform duration-500 z-0" />
+                                <Layers className="size-12 text-cyan-500/20 group-hover:scale-110 transition-transform duration-500 z-0" />
                              )}
-                             <div className="absolute top-2 left-2 flex gap-1 z-20">
-                                <span className="px-2 py-0.5 bg-black/60 backdrop-blur-md rounded border border-white/10 text-[9px] font-bold text-white uppercase tracking-wider">{course.category}</span>
-                             </div>
                            </div>
-                           <div className="p-4 flex-1 flex flex-col">
-                             <h4 className="font-bold text-sm text-white leading-tight mb-2 group-hover:text-cyan-400 transition-colors line-clamp-2">{course.title}</h4>
-                             <div className="mt-auto pt-4 border-t border-white/5">
-                               {course.category !== 'Conteúdo' ? (
-                                 <>
-                                   <div className="flex justify-between items-end mb-1.5">
-                                     <div className="text-[10px] font-bold text-[#71717A] uppercase tracking-widest">{course.completed_hours}h / {course.total_hours}h</div>
-                                     <div className="text-[10px] font-bold text-cyan-400">{percent}%</div>
-                                   </div>
-                                   <div className="h-1 w-full bg-[#1A1A1E] rounded-full overflow-hidden">
-                                     <div className="h-full bg-cyan-500 rounded-full" style={{ width: `${percent}%` }}></div>
-                                   </div>
-                                 </>
-                               ) : (
-                                 <div className="flex items-center gap-2 text-cyan-400 text-[10px] font-bold uppercase tracking-widest">
-                                   <MonitorPlay className="size-3" /> Assistir
-                                 </div>
-                               )}
-                             </div>
+                           {!isPosterMode && (
+                              <div className="absolute inset-0 bg-gradient-to-t from-[#050505] via-[#050505]/70 to-transparent z-10 transition-opacity duration-300 pointer-events-none"></div>
+                           )}
+                           
+                           <div className="absolute top-3 left-3 flex gap-2 z-20">
+                              {!isPosterMode && <span className="px-2 py-0.5 bg-black/60 backdrop-blur-md rounded border border-white/10 text-[9px] font-bold text-white uppercase tracking-wider">{course.category}</span>}
+                           </div>
+                           
+                           <div className="mt-auto p-4 z-20 flex flex-col w-full">
+                             {!isPosterMode && (
+                                <>
+                                  <h4 className="font-bold text-base text-white leading-tight mb-2 group-hover:text-cyan-400 transition-colors line-clamp-3 drop-shadow-md">{course.title}</h4>
+                                  <div className="mt-2 pt-3 border-t border-white/20">
+                                    {course.category !== 'Conteúdo' ? (
+                                      <>
+                                        <div className="flex justify-between items-end mb-1.5">
+                                          <div className="text-[10px] font-bold text-[#71717A] uppercase tracking-widest">{course.completed_hours}h / {course.total_hours}h</div>
+                                          <div className="text-[10px] font-bold text-cyan-400 drop-shadow-md">{percent}%</div>
+                                        </div>
+                                        <div className="h-1.5 w-full bg-black/50 rounded-full overflow-hidden border border-white/5">
+                                          <div className="h-full bg-cyan-500 rounded-full shadow-[0_0_8px_currentColor]" style={{ width: `${percent}%` }}></div>
+                                        </div>
+                                      </>
+                                    ) : (
+                                      <div className="flex items-center gap-2 text-cyan-400 text-[10px] font-bold uppercase tracking-widest drop-shadow">
+                                        <MonitorPlay className="size-3" /> Assistir
+                                      </div>
+                                    )}
+                                  </div>
+                                </>
+                             )}
                            </div>
                          </div>
                        );
@@ -5100,6 +5176,21 @@ export function PosStudies() {
                   className="w-full bg-[#1A1A1E] border border-[rgba(255,255,255,0.06)] rounded-xl px-4 py-3 text-sm text-white focus:border-cyan-500 focus:outline-none transition-colors"
                   placeholder="Ex: Formação Node.js Avançada"
                 />
+                <div className="mt-3 flex items-center gap-2">
+                  <input
+                    type="checkbox"
+                    id="hide_title"
+                    checked={(() => { try { const p = JSON.parse(newCourse.description || '{}'); return !!p.hide_title; } catch(e){ return false; } })()}
+                    onChange={e => {
+                      let s: any = {};
+                      try { s = JSON.parse(newCourse.description || '{}'); } catch(err){}
+                      s.hide_title = e.target.checked;
+                      setNewCourse({...newCourse, description: JSON.stringify(s)});
+                    }}
+                    className="w-4 h-4 rounded border-[rgba(255,255,255,0.1)] bg-[#1A1A1E] text-cyan-500 focus:ring-cyan-500 focus:ring-offset-[#111113]"
+                  />
+                  <label htmlFor="hide_title" className="text-xs text-[#A1A1AA] cursor-pointer hover:text-white transition-colors">Ocultar nome nos cards (quando a capa já tiver o título)</label>
+                </div>
               </div>
               
               <div>
@@ -5351,28 +5442,58 @@ export function PosStudies() {
                     placeholder="https://..."
                   />
                 ) : (
-                  <div className="flex items-center gap-3">
-                    <button type="button" onClick={() => coverInputRef.current?.click()} className="flex items-center gap-2 px-4 py-3 bg-[#1A1A1E] border border-[rgba(255,255,255,0.06)] rounded-xl text-sm font-bold text-white hover:border-cyan-500 transition-colors flex-1 justify-center shadow-inner">
-                       <UploadCloud className="size-5 text-cyan-500" /> 
-                       {(() => { try { const p = JSON.parse(newCourse.description || '{}'); return p.cover_url?.startsWith('data:image') ? "Trocar Foto..." : "Selecionar Foto..."; } catch(e){ return "Selecionar Foto..."; } })()}
+                  <div className="flex flex-col gap-3">
+                    <button type="button" onClick={() => coverInputRef.current?.click()} disabled={isUploading} className="flex items-center gap-2 px-4 py-3 bg-[#1A1A1E] border border-dashed border-white/20 rounded-xl text-sm font-bold text-white hover:border-cyan-500 hover:bg-cyan-500/5 transition-all w-full justify-center shadow-inner">
+                       {isUploading ? <Loader2 className="size-5 text-cyan-500 animate-spin" /> : <UploadCloud className="size-5 text-cyan-500" />} 
+                       {isUploading ? "Carregando..." : "Selecionar Foto do Computador..."}
                     </button>
-                    {(() => { try { const p = JSON.parse(newCourse.description || '{}'); return p.cover_url?.startsWith('data:image') ? <div className="h-[46px] aspect-video rounded-lg overflow-hidden shrink-0 border border-white/10"><img src={p.cover_url} className="w-full h-full object-cover"/></div> : null; } catch(e){ return null; } })()}
                     <input 
                        type="file" accept="image/*" ref={coverInputRef} className="hidden"
-                       onChange={e => {
+                       onChange={async e => {
                           const file = e.target.files?.[0];
                           if (file) {
-                             const reader = new FileReader();
-                             reader.onload = (ev) => {
+                             setIsUploading(true);
+                             try {
+                                const compressedDataUrl = await compressImage(file, 1200, 1200, 0.75);
                                 let s: any = { days: [] as number[], time: "19:00" };
                                 try { const p = JSON.parse(newCourse.description || '{}'); if (p.days) s = p; } catch(err){}
-                                s.cover_url = ev.target?.result as string;
+                                s.cover_url = compressedDataUrl;
                                 setNewCourse({...newCourse, description: JSON.stringify(s)});
-                             };
-                             reader.readAsDataURL(file);
+                             } catch(err) {
+                                console.error('Error compressing image:', err);
+                             } finally {
+                                setIsUploading(false);
+                             }
                           }
                        }}
                     />
+                    {(() => { 
+                       try { 
+                          const p = JSON.parse(newCourse.description || '{}'); 
+                          if (p.cover_url && p.cover_url.startsWith('data:image')) {
+                             return (
+                               <div className="relative w-full aspect-video rounded-xl overflow-hidden bg-black border border-white/10 mt-2 shadow-lg">
+                                  <img src={p.cover_url} className="w-full h-full object-cover opacity-90" />
+                                  <div className="absolute bottom-0 inset-x-0 bg-gradient-to-t from-black/90 to-transparent p-4 flex items-end justify-between pointer-events-none">
+                                     <div className="flex flex-col gap-0.5">
+                                        <span className="text-white font-bold text-xs uppercase tracking-widest flex items-center gap-1.5"><CheckCircle className="size-3.5 text-emerald-400"/> Imagem Carregada</span>
+                                        <span className="text-cyan-400/80 text-[10px] font-bold">{Math.round((p.cover_url.length * 3 / 4) / 1024)} KB (Otimizada)</span>
+                                     </div>
+                                  </div>
+                                  <button type="button" onClick={() => {
+                                     let s: any = { days: [] as number[], time: "19:00" };
+                                     try { const p2 = JSON.parse(newCourse.description || '{}'); if (p2.days) s = p2; } catch(e){}
+                                     s.cover_url = "";
+                                     setNewCourse({...newCourse, description: JSON.stringify(s)});
+                                  }} className="absolute top-3 right-3 p-2 bg-black/60 hover:bg-rose-500 border border-white/10 hover:border-rose-400 text-white rounded-lg backdrop-blur-md transition-all shadow-lg pointer-events-auto" title="Excluir Imagem">
+                                     <Trash2 className="size-4" />
+                                  </button>
+                               </div>
+                             );
+                          }
+                       } catch(e) {} 
+                       return null; 
+                    })()}
                   </div>
                 )}
               </div>
@@ -5399,28 +5520,58 @@ export function PosStudies() {
                     placeholder="https://... (Deixe em branco para usar a capa principal)"
                   />
                 ) : (
-                  <div className="flex items-center gap-3">
-                    <button type="button" onClick={() => portraitInputRef.current?.click()} className="flex items-center gap-2 px-4 py-3 bg-[#1A1A1E] border border-[rgba(255,255,255,0.06)] rounded-xl text-sm font-bold text-white hover:border-cyan-500 transition-colors flex-1 justify-center shadow-inner">
-                       <UploadCloud className="size-5 text-cyan-500" /> 
-                       {(() => { try { const p = JSON.parse(newCourse.description || '{}'); return p.portrait_url?.startsWith('data:image') ? "Trocar Foto Retrato..." : "Selecionar Foto Retrato..."; } catch(e){ return "Selecionar Foto Retrato..."; } })()}
+                  <div className="flex flex-col gap-3">
+                    <button type="button" onClick={() => portraitInputRef.current?.click()} disabled={isUploading} className="flex items-center gap-2 px-4 py-3 bg-[#1A1A1E] border border-dashed border-white/20 rounded-xl text-sm font-bold text-white hover:border-cyan-500 hover:bg-cyan-500/5 transition-all w-full justify-center shadow-inner">
+                       {isUploading ? <Loader2 className="size-5 text-cyan-500 animate-spin" /> : <UploadCloud className="size-5 text-cyan-500" />} 
+                       {isUploading ? "Carregando..." : "Selecionar Foto Retrato do Computador..."}
                     </button>
-                    {(() => { try { const p = JSON.parse(newCourse.description || '{}'); return p.portrait_url?.startsWith('data:image') ? <div className="h-[46px] w-[34px] rounded-lg overflow-hidden shrink-0 border border-white/10"><img src={p.portrait_url} className="w-full h-full object-cover"/></div> : null; } catch(e){ return null; } })()}
                     <input 
                        type="file" accept="image/*" ref={portraitInputRef} className="hidden"
-                       onChange={e => {
+                       onChange={async e => {
                           const file = e.target.files?.[0];
                           if (file) {
-                             const reader = new FileReader();
-                             reader.onload = (ev) => {
+                             setIsUploading(true);
+                             try {
+                                const compressedDataUrl = await compressImage(file, 800, 1200, 0.75);
                                 let s: any = { days: [] as number[], time: "19:00" };
                                 try { const p = JSON.parse(newCourse.description || '{}'); if (p.days) s = p; } catch(err){}
-                                s.portrait_url = ev.target?.result as string;
+                                s.portrait_url = compressedDataUrl;
                                 setNewCourse({...newCourse, description: JSON.stringify(s)});
-                             };
-                             reader.readAsDataURL(file);
+                             } catch(err) {
+                                console.error('Error compressing image:', err);
+                             } finally {
+                                setIsUploading(false);
+                             }
                           }
                        }}
                     />
+                    {(() => { 
+                       try { 
+                          const p = JSON.parse(newCourse.description || '{}'); 
+                          if (p.portrait_url && p.portrait_url.startsWith('data:image')) {
+                             return (
+                               <div className="relative w-32 aspect-[2/3] mx-auto rounded-xl overflow-hidden bg-black border border-white/10 mt-2 shadow-lg">
+                                  <img src={p.portrait_url} className="w-full h-full object-cover opacity-90" />
+                                  <div className="absolute bottom-0 inset-x-0 bg-gradient-to-t from-black/90 to-transparent p-3 flex items-end justify-between pointer-events-none">
+                                     <div className="flex flex-col gap-0.5">
+                                        <span className="text-white font-bold text-[10px] uppercase tracking-widest flex items-center gap-1.5"><CheckCircle className="size-3 text-emerald-400"/> Capa</span>
+                                        <span className="text-cyan-400/80 text-[9px] font-bold">{Math.round((p.portrait_url.length * 3 / 4) / 1024)} KB</span>
+                                     </div>
+                                  </div>
+                                  <button type="button" onClick={() => {
+                                     let s: any = { days: [] as number[], time: "19:00" };
+                                     try { const p2 = JSON.parse(newCourse.description || '{}'); if (p2.days) s = p2; } catch(e){}
+                                     s.portrait_url = "";
+                                     setNewCourse({...newCourse, description: JSON.stringify(s)});
+                                  }} className="absolute top-2 right-2 p-1.5 bg-black/60 hover:bg-rose-500 border border-white/10 hover:border-rose-400 text-white rounded-lg backdrop-blur-md transition-all shadow-lg pointer-events-auto" title="Excluir Imagem">
+                                     <Trash2 className="size-3.5" />
+                                  </button>
+                               </div>
+                             );
+                          }
+                       } catch(e) {} 
+                       return null; 
+                    })()}
                   </div>
                 )}
               </div>
@@ -5814,6 +5965,8 @@ export function PosStudies() {
             </div>
           </div>
         </div>
+      )}
+      </>
       )}
 
     </div>
