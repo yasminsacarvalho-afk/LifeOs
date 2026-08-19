@@ -1,4 +1,5 @@
 import React, { useState, useEffect, Fragment } from "react";
+import { createPortal } from "react-dom";
 import { usePosStudies } from "@/hooks/use-pos-studies";
 import { usePosLibrary } from "@/hooks/use-pos-library";
 import { 
@@ -867,7 +868,7 @@ export function PosStudies() {
     }
 
     return (
-      <div className="animate-in fade-in slide-in-from-bottom-4 duration-500">
+      <div className="animate-in fade-in  duration-500">
       {/* Superior KPIs */}
       <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-8 gap-3 mb-6">
         <KpiCard icon={<Zap className="size-4 text-cyan-400"/>} label="Nível" value={`Lvl ${userLevel}`} />
@@ -1059,7 +1060,7 @@ export function PosStudies() {
        </div>
 
        {/* Últimos Escritos (Estúdio) */}
-       <div className="mt-16 animate-in fade-in slide-in-from-bottom-4 duration-500 delay-100">
+       <div className="mt-16 animate-in fade-in  duration-500 delay-100">
            <div className="flex items-center justify-between mb-6">
              <h3 className="text-xl md:text-2xl font-black text-white flex items-center gap-3">
                <div className="p-2.5 bg-indigo-500/10 border border-indigo-500/20 rounded-xl shadow-[0_0_20px_rgba(99,102,241,0.1)]"><Edit3 className="size-5 text-indigo-500" /></div>
@@ -1101,7 +1102,7 @@ export function PosStudies() {
        </div>
 
        {/* O Ecossistema (Áreas, Professores, Canais) */}
-       <div className="mt-16 animate-in fade-in slide-in-from-bottom-4 duration-500 delay-200">
+       <div className="mt-16 animate-in fade-in  duration-500 delay-200">
            <div className="flex items-center justify-between mb-8">
              <h3 className="text-xl md:text-2xl font-black text-white flex items-center gap-3">
                <div className="p-2.5 bg-emerald-500/10 border border-emerald-500/20 rounded-xl shadow-[0_0_20px_rgba(16,185,129,0.1)]"><Globe className="size-5 text-emerald-500" /></div>
@@ -1184,7 +1185,7 @@ export function PosStudies() {
            </div>
        </div>
 
-       {selectedOverviewChannel && (
+       {selectedOverviewChannel && (createPortal(
          <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
            <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={() => setSelectedOverviewChannel(null)}></div>
            <div className="bg-[#111113] border border-white/10 rounded-3xl p-6 md:p-8 relative z-10 w-full max-w-2xl shadow-[0_0_50px_rgba(0,0,0,0.5)] animate-in fade-in zoom-in-95 duration-200">
@@ -1275,9 +1276,9 @@ export function PosStudies() {
              </div>
            </div>
          </div>
-       )}
+       ), document.body)}
 
-       {selectedOverviewMentor && (
+       {selectedOverviewMentor && (createPortal(
          <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
            <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={() => setSelectedOverviewMentor(null)}></div>
            <div className="bg-[#111113] border border-white/10 rounded-3xl p-6 md:p-8 relative z-10 w-full max-w-2xl shadow-[0_0_50px_rgba(0,0,0,0.5)] animate-in fade-in zoom-in-95 duration-200">
@@ -1347,7 +1348,7 @@ export function PosStudies() {
              </div>
            </div>
          </div>
-       )}
+       ), document.body)}
 
     </div>
     );
@@ -1387,7 +1388,7 @@ export function PosStudies() {
     }, 0);
 
     return (
-      <div className="animate-in fade-in slide-in-from-bottom-4 duration-500 space-y-6">
+      <div className="animate-in fade-in  duration-500 space-y-6">
         <div className="bg-[#0A0A0A] p-6 md:p-10 rounded-3xl border border-indigo-500/20 shadow-[0_0_40px_rgba(99,102,241,0.1)] relative overflow-hidden">
           <div className="absolute top-0 right-0 p-32 bg-indigo-500/10 blur-[120px] w-96 h-96 rounded-full pointer-events-none"></div>
           
@@ -1459,7 +1460,7 @@ export function PosStudies() {
   };
 
   const renderCoursesList = () => (
-    <div className="animate-in fade-in slide-in-from-bottom-4 duration-500">
+    <div className="animate-in fade-in  duration-500">
        <div className="flex flex-col sm:flex-row gap-4 mb-6 justify-between items-center">
          <div className="relative w-full max-w-md">
            <Search className="size-4 absolute left-3 top-1/2 -translate-y-1/2 text-[#71717A]" />
@@ -1615,7 +1616,7 @@ export function PosStudies() {
               }, {} as Record<string, typeof courses>);
 
               return (
-                 <div className="space-y-12 animate-in fade-in slide-in-from-bottom-4 duration-500">
+                 <div className="space-y-12 animate-in fade-in  duration-500">
                     {Object.entries(grouped).map(([area, areaCourses]) => (
                        <div key={area} className="space-y-4">
                           <h3 className="text-xl md:text-2xl font-black text-white px-3 border-l-4 border-cyan-500 flex items-center gap-2">
@@ -2142,7 +2143,7 @@ export function PosStudies() {
                   </div>
                </div>
 
-               {selectedCalendarDay && (
+               {selectedCalendarDay && (createPortal(
                  <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
                    <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={() => setSelectedCalendarDay(null)}></div>
                    <div className="bg-[#111113] border border-white/10 rounded-3xl p-6 md:p-8 relative z-10 w-full max-w-lg shadow-[0_0_50px_rgba(0,0,0,0.5)] animate-in fade-in zoom-in-95 duration-200">
@@ -2208,7 +2209,7 @@ export function PosStudies() {
                      </div>
                    </div>
                  </div>
-               )}
+               ), document.body)}
              </>
            );
          }
@@ -2233,7 +2234,7 @@ export function PosStudies() {
       }
 
       return (
-        <div className="animate-in fade-in slide-in-from-bottom-8 duration-700 flex flex-col min-h-screen pb-20 w-full max-w-[1200px] mx-auto">
+        <div className="animate-in fade-in  duration-700 flex flex-col min-h-screen pb-20 w-full max-w-[1200px] mx-auto">
            <button onClick={() => setSelectedCourseId(null)} className="flex items-center gap-2 text-sm font-bold text-[#A1A1AA] hover:text-white transition-all w-fit mb-6 mt-2 group bg-white/5 hover:bg-white/10 px-4 py-2 rounded-full border border-white/5 backdrop-blur-md">
              <ArrowLeft className="size-4 group-hover:-translate-x-1 transition-transform" /> Voltar
            </button>
@@ -2324,7 +2325,7 @@ export function PosStudies() {
     } catch(e){}
 
     return (
-      <div className="animate-in fade-in slide-in-from-right-8 duration-500 flex flex-col min-h-screen">
+      <div className="animate-in fade-in  duration-500 flex flex-col min-h-screen">
         
         {/* Universal Top Controls: Back Button and Sub-tabs */}
         <div className="flex flex-col gap-4 mb-6">
@@ -2475,7 +2476,7 @@ export function PosStudies() {
 
             {/* Sub-tab content real sessions */}
              {courseTab === "Visão Geral" && (
-               <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-300">
+               <div className="space-y-6 animate-in fade-in  duration-300">
                   {/* Minimal Header for Visão Geral Context */}
                   <div className="flex flex-col md:flex-row justify-between md:items-end gap-4 pb-4 border-b border-white/5">
                     <div>
@@ -2915,7 +2916,7 @@ export function PosStudies() {
              )}
 
              {courseTab === "Módulos" && (
-               <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-300">
+               <div className="space-y-6 animate-in fade-in  duration-300">
                   
                   {/* OBRAS BASE (LIVROS) */}
                   <div className="bg-[#111113] border border-[rgba(255,255,255,0.04)] rounded-2xl p-6 shadow-lg relative z-20">
@@ -3205,7 +3206,7 @@ export function PosStudies() {
                               })}
                             </div>
                           ) : (
-                            <div className="space-y-6 animate-in fade-in slide-in-from-right-4 duration-300">
+                            <div className="space-y-6 animate-in fade-in  duration-300">
                               <button onClick={() => setActiveModuleIndex(null)} className="flex items-center gap-2 text-xs font-bold text-[#A1A1AA] hover:text-white transition-colors mb-2 w-fit bg-white/5 px-3 py-2 rounded-lg border border-white/10 hover:border-white/20">
                                 <ArrowLeft className="size-4" /> Voltar para Grade de Módulos
                               </button>
@@ -3370,7 +3371,7 @@ export function PosStudies() {
                                       </div>
                                       
                                       {/* EXPANDED WORKSPACE MODAL */}
-                                      {expandedTopicId === (topic.id || tIdx) && (
+                                      {expandedTopicId === (topic.id || tIdx) && (createPortal(
                                         <div className="fixed inset-0 z-[100] flex items-center justify-center p-0 lg:p-4 bg-black/90 backdrop-blur-xl animate-in fade-in zoom-in-95 duration-200" onClick={(e) => { e.stopPropagation(); setExpandedTopicId(null); }}>
                                           <div className="bg-[#0A0A0C] border-0 lg:border border-white/5 rounded-none lg:rounded-3xl p-3 lg:p-8 w-full max-w-[100vw] lg:max-w-[90vw] h-[100dvh] lg:h-[95vh] flex flex-col gap-3 lg:gap-6 shadow-2xl relative overflow-hidden shadow-cyan-900/20" onClick={(e) => e.stopPropagation()}>
                                             
@@ -3457,7 +3458,7 @@ export function PosStudies() {
                                             {/* Header do Modal */}
                                             <div className={cn("flex flex-col sm:flex-row sm:items-center justify-between gap-4 relative z-10 transition-all duration-300", isWorkspaceHeaderOpen ? "pb-6 border-b border-white/5" : "pb-0 mb-2 justify-end")}>
                                               {isWorkspaceHeaderOpen && (
-                                                <div className="animate-in fade-in slide-in-from-top-2 duration-300">
+                                                <div className="animate-in fade-in  duration-300">
                                                   <div className="flex items-center gap-3 mb-2">
                                                      <span className="px-2 py-1 bg-cyan-500/10 text-cyan-400 text-[10px] uppercase font-black tracking-widest rounded border border-cyan-500/20 flex items-center gap-1.5 shadow-[0_0_10px_rgba(6,182,212,0.15)]"><Layers className="size-3" /> WORKSPACE</span>
                                                      <span className="text-[10px] text-[#A1A1AA] font-bold uppercase tracking-widest flex items-center gap-1.5"><FolderOpen className="size-3" /> {mod.title}</span>
@@ -3520,7 +3521,7 @@ export function PosStudies() {
                                                         </div>
                                                         
                                                         {activeSettingsTopicIdx === idx && (
-                                                          <div className="p-4 bg-[#0A0A0C] border-b border-white/5 flex flex-col gap-4 animate-in fade-in slide-in-from-top-2 duration-200">
+                                                          <div className="p-4 bg-[#0A0A0C] border-b border-white/5 flex flex-col gap-4 animate-in fade-in  duration-200">
                                                             <div className="flex flex-col gap-2">
                                                               <div className="flex items-center justify-between">
                                                                 <label className="text-[10px] font-bold text-[#A1A1AA] uppercase tracking-widest">Tamanho (Altura Máxima)</label>
@@ -3777,7 +3778,7 @@ export function PosStudies() {
                                                 )}
                                               </div>
                                               {isSidebarOpen && (
-                                                <div className={cn("w-full lg:w-[320px] xl:w-[350px] shrink-0 bg-gradient-to-b from-[#111113]/95 to-[#0A0A0C]/95 backdrop-blur-2xl p-5 rounded-3xl border border-[rgba(255,255,255,0.06)] shadow-[0_8px_32px_rgba(0,0,0,0.4)] overflow-y-auto custom-scrollbar animate-in slide-in-from-right-4 fade-in duration-300 lg:flex flex-col gap-6", mobileWorkspaceTab === "resources" ? "flex" : "hidden", desktopFocusMode !== "both" ? "lg:hidden" : "lg:flex")}>
+                                                <div className={cn("w-full lg:w-[320px] xl:w-[350px] shrink-0 bg-gradient-to-b from-[#111113]/95 to-[#0A0A0C]/95 backdrop-blur-2xl p-5 rounded-3xl border border-[rgba(255,255,255,0.06)] shadow-[0_8px_32px_rgba(0,0,0,0.4)] overflow-y-auto custom-scrollbar animate-in  fade-in duration-300 lg:flex flex-col gap-6", mobileWorkspaceTab === "resources" ? "flex" : "hidden", desktopFocusMode !== "both" ? "lg:hidden" : "lg:flex")}>
                                                   <div className="flex items-center justify-between pb-4 border-b border-[rgba(255,255,255,0.06)] relative shrink-0">
                                                     <div className="absolute bottom-0 left-0 w-16 h-[1px] bg-gradient-to-r from-cyan-500 to-transparent"></div>
                                                     <div className="flex items-center gap-3">
@@ -4358,7 +4359,7 @@ export function PosStudies() {
                                             </div>
                                           </div>
                                         </div>
-                                      )}
+                                      ), document.body)}
                                     </div>
                                   ))}
                                 </div>
@@ -4375,8 +4376,8 @@ export function PosStudies() {
              )}
 
              {courseTab === "Videoteca" && (
-                <div className="space-y-4 animate-in fade-in slide-in-from-bottom-4 duration-300">
-                  {activeVideotecaVideos.length > 0 ? (
+                <div className="space-y-4 animate-in fade-in  duration-300">
+                  {activeVideotecaVideos.length > 0 ? (createPortal(
                     <div className="fixed inset-0 z-[200] bg-[#050505] overflow-y-auto w-full h-full p-4 md:p-8 flex flex-col gap-4 animate-in fade-in zoom-in-95 duration-300">
                       {/* WORKSPACE HEADER */}
                       <div className="flex items-center justify-between bg-[#1A1A1E] p-4 rounded-xl border border-[rgba(255,255,255,0.06)]">
@@ -4426,7 +4427,7 @@ export function PosStudies() {
                               </div>
                               
                               {activeSettingsVideotecaIdx === idx && (
-                                <div className="p-4 bg-[#0A0A0C] border-b border-white/5 flex flex-col gap-4 animate-in fade-in slide-in-from-top-2 duration-200">
+                                <div className="p-4 bg-[#0A0A0C] border-b border-white/5 flex flex-col gap-4 animate-in fade-in  duration-200">
                                   <div className="flex flex-col gap-2">
                                     <div className="flex items-center justify-between">
                                       <label className="text-[10px] font-bold text-[#A1A1AA] uppercase tracking-widest">Tamanho (Altura Máxima)</label>
@@ -4536,7 +4537,7 @@ export function PosStudies() {
                         </div>
                       </div>
                     </div>
-                  ) : (
+                  ) : (, document.body)
                     <>
                       <div className="flex justify-between items-center mb-4">
                         <h4 className="text-sm font-bold text-white uppercase tracking-widest flex items-center gap-2">
@@ -4548,7 +4549,7 @@ export function PosStudies() {
                       </div>
                   
                   {isAddingChannel && (
-                    <div className="bg-[#111113] border border-[rgba(255,255,255,0.06)] p-4 rounded-xl flex flex-col sm:flex-row gap-4 animate-in fade-in slide-in-from-top-2 mb-4">
+                    <div className="bg-[#111113] border border-[rgba(255,255,255,0.06)] p-4 rounded-xl flex flex-col sm:flex-row gap-4 animate-in fade-in  mb-4">
                       <input 
                         type="text" placeholder="Nome do Canal (Ex: Curso em Vídeo)"
                         value={newChannel.name} onChange={e => setNewChannel({...newChannel, name: e.target.value})}
@@ -4708,7 +4709,7 @@ export function PosStudies() {
           )}
 
              {courseTab === "Diário de Bordo" && (
-               <div className="space-y-4 animate-in fade-in slide-in-from-bottom-4 duration-300">
+               <div className="space-y-4 animate-in fade-in  duration-300">
                   <div className="flex justify-between items-center mb-2">
                     <h4 className="text-sm font-bold text-white uppercase tracking-widest">Sessões Realizadas</h4>
                     <span className="text-[10px] text-[#A1A1AA] bg-[#111113] px-2 py-1 rounded-md border border-white/5">{sessions.filter(s => s.course_id === selectedCourse.id).length} registros</span>
@@ -5126,7 +5127,7 @@ export function PosStudies() {
       )}
 
       {/* MODAL ÁREA VER TODOS */}
-      {areaModalData && (
+      {areaModalData && (createPortal(
         <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
           <div className="absolute inset-0 bg-black/80 backdrop-blur-sm" onClick={() => setAreaModalData(null)}></div>
           <div className="relative bg-[#0A0A0C] border border-white/10 rounded-3xl w-full max-w-6xl max-h-[90vh] flex flex-col shadow-2xl animate-in zoom-in-95 duration-300 overflow-hidden">
@@ -5262,10 +5263,10 @@ export function PosStudies() {
             </div>
           </div>
         </div>
-      )}
+      ), document.body)}
 
       {/* MODAL CRIAÇÃO REAL */}
-      {isCreatingCourse && (
+      {isCreatingCourse && (createPortal(
         <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-in fade-in">
           <form onSubmit={handleCreateCourse} className="bg-[#111113] border border-[rgba(255,255,255,0.1)] rounded-3xl p-6 md:p-8 shadow-2xl w-full max-w-3xl relative animate-in zoom-in-95 duration-200 max-h-[90vh] overflow-y-auto custom-scrollbar">
             <button type="button" onClick={() => { setIsCreatingCourse(false); setIsEditingCourse(false); setNewCourse(initialCourseState); }} className="absolute top-6 right-6 text-[#71717A] hover:text-white bg-white/5 p-2 rounded-full transition-colors"><X className="size-4"/></button>
@@ -5690,7 +5691,7 @@ export function PosStudies() {
             </div>
           </form>
         </div>
-      )}
+      ), document.body)}
 
       {/* CONTENT ROUTING */}
       {selectedCourseId ? (
@@ -5704,9 +5705,9 @@ export function PosStudies() {
       )}
 
       {/* MODAL SELECIONAR SEGUNDO VÍDEO */}
-      {isSelectingSecondVideo && (
+      {isSelectingSecondVideo && (createPortal(
         <div className="fixed inset-0 z-[100] flex items-end sm:items-center justify-center bg-black/60 backdrop-blur-sm sm:p-4">
-          <div className="bg-[#111113] border border-[rgba(255,255,255,0.1)] rounded-t-3xl sm:rounded-3xl p-6 md:p-8 shadow-2xl w-full max-w-2xl relative animate-in slide-in-from-bottom duration-300 flex flex-col max-h-[90vh]">
+          <div className="bg-[#111113] border border-[rgba(255,255,255,0.1)] rounded-t-3xl sm:rounded-3xl p-6 md:p-8 shadow-2xl w-full max-w-2xl relative animate-in  duration-300 flex flex-col max-h-[90vh]">
             <button type="button" onClick={() => setIsSelectingSecondVideo(false)} className="absolute top-6 right-6 text-[#71717A] hover:text-white bg-white/5 p-2 rounded-full transition-colors"><X className="size-4"/></button>
             
             <h3 className="text-xl font-bold text-white mb-6 flex items-center gap-2">
@@ -5775,12 +5776,12 @@ export function PosStudies() {
             </div>
           </div>
         </div>
-      )}
+      ), document.body)}
 
       {/* MODAL REGISTRO DE SESSÃO */}
-      {isLoggingSession && (
+      {isLoggingSession && (createPortal(
         <div className="fixed inset-0 z-[100] flex items-end sm:items-center justify-center bg-black/60 backdrop-blur-sm sm:p-4">
-          <form onSubmit={handleLogSession} className="bg-[#111113] border border-[rgba(255,255,255,0.1)] rounded-t-3xl sm:rounded-3xl p-6 md:p-8 shadow-2xl w-full max-w-lg relative animate-in slide-in-from-bottom duration-300">
+          <form onSubmit={handleLogSession} className="bg-[#111113] border border-[rgba(255,255,255,0.1)] rounded-t-3xl sm:rounded-3xl p-6 md:p-8 shadow-2xl w-full max-w-lg relative animate-in  duration-300">
             <button type="button" onClick={() => setIsLoggingSession(false)} className="absolute top-6 right-6 text-[#71717A] hover:text-white bg-white/5 p-2 rounded-full transition-colors"><X className="size-4"/></button>
             <h3 className="text-xl font-bold text-white mb-6 border-b border-[rgba(255,255,255,0.06)] pb-4 flex items-center gap-2">
                <FileText className="size-5 text-cyan-500" /> Registrar Sessão de Estudo
@@ -5832,14 +5833,14 @@ export function PosStudies() {
             </div>
           </form>
         </div>
-      )}
+      ), document.body)}
 
 
       {/* Preview Reference Overlay */}
       {/* MODAL PUXAR REFERÊNCIA */}
-      {referenceModalTarget && (
+      {referenceModalTarget && (createPortal(
         <div className="fixed inset-0 z-[100] flex items-end sm:items-center justify-center bg-black/60 backdrop-blur-sm sm:p-4">
-          <div className="bg-[#111113] border border-[rgba(255,255,255,0.1)] rounded-t-3xl sm:rounded-3xl p-6 md:p-8 shadow-2xl w-full max-w-2xl relative animate-in slide-in-from-bottom duration-300 flex flex-col max-h-[90vh]">
+          <div className="bg-[#111113] border border-[rgba(255,255,255,0.1)] rounded-t-3xl sm:rounded-3xl p-6 md:p-8 shadow-2xl w-full max-w-2xl relative animate-in  duration-300 flex flex-col max-h-[90vh]">
             <button type="button" onClick={() => setReferenceModalTarget(null)} className="absolute top-6 right-6 text-[#71717A] hover:text-white bg-white/5 p-2 rounded-full transition-colors"><X className="size-4"/></button>
             
             <h3 className="text-xl font-bold text-white mb-2 flex items-center gap-2">
@@ -5922,7 +5923,7 @@ export function PosStudies() {
             </div>
           </div>
         </div>
-      )}
+      ), document.body)}
 
       {previewReference && (
         <div className={`fixed z-[9999] transition-all duration-300 ${isPreviewMinimized ? 'bottom-4 right-4 w-[384px] rounded-xl shadow-2xl border border-white/10' : 'inset-0 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm'}`}>
@@ -5982,7 +5983,7 @@ export function PosStudies() {
       )}
 
       {/* GLOBAL SEARCH MODAL */}
-      {isGlobalSearchOpen && (
+      {isGlobalSearchOpen && (createPortal(
         <div className="fixed inset-0 z-[99999] flex items-start justify-center pt-[15vh] p-4 bg-black/60 backdrop-blur-md" onClick={() => setIsGlobalSearchOpen(false)}>
           <div className="bg-[#0A0A0C] border border-white/10 rounded-2xl w-full max-w-3xl flex flex-col shadow-2xl animate-in zoom-in-95 duration-200 overflow-hidden" onClick={e => e.stopPropagation()}>
             <div className="relative flex items-center px-4 border-b border-white/5 bg-[#111113]">
@@ -6070,7 +6071,7 @@ export function PosStudies() {
             </div>
           </div>
         </div>
-      )}
+      ), document.body)}
       </>
       )}
 
