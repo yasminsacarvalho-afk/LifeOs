@@ -2331,23 +2331,28 @@ export function PosStudies() {
            <button onClick={() => setSelectedCourseId(null)} className="flex items-center gap-2 text-xs font-bold text-[#A1A1AA] hover:text-white transition-colors w-fit">
              <ArrowLeft className="size-4" /> Voltar para Trilha
            </button>
-           <div className="flex items-center gap-2 border-b border-[rgba(255,255,255,0.06)] pb-2 overflow-x-auto hide-scrollbar">
-              {["Visão Geral", "Módulos", "Videoteca", "Diário de Bordo", "Inteligência Artificial"].map(tab => (
-                <button 
-                  key={tab}
-                  onClick={() => setCourseTab(tab)}
-                  className={cn("px-4 py-2 rounded-lg text-sm font-bold transition-all whitespace-nowrap", courseTab === tab ? "bg-white/10 text-white" : "text-[#71717A] hover:text-white")}
-                >
-                  {tab === "Inteligência Artificial" ? <span className="flex items-center gap-2"><Sparkles className="size-4 text-cyan-400" /> IA</span> : 
-                   tab === "Videoteca" ? <span className="flex items-center gap-2"><Video className="size-4 text-rose-500" /> {tab}</span> : tab}
-                </button>
-              ))}
+           <div className="flex flex-col xl:flex-row xl:items-center justify-between gap-4 border-b border-[rgba(255,255,255,0.06)] pb-2">
+             <div className="flex items-center gap-2 overflow-x-auto hide-scrollbar">
+                {["Visão Geral", "Módulos", "Videoteca", "Diário de Bordo", "Inteligência Artificial"].map(tab => (
+                  <button 
+                    key={tab}
+                    onClick={() => setCourseTab(tab)}
+                    className={cn("px-4 py-2 rounded-lg text-sm font-bold transition-all whitespace-nowrap", courseTab === tab ? "bg-white/10 text-white" : "text-[#71717A] hover:text-white")}
+                  >
+                    {tab === "Inteligência Artificial" ? <span className="flex items-center gap-2"><Sparkles className="size-4 text-cyan-400" /> IA</span> : 
+                     tab === "Videoteca" ? <span className="flex items-center gap-2"><Video className="size-4 text-rose-500" /> {tab}</span> : tab}
+                  </button>
+                ))}
+             </div>
+             <button onClick={() => setIsLoggingSession(true)} className="shrink-0 px-5 py-2 bg-cyan-600 hover:bg-cyan-500 text-white rounded-xl text-sm font-bold shadow-lg shadow-cyan-500/20 flex items-center justify-center gap-2 transition-all self-start xl:self-auto">
+               <Play className="size-4 fill-white" /> Registrar Sessão
+             </button>
            </div>
         </div>
 
         <div className={courseTab === "Visão Geral" ? "w-full" : "flex flex-col lg:flex-row gap-6 items-start"}>
           <div className="flex-1 w-full flex flex-col gap-6">
-            {courseTab !== "Visão Geral" && (
+            {courseTab === "Visão Geral" && (
           <div className="bg-[#111113] border border-[rgba(255,255,255,0.04)] rounded-3xl overflow-hidden shadow-2xl mb-6 relative group">
              {/* Background Cover Image with Gradients */}
              {coverUrl ? (
@@ -2480,7 +2485,10 @@ export function PosStudies() {
                          <span className="px-2.5 py-1 bg-[#1A1A1E] text-[#A1A1AA] rounded-lg text-[10px] font-bold uppercase tracking-widest border border-white/5">{selectedCourse.category}</span>
                       </div>
                     </div>
-                    <div className="flex gap-2">
+                    <div className="flex flex-wrap items-center gap-2 mt-4 md:mt-0">
+                      <button onClick={() => setIsLoggingSession(true)} className="px-5 py-2 bg-cyan-600 hover:bg-cyan-500 text-white rounded-xl text-sm font-bold shadow-lg shadow-cyan-500/20 flex items-center justify-center gap-2 transition-all mr-2">
+                        <Play className="size-4 fill-white" /> Registrar Sessão
+                      </button>
                       <button 
                         onClick={handleExportNotesToDrive}
                         className="p-2 bg-[#111113] hover:bg-[#1A1A1E] rounded-xl text-emerald-400 border border-emerald-500/20 transition-colors shadow-sm"

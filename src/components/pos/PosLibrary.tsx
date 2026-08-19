@@ -1110,6 +1110,13 @@ Link original: ${book.buy_link || ''}`;
                       )}
                       <input type="file" accept="image/*" onChange={(e) => handleImageUpload(e, false)} disabled={isUploadingImage} className="absolute inset-0 opacity-0 cursor-pointer z-20" />
                     </div>
+                    <input 
+                      type="text" 
+                      placeholder="Ou URL da imagem" 
+                      value={newBook.cover_url} 
+                      onChange={(e) => setNewBook({...newBook, cover_url: e.target.value})} 
+                      className="w-full mt-2 bg-[#1A1A1E] border border-[rgba(255,255,255,0.06)] rounded-xl px-3 py-1.5 text-[10px] text-white focus:border-rose-500 focus:outline-none transition-colors" 
+                    />
                   </div>
                   <div className="grid grid-cols-2 gap-4">
                     <div>
@@ -1355,6 +1362,13 @@ Link original: ${book.buy_link || ''}`;
                         <input type="file" accept="image/*" onChange={(e) => handleImageUpload(e, true)} disabled={isUploadingImage} className="absolute inset-0 opacity-0 cursor-pointer z-20" title="Alterar Capa" />
                      </div>
                      <div className="flex-1">
+                       <input 
+                         type="text" 
+                         placeholder="URL da Capa (Opcional)" 
+                         value={editBookData.cover_url || ''} 
+                         onChange={(e) => setEditBookData({...editBookData, cover_url: e.target.value})} 
+                         className="w-full mb-3 bg-[#1A1A1E] border border-[rgba(255,255,255,0.06)] rounded-lg text-sm px-3 py-2 text-white focus:outline-none focus:border-rose-500" 
+                       />
                        <label className="text-[11px] uppercase font-bold text-[#71717A] mb-1 block">Título</label>
                        <input type="text" value={editBookData.title} onChange={e => setEditBookData({...editBookData, title: e.target.value})} className="w-full bg-[#1A1A1E] border border-[rgba(255,255,255,0.06)] rounded-lg text-sm px-3 py-3 text-white focus:outline-none focus:border-rose-500" />
                      </div>
