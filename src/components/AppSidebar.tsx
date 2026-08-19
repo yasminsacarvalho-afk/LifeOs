@@ -1,5 +1,5 @@
 import { Link, useRouterState } from "@tanstack/react-router";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import {
   LayoutDashboard,
   Radar,
@@ -110,6 +110,26 @@ export function AppSidebar() {
   const [activeTab, setActiveTab] = useState<'profissional' | 'pessoal'>('profissional');
   const [isHovered, setIsHovered] = useState(false);
   const [isPinned, setIsPinned] = useState(false);
+  const isHoveringDock = useRef(false);
+
+  useEffect(() => {
+    const handleMouseMove = (e: MouseEvent) => {
+      // Aplica apenas em desktop
+      if (window.innerWidth < 768) return;
+      
+      // Se o mouse estiver a 90px do fundo, mostra o dock
+      // Isso previne que barras de tarefas do SO (como no Linux ou Mac) bloqueiem a área de hover
+      if (window.innerHeight - e.clientY < 90) {
+        setIsHovered(true);
+      } else if (!isHoveringDock.current) {
+        // Se o mouse se afastar e não estivermos sobre o dock, esconde
+        setIsHovered(false);
+      }
+    };
+
+    window.addEventListener("mousemove", handleMouseMove);
+    return () => window.removeEventListener("mousemove", handleMouseMove);
+  }, []);
 
   useEffect(() => {
     if (pathname.startsWith('/academy')) {
@@ -141,11 +161,7 @@ export function AppSidebar() {
 
   return (
     <>
-      {/* Trigger area para o dock no desktop */}
-      <div
-        className="fixed bottom-0 left-0 right-0 h-6 z-30 hidden md:block"
-        onMouseEnter={() => setIsHovered(true)}
-      />
+      {/* O trigger estático foi substituído pelo global mousemove listener para evitar conflitos com docks do SO */}
 
       {/* Mobile Bottom Navigation Bar */}
       <div className="md:hidden fixed bottom-0 left-0 right-0 h-[calc(4rem+env(safe-area-inset-bottom))] pb-[env(safe-area-inset-bottom)] bg-[#0A0A0C]/95 backdrop-blur-sm border-t border-[rgba(255,255,255,0.08)] z-[90] flex items-center justify-around px-1 shadow-[0_-10px_30px_rgba(0,0,0,0.5)]">
@@ -179,12 +195,18 @@ export function AppSidebar() {
       <div
         className={cn(
           "fixed z-40 transition-all duration-300 ease-out flex justify-center",
-          "md:bottom-6 md:left-1/2 md:-translate-x-1/2 w-full md:max-w-4xl",
+          "md:bottom-0 md:pb-6 md:left-1/2 md:-translate-x-1/2 w-full md:max-w-4xl",
           "bottom-[calc(5rem+env(safe-area-inset-bottom))] left-0 px-2 md:px-0",
           isVisible ? "translate-y-0 opacity-100 pointer-events-auto" : "translate-y-[150%] opacity-0 pointer-events-none"
         )}
-        onMouseEnter={() => setIsHovered(true)}
-        onMouseLeave={() => setIsHovered(false)}
+        onMouseEnter={() => {
+          isHoveringDock.current = true;
+          setIsHovered(true);
+        }}
+        onMouseLeave={() => {
+          isHoveringDock.current = false;
+          setIsHovered(false);
+        }}
       >
         <nav className="w-full rounded-2xl border border-[rgba(255,255,255,0.1)] bg-[#111113]/95 backdrop-blur-md shadow-[0_20px_40px_-10px_rgba(0,0,0,0.8)] overflow-hidden flex flex-col max-h-[60vh] md:max-h-none">
           <div className="flex justify-between items-center border-b border-white/5 bg-black/40 p-1.5 px-3">

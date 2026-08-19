@@ -1,4 +1,5 @@
 import React, { useState, useMemo } from 'react';
+import { createPortal } from 'react-dom';
 import { PosBook, PosReadingSession } from '@/hooks/use-pos-library';
 import { ChevronDown, ChevronUp, Users, BookOpen, Clock, FileText, Star, Quote, Award, Calendar, ChevronRight, Bookmark, Search, UserCircle2, Brain, TrendingUp, X } from 'lucide-react';
 import { cn } from '@/lib/utils';
@@ -220,7 +221,7 @@ export function PosLibraryAuthorsSummary({ books, sessions }: { books: PosBook[]
         )}
       </div>
 
-{isModalOpen && (
+{isModalOpen && createPortal(
          <div className="fixed inset-0 z-[200] flex items-center justify-center bg-black/80 backdrop-blur-sm p-4 animate-in fade-in">
             <div className="bg-[#0A0A0C] w-full max-w-5xl max-h-[90vh] overflow-y-auto rounded-3xl border border-[rgba(255,255,255,0.1)] p-6 md:p-8 relative custom-scrollbar">
                <button onClick={() => setIsModalOpen(false)} className="absolute top-6 right-6 p-2 bg-white/5 hover:bg-white/10 rounded-full text-white transition-colors z-10"><X className="size-5" /></button>
@@ -357,7 +358,8 @@ export function PosLibraryAuthorsSummary({ books, sessions }: { books: PosBook[]
                  </div>
                )}
             </div>
-         </div>
+         </div>,
+         document.body
       )}
     </>
   )
