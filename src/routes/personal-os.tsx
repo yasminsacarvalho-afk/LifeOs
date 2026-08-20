@@ -64,10 +64,8 @@ const modules = [
   { id: "saude", name: "Health OS", icon: Heart },
   { id: "financeiro", name: "Financeiro", icon: DollarSign },
   { id: "compras", name: "Compras (Wishlist)", icon: ShoppingCart },
-  { id: "conteudo", name: "Conteúdo", icon: PlaySquare },
   { id: "analytics", name: "Insights", icon: PieChart, path: "/analytics" },
   { id: "ideias", name: "Ideias", icon: Lightbulb },
-  { id: "entretenimento", name: "Entretenimento", icon: Sparkles },
   { id: "recompensas", name: "Recompensas", icon: Gift },
   { id: "foco", name: "Modo Foco", icon: Timer },
   { id: "diario", name: "Diário", icon: Book },
@@ -1410,16 +1408,12 @@ function PersonalOSPage() {
             <PosFinance />
           ) : activeModule === "compras" ? (
             <PosAcquisitions />
-          ) : activeModule === "entretenimento" ? (
-            <PosEntertainment />
           ) : activeModule === "alarmes" ? (
             <PosAlarms />
           ) : activeModule === "profissional" ? (
             <PosProfessional />
           ) : activeModule === "saude" ? (
             <PosHealth />
-          ) : activeModule === "conteudo" ? (
-            <PosContent />
           ) : (
             <div className="p-10 max-w-[1400px] mx-auto flex flex-col items-center justify-center min-h-[60vh] text-center">
               {activeModuleData && <activeModuleData.icon className="size-16 text-[#1A1A1E] mb-6" />}
