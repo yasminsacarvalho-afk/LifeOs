@@ -93,7 +93,7 @@ export function PosEntertainment() {
   const finishedItems = filteredItems.filter(i => i.status === 'finished');
 
   return (
-    <div className="relative p-4 md:p-10 max-w-[1400px] mx-auto flex flex-col gap-6 md:gap-8 pb-20 min-h-screen">
+    <div className="relative p-4 md:p-10 max-w-[1400px] mx-auto flex flex-col gap-6 md:gap-8 pb-12">
       {/* Header */}
       <div className="flex flex-col md:flex-row md:items-start justify-between gap-6 animate-in fade-in slide-in-from-left-8 duration-1000 relative z-10">
         <div>

@@ -76,7 +76,7 @@ export function PosRewards() {
   const progressPercent = Math.min(100, Math.round((currentXP / xpGoal) * 100));
 
   return (
-    <div className="relative p-4 md:p-10 max-w-[1600px] mx-auto flex flex-col gap-6 md:gap-8 pb-20 min-h-screen">
+    <div className="relative p-4 md:p-10 max-w-[1600px] mx-auto flex flex-col gap-6 md:gap-8 pb-12">
       {/* Background Glows */}
       <div className="fixed inset-0 pointer-events-none z-0 overflow-hidden">
         <div className="absolute top-[-10%] right-[-10%] w-[50vw] h-[50vw] max-w-[800px] max-h-[800px] bg-amber-500/5 rounded-full blur-[120px] animate-[pulse_8s_ease-in-out_infinite]" />

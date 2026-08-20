@@ -913,7 +913,7 @@ Link original: ${book.buy_link || ''}`;
   const allFormats = Array.from(new Set([...books.map(b => b.format).filter(Boolean), 'pdf', 'epub'])).sort();
 
   return (
-    <div className="relative p-4 md:p-10 max-w-[1600px] mx-auto flex flex-col gap-6 md:gap-8 pb-20 min-h-screen">
+    <div className="relative p-4 md:p-10 max-w-[1600px] mx-auto flex flex-col gap-6 md:gap-8 pb-12">
       {/* Background Cosmos Glows */}
       <div className="fixed inset-0 pointer-events-none z-0 overflow-hidden">
         <div className="absolute top-[-10%] left-[-10%] w-[50vw] h-[50vw] max-w-[800px] max-h-[800px] bg-indigo-500/5 rounded-full blur-[120px] animate-[pulse_8s_ease-in-out_infinite]" />

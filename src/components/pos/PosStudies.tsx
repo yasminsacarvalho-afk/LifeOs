@@ -2297,7 +2297,7 @@ export function PosStudies() {
       }
 
       return (
-        <div className="animate-in fade-in  duration-700 flex flex-col min-h-screen pb-20 w-full max-w-[1200px] mx-auto">
+        <div className="animate-in fade-in duration-700 flex flex-col w-full max-w-[1200px] mx-auto pb-12">
            <button onClick={() => setSelectedCourseId(null)} className="flex items-center gap-2 text-sm font-bold text-[#A1A1AA] hover:text-white transition-all w-fit mb-6 mt-2 group bg-white/5 hover:bg-white/10 px-4 py-2 rounded-full border border-white/5 backdrop-blur-md">
              <ArrowLeft className="size-4 group-hover:-translate-x-1 transition-transform" /> Voltar
            </button>
@@ -2388,7 +2388,7 @@ export function PosStudies() {
     } catch(e){}
 
     return (
-      <div className="animate-in fade-in  duration-500 flex flex-col min-h-screen">
+      <div className="animate-in fade-in duration-500 flex flex-col pb-12">
         
         {/* Universal Top Controls: Back Button and Sub-tabs */}
         <div className="flex flex-col gap-4 mb-6">
@@ -5407,7 +5407,7 @@ export function PosStudies() {
   };
 
   return (
-    <div className="p-4 md:p-8 max-w-[1600px] mx-auto pb-24 text-white font-sans">
+    <div className="p-4 md:p-8 max-w-[1600px] mx-auto pb-12 text-white font-sans">
       {loading && courses.length === 0 ? (
         <div className="flex flex-col items-center justify-center h-[50vh] animate-in fade-in duration-1000">
           <div className="w-12 h-12 border-4 border-cyan-500 border-t-transparent rounded-full animate-spin mb-6"></div>
