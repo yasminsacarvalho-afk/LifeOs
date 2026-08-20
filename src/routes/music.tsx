@@ -37,17 +37,30 @@ function MusicAppPage() {
   const [editTitle, setEditTitle] = useState('');
   const [editArtist, setEditArtist] = useState('');
   const [editUrl, setEditUrl] = useState('');
+  const [editGenre, setEditGenre] = useState('');
+  const [editTags, setEditTags] = useState('');
 
   const [isAddingTrack, setIsAddingTrack] = useState(false);
   const [trackAddMode, setTrackAddMode] = useState<'new' | 'library'>('new');
   const [newTrackUrl, setNewTrackUrl] = useState('');
   const [newTrackTitle, setNewTrackTitle] = useState('');
   const [newTrackArtist, setNewTrackArtist] = useState('');
+  const [newTrackGenre, setNewTrackGenre] = useState('');
+  const [newTrackTags, setNewTrackTags] = useState('');
 
   const [nowPlayingUrl, setNowPlayingUrl] = useState<string | null>(null);
   const [isScrolled, setIsScrolled] = useState(false);
 
   const activePlaylist = playlists.find(p => p.id === activePlaylistId);
+
+  const globalAllTracksMap = new Map<string, MusicTrack>();
+  standaloneTracks.forEach(t => globalAllTracksMap.set(t.url, t));
+  playlists.forEach(p => p.tracks.forEach(t => globalAllTracksMap.set(t.url, t)));
+  const globalAllTracks = Array.from(globalAllTracksMap.values());
+  
+  const globalUniqueArtists = Array.from(new Set(globalAllTracks.map(t => t.artist?.trim()).filter(a => a && a !== 'Artista Desconhecido'))).sort();
+  const globalUniqueGenres = Array.from(new Set(globalAllTracks.map(t => t.genre?.trim()).filter(Boolean))).sort();
+  const globalUniqueTags = Array.from(new Set(globalAllTracks.flatMap(t => t.tags || []))).sort();
 
   const handleShufflePlay = (tracks: MusicTrack[]) => {
     if (tracks.length === 0) return;
@@ -105,6 +118,8 @@ function MusicAppPage() {
     setEditTitle(track.title);
     setEditArtist(track.artist || '');
     setEditUrl(track.url);
+    setEditGenre(track.genre || '');
+    setEditTags(track.tags ? track.tags.join(', ') : '');
   };
 
   const handleUpdateTrack = (e: React.FormEvent) => {
@@ -120,7 +135,9 @@ function MusicAppPage() {
       title: editTitle || 'Faixa Desconhecida',
       artist: editArtist || 'Artista Desconhecido',
       url: editUrl,
-      thumbnail
+      thumbnail,
+      genre: editGenre || undefined,
+      tags: editTags ? editTags.split(',').map(t => t.trim()).filter(Boolean) : undefined
     });
 
     setTrackBeingEdited(null);
@@ -136,7 +153,9 @@ function MusicAppPage() {
       title: newTrackTitle || 'Faixa Desconhecida',
       artist: newTrackArtist || 'Artista Desconhecido',
       url: newTrackUrl,
-      thumbnail
+      thumbnail,
+      genre: newTrackGenre || undefined,
+      tags: newTrackTags ? newTrackTags.split(',').map(t => t.trim()).filter(Boolean) : undefined
     };
 
     if (activeView === 'playlist' && activePlaylistId) {
@@ -149,6 +168,8 @@ function MusicAppPage() {
     setNewTrackUrl('');
     setNewTrackTitle('');
     setNewTrackArtist('');
+    setNewTrackGenre('');
+    setNewTrackTags('');
   };
 
   const playTrack = (track: MusicTrack, queue?: MusicTrack[], currentIndex?: number) => {
@@ -170,6 +191,16 @@ function MusicAppPage() {
   return (
     <div className="flex h-screen bg-black text-white font-sans overflow-hidden">
       
+      <datalist id="artist-suggestions">
+        {globalUniqueArtists.map(artist => <option key={artist} value={artist} />)}
+      </datalist>
+      <datalist id="genre-suggestions">
+        {globalUniqueGenres.map(genre => <option key={genre} value={genre} />)}
+      </datalist>
+      <datalist id="tag-suggestions">
+        {globalUniqueTags.map(tag => <option key={tag} value={tag} />)}
+      </datalist>
+
       {/* --------------------------- */}
       {/* SIDEBAR (EXCLUSIVA DE MÚSICA) */}
       {/* --------------------------- */}
@@ -231,13 +262,39 @@ function MusicAppPage() {
             <span className="truncate">Álbuns Salvos (0)</span>
           </button>
 
-          <div className="flex items-center px-3 mt-4 mb-2">
-            <span className="text-xs font-bold text-[#A1A1AA] uppercase tracking-widest">Artistas</span>
-          </div>
-          <button onClick={() => toast.info('Seguir artistas em breve.')} className="flex items-center gap-3 px-3 py-2 rounded-md font-medium text-sm transition-colors text-[#B3B3B3] hover:text-white hover:bg-white/5">
-            <Mic2 className="size-4 shrink-0" />
-            <span className="truncate">Artistas Seguidos (0)</span>
-          </button>
+          {(() => {
+            const allTracksMap = new Map<string, MusicTrack>();
+            standaloneTracks.forEach(t => allTracksMap.set(t.url, t));
+            playlists.forEach(p => p.tracks.forEach(t => allTracksMap.set(t.url, t)));
+            const allTracks = Array.from(allTracksMap.values());
+            const uniqueArtists = Array.from(new Set(allTracks.map(t => t.artist?.trim()).filter(a => a && a !== 'Artista Desconhecido'))).sort();
+            
+            return (
+              <>
+                <div className="flex items-center px-3 mt-4 mb-2">
+                  <span className="text-xs font-bold text-[#A1A1AA] uppercase tracking-widest">Artistas ({uniqueArtists.length})</span>
+                </div>
+                {uniqueArtists.length === 0 ? (
+                  <button className="flex items-center gap-3 px-3 py-2 rounded-md font-medium text-sm transition-colors text-[#B3B3B3] hover:text-white hover:bg-white/5 cursor-default">
+                    <Mic2 className="size-4 shrink-0" />
+                    <span className="truncate">Nenhum cadastrado</span>
+                  </button>
+                ) : (
+                  uniqueArtists.slice(0, 10).map((artist, i) => (
+                    <button key={i} onClick={() => { setActiveView('search'); setSearchQuery(artist); }} className="flex items-center gap-3 px-3 py-2 rounded-md font-medium text-sm transition-colors text-[#B3B3B3] hover:text-white hover:bg-white/5 truncate">
+                      <Mic2 className="size-4 shrink-0" />
+                      <span className="truncate">{artist}</span>
+                    </button>
+                  ))
+                )}
+                {uniqueArtists.length > 10 && (
+                  <button onClick={() => { setActiveView('search'); setSearchQuery(''); }} className="flex items-center gap-3 px-3 py-2 rounded-md font-medium text-sm transition-colors text-[#A1A1AA] hover:text-white hover:bg-white/5 ml-4">
+                    <span className="truncate">Ver todos...</span>
+                  </button>
+                )}
+              </>
+            );
+          })()}
         </div>
       </aside>
 
@@ -288,6 +345,91 @@ function MusicAppPage() {
           {activeView === 'home' && (
             <div className="px-6 md:px-8 pt-6">
               <h2 className="text-3xl font-bold tracking-tight text-white mb-6">Boa tarde</h2>
+
+              {(() => {
+                const allTracksMap = new Map<string, MusicTrack>();
+                standaloneTracks.forEach(t => allTracksMap.set(t.url, t));
+                playlists.forEach(p => p.tracks.forEach(t => allTracksMap.set(t.url, t)));
+                const allTracks = Array.from(allTracksMap.values());
+                const uniqueArtists = new Set(allTracks.map(t => t.artist?.trim()).filter(a => a && a !== 'Artista Desconhecido'));
+                const uniqueGenres = new Set(allTracks.map(t => t.genre?.trim()).filter(Boolean));
+
+                const trackCounts = new Map<string, { track: MusicTrack, count: number }>();
+                playHistory.forEach(entry => {
+                  if (!trackCounts.has(entry.track.url)) trackCounts.set(entry.track.url, { track: entry.track, count: 0 });
+                  trackCounts.get(entry.track.url)!.count++;
+                });
+                const topPlayed = Array.from(trackCounts.values()).sort((a, b) => b.count - a.count).slice(0, 5);
+
+                return (
+                  <>
+                    <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
+                      <div className="bg-white/5 rounded-lg p-4 flex flex-col items-center justify-center border border-white/10 shadow-lg">
+                        <ListMusic className="size-6 text-[#1DB954] mb-2" />
+                        <span className="text-2xl font-black text-white">{allTracks.length}</span>
+                        <span className="text-xs text-[#A1A1AA] font-medium uppercase tracking-widest mt-1">Músicas</span>
+                      </div>
+                      <div className="bg-white/5 rounded-lg p-4 flex flex-col items-center justify-center border border-white/10 shadow-lg">
+                        <Mic2 className="size-6 text-[#1DB954] mb-2" />
+                        <span className="text-2xl font-black text-white">{uniqueArtists.size}</span>
+                        <span className="text-xs text-[#A1A1AA] font-medium uppercase tracking-widest mt-1">Cantores</span>
+                      </div>
+                      <div className="bg-white/5 rounded-lg p-4 flex flex-col items-center justify-center border border-white/10 shadow-lg">
+                        <Disc className="size-6 text-[#1DB954] mb-2" />
+                        <span className="text-2xl font-black text-white">{uniqueGenres.size}</span>
+                        <span className="text-xs text-[#A1A1AA] font-medium uppercase tracking-widest mt-1">Gêneros</span>
+                      </div>
+                      <div className="bg-white/5 rounded-lg p-4 flex flex-col items-center justify-center border border-white/10 shadow-lg">
+                        <Play className="size-6 text-[#1DB954] mb-2" />
+                        <span className="text-2xl font-black text-white">{playHistory.length}</span>
+                        <span className="text-xs text-[#A1A1AA] font-medium uppercase tracking-widest mt-1">Reproduções</span>
+                      </div>
+                    </div>
+
+                    {topPlayed.length > 0 && (
+                      <div className="mb-8">
+                        <h2 className="text-2xl font-bold tracking-tight text-white mb-4">Mais Ouvidas</h2>
+                        <div className="flex flex-col gap-1">
+                          {topPlayed.map((item, idx) => {
+                            const isPlaying = nowPlayingUrl === item.track.url;
+                            return (
+                              <div key={item.track.id + idx} onDoubleClick={() => playTrack(item.track, topPlayed.map(i => i.track), idx)} className="grid grid-cols-[16px_1fr_60px] md:grid-cols-[16px_4fr_2fr_60px] gap-4 px-4 py-2 hover:bg-white/10 rounded-md group transition-colors items-center cursor-pointer">
+                                <div className={cn("text-sm text-center relative font-medium group-hover:text-white", isPlaying ? "text-[#1DB954]" : "text-[#A1A1AA]")}>
+                                  <span className="group-hover:opacity-0">{isPlaying ? <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor" className="animate-pulse mx-auto"><rect x="2" y="10" width="4" height="14"/><rect x="10" y="2" width="4" height="22"/><rect x="18" y="14" width="4" height="10"/></svg> : idx + 1}</span>
+                                  <button onClick={(e) => { e.stopPropagation(); playTrack(item.track, topPlayed.map(i => i.track), idx); }} className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 text-white">
+                                    <Play className="size-4" fill="currentColor" />
+                                  </button>
+                                </div>
+                                
+                                <div className="flex items-center gap-3 overflow-hidden">
+                                  <div className="size-10 bg-black shrink-0 overflow-hidden rounded">
+                                    <img src={item.track.thumbnail} alt={item.track.title} className="w-full h-full object-cover" />
+                                  </div>
+                                  <div className="truncate flex flex-col justify-center">
+                                    <p className={cn("text-[15px] font-normal truncate group-hover:underline", isPlaying ? "text-[#1DB954]" : "text-white")}>{item.track.title}</p>
+                                    <div className="flex items-center gap-2 mt-0.5 overflow-hidden">
+                                      <p className="text-[#A1A1AA] text-xs truncate group-hover:text-white transition-colors shrink-0">{item.track.artist || 'Artista Desconhecido'}</p>
+                                      {item.track.genre && <span className="text-[10px] bg-white/10 text-[#A1A1AA] px-1.5 py-0.5 rounded shrink-0">{item.track.genre}</span>}
+                                    </div>
+                                  </div>
+                                </div>
+                                
+                                <div className="hidden md:flex items-center text-[13px] text-[#A1A1AA] truncate group-hover:text-white transition-colors">
+                                  {item.count} plays
+                                </div>
+                                
+                                <div className="flex items-center justify-center gap-3 opacity-0 group-hover:opacity-100 transition-opacity">
+                                  <button onClick={(e) => { e.stopPropagation(); openEditModal(item.track); }} className="text-[#A1A1AA] hover:text-white" title="Editar"><Edit3 className="size-4" /></button>
+                                </div>
+                              </div>
+                            );
+                          })}
+                        </div>
+                      </div>
+                    )}
+                  </>
+                );
+              })()}
               
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 mb-10">
                 <div onClick={() => setActiveView('liked')} className="flex items-center bg-white/5 hover:bg-white/20 transition-colors rounded-md overflow-hidden cursor-pointer group h-16 shadow-md">
@@ -333,6 +475,53 @@ function MusicAppPage() {
                   ))}
                 </div>
               </div>
+
+              {globalUniqueGenres.length > 0 && (
+                <div className="mb-8">
+                  <h2 className="text-2xl font-bold tracking-tight text-white hover:underline cursor-pointer mb-6">Coleções por Gênero</h2>
+                  <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-5 gap-6">
+                    {globalUniqueGenres.map(genre => {
+                      const tracks = globalAllTracks.filter(t => t.genre === genre);
+                      return (
+                        <div key={genre} onClick={() => { setActiveView('search'); setSearchQuery(genre); }} className="bg-[#181818] hover:bg-[#282828] p-4 rounded-md cursor-pointer group transition-colors shadow-md">
+                          <div className="relative aspect-square w-full rounded-md overflow-hidden mb-4 bg-gradient-to-br from-[#4F378B] to-[#121212] shadow-lg flex items-center justify-center">
+                            <Disc className="size-16 text-white/50 group-hover:text-white transition-colors" />
+                            <button onClick={(e) => { e.stopPropagation(); playCollection(tracks); }} className="absolute bottom-2 right-2 size-12 bg-[#1DB954] text-black rounded-full flex items-center justify-center opacity-0 translate-y-2 group-hover:opacity-100 group-hover:translate-y-0 transition-all shadow-xl hover:scale-105">
+                              <Play className="size-6 ml-1" fill="currentColor" />
+                            </button>
+                          </div>
+                          <h4 className="text-white font-bold truncate text-base mb-1">{genre}</h4>
+                          <p className="text-[#A1A1AA] text-sm truncate font-medium">{tracks.length} músicas</p>
+                        </div>
+                      )
+                    })}
+                  </div>
+                </div>
+              )}
+
+              {globalUniqueTags.length > 0 && (
+                <div className="mb-8">
+                  <h2 className="text-2xl font-bold tracking-tight text-white hover:underline cursor-pointer mb-6">Suas Coleções (Tags)</h2>
+                  <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-5 gap-6">
+                    {globalUniqueTags.map(tag => {
+                      const tracks = globalAllTracks.filter(t => t.tags?.includes(tag));
+                      return (
+                        <div key={tag} onClick={() => { setActiveView('search'); setSearchQuery(tag); }} className="bg-[#181818] hover:bg-[#282828] p-4 rounded-md cursor-pointer group transition-colors shadow-md">
+                          <div className="relative aspect-square w-full rounded-md overflow-hidden mb-4 bg-gradient-to-br from-emerald-600 to-[#121212] shadow-lg flex items-center justify-center">
+                            <span className="text-5xl font-black text-white/50 group-hover:text-white transition-colors">#</span>
+                            <button onClick={(e) => { e.stopPropagation(); playCollection(tracks); }} className="absolute bottom-2 right-2 size-12 bg-[#1DB954] text-black rounded-full flex items-center justify-center opacity-0 translate-y-2 group-hover:opacity-100 group-hover:translate-y-0 transition-all shadow-xl hover:scale-105">
+                              <Play className="size-6 ml-1" fill="currentColor" />
+                            </button>
+                          </div>
+                          <h4 className="text-white font-bold truncate text-base mb-1 capitalize">{tag}</h4>
+                          <p className="text-[#A1A1AA] text-sm truncate font-medium">{tracks.length} músicas</p>
+                        </div>
+                      )
+                    })}
+                  </div>
+                </div>
+              )}
+
             </div>
           )}
 
@@ -369,7 +558,70 @@ function MusicAppPage() {
                       <button onClick={() => playCollection(allTracks)} className="size-14 bg-[#1DB954] hover:bg-[#1ed760] hover:scale-105 transition-all text-black rounded-full flex items-center justify-center shadow-lg">
                         <Play className="size-6 ml-1" fill="currentColor" />
                       </button>
+                      <button onClick={() => handleShufflePlay(allTracks)} className="size-10 flex items-center justify-center text-[#A1A1AA] hover:text-white transition-colors" title="Ordem Aleatória">
+                        <Shuffle className="size-6" />
+                      </button>
+                      <button onClick={() => setIsAddingTrack(!isAddingTrack)} className="flex items-center gap-2 px-4 py-2 bg-transparent text-white border border-white/30 rounded-full hover:border-white hover:scale-105 transition-all text-sm font-bold ml-4">
+                        <Plus className="size-4" />
+                        Adicionar Música
+                      </button>
                     </div>
+
+                    {isAddingTrack && (
+                      <div className="px-6 md:px-8 mb-8">
+                        <div className="bg-white/10 p-6 rounded-xl max-w-2xl border border-white/10 shadow-xl">
+                          <div className="flex items-center justify-between mb-6">
+                            <h3 className="text-white font-bold text-lg">Adicionar Música ao Acervo</h3>
+                          </div>
+                          
+                          <p className="text-[#A1A1AA] text-sm mb-4">Cole o link de qualquer vídeo ou música do YouTube abaixo para adicionar à sua biblioteca (como música avulsa).</p>
+                          <form onSubmit={handleAddTrack} className="flex flex-col gap-3">
+                            <div className="flex flex-col md:flex-row gap-3">
+                              <input 
+                                type="text" required
+                                placeholder="Nome da Música"
+                                value={newTrackTitle} onChange={e => setNewTrackTitle(e.target.value)}
+                                className="flex-1 bg-black border border-white/20 focus:border-white rounded-md py-3 px-4 text-sm text-white focus:outline-none"
+                              />
+                              <input 
+                                type="text" required
+                                placeholder="Cantor/Artista"
+                                list="artist-suggestions"
+                                value={newTrackArtist} onChange={e => setNewTrackArtist(e.target.value)}
+                                className="flex-1 bg-black border border-white/20 focus:border-white rounded-md py-3 px-4 text-sm text-white focus:outline-none"
+                              />
+                              <input 
+                                type="url" required
+                                placeholder="Link do YouTube (https://...)"
+                                value={newTrackUrl} onChange={e => setNewTrackUrl(e.target.value)}
+                                className="flex-1 bg-black border border-white/20 focus:border-white rounded-md py-3 px-4 text-sm text-white focus:outline-none"
+                              />
+                            </div>
+                            <div className="flex flex-col md:flex-row gap-3 mt-1">
+                              <input 
+                                type="text"
+                                placeholder="Gênero (ex: Pop, Rock)"
+                                list="genre-suggestions"
+                                value={newTrackGenre} onChange={e => setNewTrackGenre(e.target.value)}
+                                className="flex-1 bg-black border border-white/20 focus:border-white rounded-md py-3 px-4 text-sm text-white focus:outline-none"
+                              />
+                              <input 
+                                type="text"
+                                placeholder="Tags (separadas por vírgula)"
+                                list="tag-suggestions"
+                                value={newTrackTags} onChange={e => setNewTrackTags(e.target.value)}
+                                className="flex-1 bg-black border border-white/20 focus:border-white rounded-md py-3 px-4 text-sm text-white focus:outline-none"
+                              />
+                            </div>
+                            <div className="flex justify-end mt-2">
+                              <button type="submit" className="px-8 py-3 bg-[#1DB954] text-black font-bold text-sm rounded-full hover:bg-[#1ed760] transition-colors">
+                                Salvar Música
+                              </button>
+                            </div>
+                          </form>
+                        </div>
+                      </div>
+                    )}
 
                     <div className="px-6 md:px-8">
                       <div className="grid grid-cols-[16px_1fr_40px] md:grid-cols-[16px_4fr_2fr_40px] gap-4 px-4 py-2 border-b border-white/10 text-[#A1A1AA] text-[13px] font-medium tracking-widest mb-4">
@@ -400,7 +652,13 @@ function MusicAppPage() {
                                   </div>
                                   <div className="truncate flex flex-col justify-center">
                                     <p className={cn("text-[15px] font-normal truncate group-hover:underline", isPlaying ? "text-[#1DB954]" : "text-white")}>{track.title}</p>
-                                    <p className="text-[#A1A1AA] text-xs mt-0.5 truncate group-hover:text-white transition-colors">{track.artist || 'Artista Desconhecido'}</p>
+                                    <div className="flex items-center gap-2 mt-0.5 overflow-hidden">
+                                      <p className="text-[#A1A1AA] text-xs truncate group-hover:text-white transition-colors shrink-0">{track.artist || 'Artista Desconhecido'}</p>
+                                      {track.genre && <span className="text-[10px] bg-white/10 text-[#A1A1AA] px-1.5 py-0.5 rounded shrink-0">{track.genre}</span>}
+                                      {track.tags && track.tags.slice(0,2).map(tag => (
+                                        <span key={tag} className="text-[10px] bg-[#1DB954]/20 text-[#1DB954] px-1.5 py-0.5 rounded shrink-0">#{tag}</span>
+                                      ))}
+                                    </div>
                                   </div>
                                 </div>
                                 
@@ -534,7 +792,14 @@ function MusicAppPage() {
                 const allTracks = Array.from(allTracksMap.values());
                 
                 const filteredTracks = searchQuery 
-                  ? allTracks.filter(t => t.title.toLowerCase().includes(searchQuery.toLowerCase()) || (t.artist && t.artist.toLowerCase().includes(searchQuery.toLowerCase())))
+                  ? allTracks.filter(t => {
+                      const q = searchQuery.toLowerCase();
+                      const matchTitle = t.title.toLowerCase().includes(q);
+                      const matchArtist = t.artist?.toLowerCase().includes(q);
+                      const matchGenre = t.genre?.toLowerCase().includes(q);
+                      const matchTags = t.tags?.some(tag => tag.toLowerCase().includes(q));
+                      return matchTitle || matchArtist || matchGenre || matchTags;
+                    })
                   : [];
 
                 if (!searchQuery) {
@@ -570,7 +835,13 @@ function MusicAppPage() {
                                 </div>
                                 <div className="truncate flex flex-col justify-center">
                                   <p className={cn("text-[15px] font-normal truncate group-hover:underline", isPlaying ? "text-[#1DB954]" : "text-white")}>{track.title}</p>
-                                  <p className="text-[#A1A1AA] text-xs mt-0.5 truncate group-hover:text-white transition-colors">{track.artist || 'Artista Desconhecido'}</p>
+                                  <div className="flex items-center gap-2 mt-0.5 overflow-hidden">
+                                    <p className="text-[#A1A1AA] text-xs truncate group-hover:text-white transition-colors shrink-0">{track.artist || 'Artista Desconhecido'}</p>
+                                    {track.genre && <span className="text-[10px] bg-white/10 text-[#A1A1AA] px-1.5 py-0.5 rounded shrink-0">{track.genre}</span>}
+                                    {track.tags && track.tags.slice(0,2).map(tag => (
+                                      <span key={tag} className="text-[10px] bg-[#1DB954]/20 text-[#1DB954] px-1.5 py-0.5 rounded shrink-0">#{tag}</span>
+                                    ))}
+                                  </div>
                                 </div>
                               </div>
                               <div className="hidden md:flex items-center text-[13px] text-[#A1A1AA] truncate group-hover:text-white transition-colors">Acervo</div>
@@ -678,6 +949,7 @@ function MusicAppPage() {
                                   <input 
                                     type="text" required
                                     placeholder="Cantor/Artista"
+                                    list="artist-suggestions"
                                     value={newTrackArtist} onChange={e => setNewTrackArtist(e.target.value)}
                                     className="flex-1 bg-black border border-white/20 focus:border-white rounded-md py-3 px-4 text-sm text-white focus:outline-none"
                                   />
@@ -685,6 +957,22 @@ function MusicAppPage() {
                                     type="url" required
                                     placeholder="Link do YouTube (https://...)"
                                     value={newTrackUrl} onChange={e => setNewTrackUrl(e.target.value)}
+                                    className="flex-1 bg-black border border-white/20 focus:border-white rounded-md py-3 px-4 text-sm text-white focus:outline-none"
+                                  />
+                                </div>
+                                <div className="flex flex-col md:flex-row gap-3 mt-1">
+                                  <input 
+                                    type="text"
+                                    placeholder="Gênero (ex: Pop, Rock)"
+                                    list="genre-suggestions"
+                                    value={newTrackGenre} onChange={e => setNewTrackGenre(e.target.value)}
+                                    className="flex-1 bg-black border border-white/20 focus:border-white rounded-md py-3 px-4 text-sm text-white focus:outline-none"
+                                  />
+                                  <input 
+                                    type="text"
+                                    placeholder="Tags (separadas por vírgula)"
+                                    list="tag-suggestions"
+                                    value={newTrackTags} onChange={e => setNewTrackTags(e.target.value)}
                                     className="flex-1 bg-black border border-white/20 focus:border-white rounded-md py-3 px-4 text-sm text-white focus:outline-none"
                                   />
                                 </div>
@@ -763,7 +1051,13 @@ function MusicAppPage() {
                                   </div>
                                   <div className="truncate flex flex-col justify-center">
                                     <p className={cn("text-[15px] font-normal truncate group-hover:underline", isPlaying ? "text-[#1DB954]" : "text-white")}>{track.title}</p>
-                                    <p className="text-[#A1A1AA] text-xs mt-0.5 truncate group-hover:text-white transition-colors">{track.artist || 'Artista Desconhecido'}</p>
+                                    <div className="flex items-center gap-2 mt-0.5 overflow-hidden">
+                                      <p className="text-[#A1A1AA] text-xs truncate group-hover:text-white transition-colors shrink-0">{track.artist || 'Artista Desconhecido'}</p>
+                                      {track.genre && <span className="text-[10px] bg-white/10 text-[#A1A1AA] px-1.5 py-0.5 rounded shrink-0">{track.genre}</span>}
+                                      {track.tags && track.tags.slice(0,2).map(tag => (
+                                        <span key={tag} className="text-[10px] bg-[#1DB954]/20 text-[#1DB954] px-1.5 py-0.5 rounded shrink-0">#{tag}</span>
+                                      ))}
+                                    </div>
                                   </div>
                                 </div>
                                 
@@ -833,12 +1127,25 @@ function MusicAppPage() {
               />
               <input 
                 type="text" required placeholder="Cantor/Artista"
+                list="artist-suggestions"
                 value={editArtist} onChange={e => setEditArtist(e.target.value)}
                 className="w-full bg-[#3E3E3E] rounded-md p-3 text-sm text-white focus:outline-none"
               />
               <input 
                 type="url" required placeholder="URL do YouTube"
                 value={editUrl} onChange={e => setEditUrl(e.target.value)}
+                className="w-full bg-[#3E3E3E] rounded-md p-3 text-sm text-white focus:outline-none"
+              />
+              <input 
+                type="text" placeholder="Gênero (ex: Pop, Rock)"
+                list="genre-suggestions"
+                value={editGenre} onChange={e => setEditGenre(e.target.value)}
+                className="w-full bg-[#3E3E3E] rounded-md p-3 text-sm text-white focus:outline-none"
+              />
+              <input 
+                type="text" placeholder="Tags (separadas por vírgula)"
+                list="tag-suggestions"
+                value={editTags} onChange={e => setEditTags(e.target.value)}
                 className="w-full bg-[#3E3E3E] rounded-md p-3 text-sm text-white focus:outline-none"
               />
               <div className="flex gap-4 mt-4 justify-end">

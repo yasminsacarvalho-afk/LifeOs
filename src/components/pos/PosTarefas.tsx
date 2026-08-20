@@ -358,8 +358,8 @@ export function PosTarefas() {
 
       {/* MODAL DE TAREFA */}
       {isModalOpen && (
-        <div className="fixed inset-0 z-[200] flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm animate-in fade-in duration-200">
-          <div className="bg-[#09090B] border border-[rgba(255,255,255,0.1)] rounded-2xl w-full max-w-xl shadow-2xl overflow-hidden flex flex-col max-h-[90vh]">
+        <div className="fixed inset-0 z-[200] flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm animate-in fade-in duration-200" onClick={() => setIsModalOpen(false)}>
+          <div className="bg-[#09090B] border border-[rgba(255,255,255,0.1)] rounded-2xl w-full max-w-xl shadow-2xl overflow-hidden flex flex-col max-h-[90vh]" onClick={e => e.stopPropagation()}>
             <div className="px-6 md:px-8 py-5 border-b border-[rgba(255,255,255,0.06)] flex items-center justify-between shrink-0 bg-[#111113]">
                <h3 className="text-xs font-bold text-white uppercase tracking-[0.15em]">{editingTask ? 'Editar Tarefa' : 'Nova Tarefa'}</h3>
                <button onClick={() => setIsModalOpen(false)} className="text-[#6F6F6F] hover:text-white transition-colors"><X className="size-5" /></button>

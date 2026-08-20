@@ -1014,8 +1014,8 @@ Link original: ${book.buy_link || ''}`;
       <PosLibraryCollections books={books} />
 
       {isCreating && createPortal(
-        <div className="fixed inset-0 z-[9999] flex items-end md:items-center justify-center bg-black/80 backdrop-blur-sm p-0 md:p-4 animate-in fade-in">
-          <div className="w-full md:max-w-4xl max-h-[90vh] bg-[#111113] border border-[rgba(255,255,255,0.06)] md:rounded-3xl rounded-t-3xl shadow-2xl overflow-hidden flex flex-col animate-in slide-in-from-bottom-8 md:zoom-in-95">
+        <div className="fixed inset-0 z-[9999] flex items-end md:items-center justify-center bg-black/80 backdrop-blur-sm p-0 md:p-4 animate-in fade-in" onClick={() => setIsCreating(false)}>
+          <div className="w-full md:max-w-4xl max-h-[90vh] bg-[#111113] border border-[rgba(255,255,255,0.06)] md:rounded-3xl rounded-t-3xl shadow-2xl overflow-hidden flex flex-col animate-in slide-in-from-bottom-8 md:zoom-in-95" onClick={e => e.stopPropagation()}>
             <div className="p-5 md:p-6 border-b border-[rgba(255,255,255,0.06)] flex justify-between items-center bg-[#09090B]/80 backdrop-blur-md sticky top-0 z-10 shrink-0">
                <h3 className="text-xl font-bold text-white flex items-center gap-2">
                  <BookOpen className="size-5 text-rose-500" /> Registrar Nova Obra
@@ -1325,8 +1325,8 @@ Link original: ${book.buy_link || ''}`;
       , document.body)}
 
       {editingBookId && editBookData && createPortal(
-        <div className="fixed inset-0 z-[9999] flex items-end md:items-center justify-center bg-black/80 backdrop-blur-sm p-0 md:p-4 animate-in fade-in">
-          <div className="w-full md:max-w-4xl max-h-[90vh] bg-[#111113] border border-[rgba(255,255,255,0.06)] md:rounded-3xl rounded-t-3xl shadow-2xl overflow-hidden flex flex-col animate-in slide-in-from-bottom-8 md:zoom-in-95">
+        <div className="fixed inset-0 z-[9999] flex items-end md:items-center justify-center bg-black/80 backdrop-blur-sm p-0 md:p-4 animate-in fade-in" onClick={() => setEditingBookId(null)}>
+          <div className="w-full md:max-w-4xl max-h-[90vh] bg-[#111113] border border-[rgba(255,255,255,0.06)] md:rounded-3xl rounded-t-3xl shadow-2xl overflow-hidden flex flex-col animate-in slide-in-from-bottom-8 md:zoom-in-95" onClick={e => e.stopPropagation()}>
             <div className="p-5 md:p-6 border-b border-[rgba(255,255,255,0.06)] flex justify-between items-center bg-[#09090B]/80 backdrop-blur-md sticky top-0 z-10 shrink-0">
                <h3 className="text-xl font-bold text-white flex items-center gap-2">
                  <Edit2 className="size-5 text-rose-500" /> Editando Obra
@@ -2288,8 +2288,8 @@ Link original: ${book.buy_link || ''}`;
 
       {/* App Registration Modal */}
       {isAppModalOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm p-4 animate-in fade-in zoom-in-95">
-          <div className="w-full max-w-md bg-[#111113] border border-[rgba(255,255,255,0.06)] rounded-2xl p-6 shadow-2xl relative">
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm p-4 animate-in fade-in zoom-in-95" onClick={() => setIsAppModalOpen(false)}>
+          <div className="w-full max-w-md bg-[#111113] border border-[rgba(255,255,255,0.06)] rounded-2xl p-6 shadow-2xl relative max-h-[90vh] overflow-y-auto custom-scrollbar" onClick={e => e.stopPropagation()}>
             <button onClick={() => setIsAppModalOpen(false)} className="absolute top-4 right-4 text-[#A1A1AA] hover:text-white"><X className="size-5" /></button>
             <h3 className="text-xl font-bold text-white mb-6">Adicionar Novo App</h3>
             <form onSubmit={handleAddApp} className="flex flex-col gap-4">
@@ -2317,8 +2317,8 @@ Link original: ${book.buy_link || ''}`;
 
       {/* Drive Selection Modal */}
       {showDriveModal && (
-        <div className="fixed inset-0 z-[110] flex items-center justify-center bg-black/80 backdrop-blur-sm p-4 animate-in fade-in zoom-in-95">
-          <div className="w-full max-w-lg bg-[#111113] border border-[rgba(255,255,255,0.06)] rounded-2xl p-6 shadow-2xl relative flex flex-col max-h-[80vh]">
+        <div className="fixed inset-0 z-[110] flex items-center justify-center bg-black/80 backdrop-blur-sm p-4 animate-in fade-in zoom-in-95" onClick={() => { setShowDriveModal(false); setDriveSearch(""); setDriveVisibleCount(10); }}>
+          <div className="w-full max-w-lg bg-[#111113] border border-[rgba(255,255,255,0.06)] rounded-2xl p-6 shadow-2xl relative flex flex-col max-h-[90vh]" onClick={e => e.stopPropagation()}>
             <button onClick={() => { setShowDriveModal(false); setDriveSearch(""); setDriveVisibleCount(10); }} className="absolute top-4 right-4 text-[#A1A1AA] hover:text-white"><X className="size-5" /></button>
             <h3 className="text-xl font-bold text-white mb-2 flex items-center gap-2"><Cloud className="size-5 text-indigo-400" /> Meu Drive Literário</h3>
             <p className="text-sm text-[#71717A] mb-4">Selecione um arquivo previamente enviado para vincular a esta obra.</p>

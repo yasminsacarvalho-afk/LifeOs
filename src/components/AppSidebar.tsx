@@ -98,7 +98,6 @@ const navSections = [
       { to: "/personal-os", search: { tab: "estudos" }, label: "Estudos", icon: GraduationCap, permission: "view_dashboard" },
       { to: "/music", label: "Músicas", icon: Music, permission: "view_dashboard" },
       { to: "/personal-os", search: { tab: "alarmes" }, label: "Alarmes", icon: BellRing, permission: "view_dashboard" },
-      { to: "/academy", label: "Academy", icon: GraduationCap, permission: "view_dashboard" },
     ],
   }
 ];

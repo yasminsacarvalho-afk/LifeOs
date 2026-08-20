@@ -518,8 +518,8 @@ function doPost(e) {
 
       {/* CRUD Modals */}
       {modalState.type && (
-        <div className="fixed inset-0 z-[60] flex items-center justify-center p-4 bg-black/80 backdrop-blur-md animate-in fade-in">
-          <div className="bg-[#09090B] border border-[rgba(255,255,255,0.08)] rounded-[2rem] w-full max-w-md shadow-2xl overflow-hidden">
+        <div className="fixed inset-0 z-[60] flex items-center justify-center p-4 bg-black/80 backdrop-blur-md animate-in fade-in" onClick={() => setModalState({ type: null })}>
+          <div className="bg-[#09090B] border border-[rgba(255,255,255,0.08)] rounded-[2rem] w-full max-w-md shadow-2xl overflow-hidden flex flex-col max-h-[90vh]" onClick={e => e.stopPropagation()}>
             <div className="p-6 border-b border-[rgba(255,255,255,0.04)] flex items-center justify-between">
               <h3 className="text-xl font-bold text-white flex items-center gap-2">
                 {modalState.type === 'delete' ? (
@@ -662,8 +662,8 @@ function doPost(e) {
 
       {/* Modal de Configuração do Drive */}
       {showSettings && (
-        <div className="fixed inset-0 z-[70] flex items-center justify-center p-4 sm:p-6 bg-black/90 backdrop-blur-md animate-in fade-in duration-300">
-          <div className="bg-[#09090B] border border-[rgba(255,255,255,0.08)] rounded-[2.5rem] w-full max-w-2xl shadow-2xl flex flex-col max-h-[90vh] overflow-hidden">
+        <div className="fixed inset-0 z-[70] flex items-center justify-center p-4 sm:p-6 bg-black/90 backdrop-blur-md animate-in fade-in duration-300" onClick={() => setShowSettings(false)}>
+          <div className="bg-[#09090B] border border-[rgba(255,255,255,0.08)] rounded-[2.5rem] w-full max-w-2xl shadow-2xl flex flex-col max-h-[90vh] overflow-hidden" onClick={e => e.stopPropagation()}>
             <div className="p-8 border-b border-[rgba(255,255,255,0.04)] flex items-center justify-between bg-[#111113]/50">
               <div>
                 <h3 className="text-2xl font-black text-white flex items-center gap-3 tracking-tight">

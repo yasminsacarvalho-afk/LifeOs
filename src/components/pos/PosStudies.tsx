@@ -88,16 +88,22 @@ const formatTime = (decimalHours: number | null | undefined) => {
 export function PosStudies() {
   const { courses, sessions, loading, addCourse, updateCourse, deleteCourse, addSession } = usePosStudies();
   const { books, sessions: readingSessions } = usePosLibrary();
-  const [activeTab, setActiveTab] = useState("Visão Geral");
+  const [activeTab, setActiveTab] = useState(() => {
+    try { const saved = localStorage.getItem('pos_activeTab'); return saved ? JSON.parse(saved) : "Visão Geral"; } catch (e) { return "Visão Geral"; }
+  });
   const [selectedCourseId, setSelectedCourseId] = useState<string | null>(() => {
     try { const saved = localStorage.getItem('pos_selectedCourseId'); return saved ? JSON.parse(saved) : null; } catch (e) { return null; }
   });
   const [desktopFocusMode, setDesktopFocusMode] = useState<"both" | "media" | "notes">(() => {
     try { const saved = localStorage.getItem('pos_desktopFocusMode'); return saved ? JSON.parse(saved) : "both"; } catch (e) { return "both"; }
   });
-  const [courseTab, setCourseTab] = useState("Módulos");
+  const [courseTab, setCourseTab] = useState(() => {
+    try { const saved = localStorage.getItem('pos_courseTab'); return saved ? JSON.parse(saved) : "Módulos"; } catch (e) { return "Módulos"; }
+  });
   const [activeModuleIndex, setActiveModuleIndex] = useState<number | null>(null);
-  const [topicViewMode, setTopicViewMode] = useState<"lista" | "grade">("lista");
+  const [topicViewMode, setTopicViewMode] = useState<"lista" | "grade">(() => {
+    try { const saved = localStorage.getItem('pos_topicViewMode'); return saved ? JSON.parse(saved) : "lista"; } catch (e) { return "lista"; }
+  });
   const [viewMode, setViewMode] = useState<"cards" | "lista" | "kanban" | "tabela" | "galeria" | "timeline" | "calendario" | "por_area">(() => {
     try { const saved = localStorage.getItem('pos_viewMode'); return saved ? JSON.parse(saved) : "cards"; } catch(e) { return "cards"; }
   });
@@ -105,10 +111,15 @@ export function PosStudies() {
     setActiveModuleIndex(null);
   }, [selectedCourseId, courseTab]);
 
+  const prevCourseIdRef = React.useRef(selectedCourseId);
   useEffect(() => {
-    // Reset workspace states when switching between courses/tracks
-    setExpandedTopicId(null);
-    setActiveTopicVideos([]);
+    if (selectedCourseId && prevCourseIdRef.current && selectedCourseId !== prevCourseIdRef.current) {
+      setExpandedTopicId(null);
+      setActiveTopicVideos([]);
+    }
+    if (selectedCourseId) {
+      prevCourseIdRef.current = selectedCourseId;
+    }
   }, [selectedCourseId]);
 
   const [isCreatingCourse, setIsCreatingCourse] = useState(false);
@@ -131,7 +142,9 @@ export function PosStudies() {
   const [expandedTopicId, setExpandedTopicId] = useState<number | string | null>(() => {
     try { const saved = localStorage.getItem('pos_expandedTopicId'); return saved ? JSON.parse(saved) : null; } catch (e) { return null; }
   });
-  const [workspaceLayoutMode, setWorkspaceLayoutMode] = useState<"horizontal" | "vertical">("horizontal");
+  const [workspaceLayoutMode, setWorkspaceLayoutMode] = useState<"horizontal" | "vertical">(() => {
+    try { const saved = localStorage.getItem('pos_workspaceLayoutMode'); return saved ? JSON.parse(saved) : "horizontal"; } catch (e) { return "horizontal"; }
+  });
   const [isLoggingSession, setIsLoggingSession] = useState(false);
   const [newSession, setNewSession] = useState({
     duration_minutes: 60,
@@ -158,7 +171,9 @@ export function PosStudies() {
   });
   
   // Mobile Tab Navigation State for Workspace
-  const [mobileWorkspaceTab, setMobileWorkspaceTab] = useState<"media" | "notes" | "resources">("notes");
+  const [mobileWorkspaceTab, setMobileWorkspaceTab] = useState<"media" | "notes" | "resources">(() => {
+    try { const saved = localStorage.getItem('pos_mobileWorkspaceTab'); return saved ? JSON.parse(saved) : "notes"; } catch (e) { return "notes"; }
+  });
 
   // Videoteca Workspace States
   const [activeVideotecaVideos, setActiveVideotecaVideos] = useState<any[]>(() => {
@@ -213,7 +228,9 @@ export function PosStudies() {
   const [globalSearchQuery, setGlobalSearchQuery] = useState("");
   const [isNextTopicPromptOpen, setIsNextTopicPromptOpen] = useState(false);
   
-  const [topicContentMode, setTopicContentMode] = useState<'notes' | 'exercises'>('notes');
+  const [topicContentMode, setTopicContentMode] = useState<'notes' | 'exercises'>(() => {
+    try { const saved = localStorage.getItem('pos_topicContentMode'); return saved ? JSON.parse(saved) : "notes"; } catch (e) { return "notes"; }
+  });
   const [newExerciseQ, setNewExerciseQ] = useState("");
   const [newExerciseA, setNewExerciseA] = useState("");
   const [revealedExercises, setRevealedExercises] = useState<number[]>([]);
@@ -255,6 +272,12 @@ export function PosStudies() {
 
   useEffect(() => { localStorage.setItem('pos_desktopFocusMode', JSON.stringify(desktopFocusMode)); }, [desktopFocusMode]);
   useEffect(() => { localStorage.setItem('pos_viewMode', JSON.stringify(viewMode)); }, [viewMode]);
+  useEffect(() => { localStorage.setItem('pos_activeTab', JSON.stringify(activeTab)); }, [activeTab]);
+  useEffect(() => { localStorage.setItem('pos_courseTab', JSON.stringify(courseTab)); }, [courseTab]);
+  useEffect(() => { localStorage.setItem('pos_topicViewMode', JSON.stringify(topicViewMode)); }, [topicViewMode]);
+  useEffect(() => { localStorage.setItem('pos_workspaceLayoutMode', JSON.stringify(workspaceLayoutMode)); }, [workspaceLayoutMode]);
+  useEffect(() => { localStorage.setItem('pos_mobileWorkspaceTab', JSON.stringify(mobileWorkspaceTab)); }, [mobileWorkspaceTab]);
+  useEffect(() => { localStorage.setItem('pos_topicContentMode', JSON.stringify(topicContentMode)); }, [topicContentMode]);
 
   const syncChannelRef = React.useRef<BroadcastChannel | null>(null);
 
@@ -5627,8 +5650,8 @@ export function PosStudies() {
 
       {/* MODAL CRIAÇÃO REAL */}
       {isCreatingCourse && (createPortal(
-        <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-in fade-in">
-          <form onSubmit={handleCreateCourse} className="bg-[#111113] border border-[rgba(255,255,255,0.1)] rounded-3xl p-6 md:p-8 shadow-2xl w-full max-w-3xl relative animate-in zoom-in-95 duration-200 max-h-[90vh] overflow-y-auto custom-scrollbar">
+        <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-in fade-in" onClick={() => { setIsCreatingCourse(false); setIsEditingCourse(false); setNewCourse(initialCourseState); }}>
+          <form onSubmit={handleCreateCourse} className="bg-[#111113] border border-[rgba(255,255,255,0.1)] rounded-3xl p-6 md:p-8 shadow-2xl w-full max-w-3xl relative animate-in zoom-in-95 duration-200 max-h-[90vh] overflow-y-auto custom-scrollbar" onClick={e => e.stopPropagation()}>
             <button type="button" onClick={() => { setIsCreatingCourse(false); setIsEditingCourse(false); setNewCourse(initialCourseState); }} className="absolute top-6 right-6 text-[#71717A] hover:text-white bg-white/5 p-2 rounded-full transition-colors"><X className="size-4"/></button>
             <h3 className="text-xl font-bold text-white mb-6 border-b border-[rgba(255,255,255,0.06)] pb-4 flex items-center gap-2">
                <BookOpen className="size-5 text-cyan-500" /> {isEditingCourse ? "Editar Curso" : "Cadastrar Novo Curso"}
@@ -6095,8 +6118,8 @@ export function PosStudies() {
 
       {/* MODAL SELECIONAR SEGUNDO VÍDEO */}
       {isSelectingSecondVideo && (createPortal(
-        <div className="fixed inset-0 z-[100] flex items-end sm:items-center justify-center bg-black/60 backdrop-blur-sm sm:p-4">
-          <div className="bg-[#111113] border border-[rgba(255,255,255,0.1)] rounded-t-3xl sm:rounded-3xl p-6 md:p-8 shadow-2xl w-full max-w-2xl relative animate-in  duration-300 flex flex-col max-h-[90vh]">
+        <div className="fixed inset-0 z-[100] flex items-end sm:items-center justify-center bg-black/60 backdrop-blur-sm sm:p-4" onClick={() => setIsSelectingSecondVideo(false)}>
+          <div className="bg-[#111113] border border-[rgba(255,255,255,0.1)] rounded-t-3xl sm:rounded-3xl p-6 md:p-8 shadow-2xl w-full max-w-2xl relative animate-in  duration-300 flex flex-col max-h-[90vh]" onClick={e => e.stopPropagation()}>
             <button type="button" onClick={() => setIsSelectingSecondVideo(false)} className="absolute top-6 right-6 text-[#71717A] hover:text-white bg-white/5 p-2 rounded-full transition-colors"><X className="size-4"/></button>
             
             <h3 className="text-xl font-bold text-white mb-6 flex items-center gap-2">
@@ -6169,8 +6192,8 @@ export function PosStudies() {
 
       {/* MODAL REGISTRO DE SESSÃO */}
       {isLoggingSession && (createPortal(
-        <div className="fixed inset-0 z-[100] flex items-end sm:items-center justify-center bg-black/60 backdrop-blur-sm sm:p-4">
-          <form onSubmit={handleLogSession} className="bg-[#111113] border border-[rgba(255,255,255,0.1)] rounded-t-3xl sm:rounded-3xl p-6 md:p-8 shadow-2xl w-full max-w-lg relative animate-in  duration-300">
+        <div className="fixed inset-0 z-[100] flex items-end sm:items-center justify-center bg-black/60 backdrop-blur-sm sm:p-4" onClick={() => setIsLoggingSession(false)}>
+          <form onSubmit={handleLogSession} className="bg-[#111113] border border-[rgba(255,255,255,0.1)] rounded-t-3xl sm:rounded-3xl p-6 md:p-8 shadow-2xl w-full max-w-lg relative animate-in duration-300 max-h-[90vh] overflow-y-auto custom-scrollbar" onClick={e => e.stopPropagation()}>
             <button type="button" onClick={() => setIsLoggingSession(false)} className="absolute top-6 right-6 text-[#71717A] hover:text-white bg-white/5 p-2 rounded-full transition-colors"><X className="size-4"/></button>
             <h3 className="text-xl font-bold text-white mb-6 border-b border-[rgba(255,255,255,0.06)] pb-4 flex items-center gap-2">
                <FileText className="size-5 text-cyan-500" /> Registrar Sessão de Estudo
@@ -6228,8 +6251,8 @@ export function PosStudies() {
       {/* Preview Reference Overlay */}
       {/* MODAL PUXAR REFERÊNCIA */}
       {referenceModalTarget && (createPortal(
-        <div className="fixed inset-0 z-[100] flex items-end sm:items-center justify-center bg-black/60 backdrop-blur-sm sm:p-4">
-          <div className="bg-[#111113] border border-[rgba(255,255,255,0.1)] rounded-t-3xl sm:rounded-3xl p-6 md:p-8 shadow-2xl w-full max-w-2xl relative animate-in  duration-300 flex flex-col max-h-[90vh]">
+        <div className="fixed inset-0 z-[100] flex items-end sm:items-center justify-center bg-black/60 backdrop-blur-sm sm:p-4" onClick={() => setReferenceModalTarget(null)}>
+          <div className="bg-[#111113] border border-[rgba(255,255,255,0.1)] rounded-t-3xl sm:rounded-3xl p-6 md:p-8 shadow-2xl w-full max-w-2xl relative animate-in  duration-300 flex flex-col max-h-[90vh]" onClick={e => e.stopPropagation()}>
             <button type="button" onClick={() => setReferenceModalTarget(null)} className="absolute top-6 right-6 text-[#71717A] hover:text-white bg-white/5 p-2 rounded-full transition-colors"><X className="size-4"/></button>
             
             <h3 className="text-xl font-bold text-white mb-2 flex items-center gap-2">

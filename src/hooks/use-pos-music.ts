@@ -8,6 +8,8 @@ export interface MusicTrack {
   url: string;
   thumbnail?: string;
   addedAt?: string;
+  genre?: string;
+  tags?: string[];
 }
 
 export interface MusicPlaylist {

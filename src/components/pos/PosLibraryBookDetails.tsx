@@ -277,8 +277,8 @@ export function PosLibraryBookDetails({ book, sessions, onClose, onUpdate, onDel
   };
 
   return createPortal(
-    <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/80 backdrop-blur-sm sm:p-4 animate-in fade-in duration-300">
-      <div className="w-full h-[100dvh] sm:h-auto max-h-[100dvh] sm:max-h-[90vh] sm:max-w-3xl lg:max-w-4xl bg-[#09090B] flex flex-col font-sans sm:rounded-3xl shadow-2xl overflow-hidden animate-in slide-in-from-bottom-full sm:zoom-in-95 duration-300 relative border-0 sm:border border-[rgba(255,255,255,0.06)]">
+    <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/80 backdrop-blur-sm sm:p-4 animate-in fade-in duration-300" onClick={onClose}>
+      <div className="w-full h-[100dvh] sm:h-auto max-h-[100dvh] sm:max-h-[90vh] sm:max-w-3xl lg:max-w-4xl bg-[#09090B] flex flex-col font-sans sm:rounded-3xl shadow-2xl overflow-hidden animate-in slide-in-from-bottom-full sm:zoom-in-95 duration-300 relative border-0 sm:border border-[rgba(255,255,255,0.06)]" onClick={e => e.stopPropagation()}>
 
         {/* Header */}
         <div className="flex-none flex items-center justify-between px-4 py-4 border-b border-[rgba(255,255,255,0.06)] bg-[#09090B] z-20">
@@ -725,8 +725,8 @@ export function PosLibraryBookDetails({ book, sessions, onClose, onUpdate, onDel
 
         {/* Review Modal */}
         {showReviewModal && (
-          <div className="fixed inset-0 z-[300] bg-black/80 flex items-center justify-center p-4 animate-in fade-in">
-            <div className="bg-[#111113] w-full max-w-lg rounded-3xl border border-[rgba(255,255,255,0.1)] p-6 shadow-2xl animate-in zoom-in-95">
+          <div className="fixed inset-0 z-[300] bg-black/80 flex items-center justify-center p-4 animate-in fade-in" onClick={() => setShowReviewModal(false)}>
+            <div className="bg-[#111113] w-full max-w-lg rounded-3xl border border-[rgba(255,255,255,0.1)] p-6 shadow-2xl animate-in zoom-in-95 max-h-[90vh] overflow-y-auto custom-scrollbar" onClick={e => e.stopPropagation()}>
               <h3 className="text-xl font-bold text-white mb-6">Avaliação do Livro</h3>
 
               <div className="flex flex-col items-center justify-center mb-6">

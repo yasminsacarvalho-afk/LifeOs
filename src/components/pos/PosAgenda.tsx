@@ -486,8 +486,8 @@ export function PosAgenda() {
       </div>
 
       {isCreating && (
-        <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/60 backdrop-blur-sm p-4 animate-in fade-in">
-          <div className="w-[90vw] h-[90vh] max-w-[1200px] bg-[#070707] border border-[rgba(255,255,255,0.06)] rounded-[28px] shadow-2xl overflow-hidden flex flex-col relative animate-in zoom-in-95 duration-200">
+        <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/60 backdrop-blur-sm p-4 animate-in fade-in" onClick={() => setIsCreating(false)}>
+          <div className="w-[90vw] h-[90vh] max-w-[1200px] bg-[#070707] border border-[rgba(255,255,255,0.06)] rounded-[28px] shadow-2xl overflow-hidden flex flex-col relative animate-in zoom-in-95 duration-200" onClick={e => e.stopPropagation()}>
             
             {/* Modal Header */}
             <div className="h-auto md:h-[96px] py-5 md:py-0 px-6 md:px-8 border-b border-[rgba(255,255,255,0.05)] flex justify-between items-center shrink-0">
@@ -723,8 +723,8 @@ export function PosAgenda() {
       )}
 
       {showConfig && (
-        <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/60 backdrop-blur-sm p-4 animate-in fade-in">
-          <div className="w-[90vw] max-w-lg bg-[#111113] border border-[rgba(255,255,255,0.1)] rounded-[24px] shadow-2xl p-6 relative">
+        <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/60 backdrop-blur-sm p-4 animate-in fade-in" onClick={() => setShowConfig(false)}>
+          <div className="w-[90vw] max-w-lg bg-[#111113] border border-[rgba(255,255,255,0.1)] rounded-[24px] shadow-2xl p-6 relative max-h-[90vh] overflow-y-auto custom-scrollbar" onClick={e => e.stopPropagation()}>
             <button onClick={() => setShowConfig(false)} className="absolute top-4 right-4 text-[#A1A1AA] hover:text-white"><X className="size-5" /></button>
             <div className="flex items-center gap-4 mb-6">
               <div className="size-12 rounded-2xl bg-blue-500/10 flex items-center justify-center">

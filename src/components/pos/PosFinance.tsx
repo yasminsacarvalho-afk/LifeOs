@@ -524,8 +524,8 @@ export function PosFinance() {
     </div>
       {/* Create Budget Modal */}
       {isBudgetModalOpen && (
-        <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/60 backdrop-blur-sm p-4 sm:p-0">
-          <div className="bg-[#070707] w-full max-w-md rounded-t-[28px] sm:rounded-[28px] border border-[rgba(255,255,255,0.06)] shadow-2xl overflow-hidden animate-in slide-in-from-bottom-10 sm:zoom-in-95 duration-200">
+        <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/60 backdrop-blur-sm p-4 sm:p-0" onClick={() => setIsBudgetModalOpen(false)}>
+          <div className="bg-[#070707] w-full max-w-md max-h-[90vh] overflow-y-auto custom-scrollbar rounded-t-[28px] sm:rounded-[28px] border border-[rgba(255,255,255,0.06)] shadow-2xl animate-in slide-in-from-bottom-10 sm:zoom-in-95 duration-200 flex flex-col" onClick={e => e.stopPropagation()}>
             <div className="p-6 border-b border-[rgba(255,255,255,0.05)] flex justify-between items-center bg-[#17171A]">
               <div className="flex items-center gap-3">
                 <div className="size-10 bg-[#22C55E]/10 rounded-xl flex items-center justify-center text-[#22C55E]">
@@ -579,8 +579,8 @@ export function PosFinance() {
 
       {/* Create Expense Modal */}
       {isExpenseModalOpen && (
-        <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/60 backdrop-blur-sm p-4 sm:p-0">
-          <div className="bg-[#070707] w-full max-w-md rounded-t-[28px] sm:rounded-[28px] border border-[rgba(255,255,255,0.06)] shadow-2xl overflow-hidden animate-in slide-in-from-bottom-10 sm:zoom-in-95 duration-200">
+        <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/60 backdrop-blur-sm p-4 sm:p-0" onClick={() => setIsExpenseModalOpen(false)}>
+          <div className="bg-[#070707] w-full max-w-md max-h-[90vh] overflow-y-auto custom-scrollbar rounded-t-[28px] sm:rounded-[28px] border border-[rgba(255,255,255,0.06)] shadow-2xl animate-in slide-in-from-bottom-10 sm:zoom-in-95 duration-200 flex flex-col" onClick={e => e.stopPropagation()}>
             <div className="p-6 border-b border-[rgba(255,255,255,0.05)] flex justify-between items-center bg-[#17171A]">
               <div className="flex items-center gap-3">
                 <div className="size-10 bg-[#EF4444]/10 rounded-xl flex items-center justify-center text-[#EF4444]">
@@ -713,8 +713,8 @@ export function PosFinance() {
 
       {/* Create/Edit Credit Card Modal */}
       {isCardModalOpen && (
-        <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/60 backdrop-blur-sm p-4 sm:p-0">
-          <div className="bg-[#070707] w-full max-w-md rounded-t-[28px] sm:rounded-[28px] border border-[rgba(255,255,255,0.06)] shadow-2xl overflow-hidden animate-in slide-in-from-bottom-10 sm:zoom-in-95 duration-200">
+        <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/60 backdrop-blur-sm p-4 sm:p-0" onClick={() => setIsCardModalOpen(false)}>
+          <div className="bg-[#070707] w-full max-w-md max-h-[90vh] overflow-y-auto custom-scrollbar rounded-t-[28px] sm:rounded-[28px] border border-[rgba(255,255,255,0.06)] shadow-2xl animate-in slide-in-from-bottom-10 sm:zoom-in-95 duration-200 flex flex-col" onClick={e => e.stopPropagation()}>
             <div className="p-6 border-b border-[rgba(255,255,255,0.05)] flex justify-between items-center bg-[#17171A]">
               <div className="flex items-center gap-3">
                 <div className="size-10 bg-[#3B82F6]/10 rounded-xl flex items-center justify-center text-[#3B82F6]">
