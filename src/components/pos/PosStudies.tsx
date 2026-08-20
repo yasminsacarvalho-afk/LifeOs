@@ -78,6 +78,12 @@ const compressImage = (file: File, maxWidth: number = 800, maxHeight: number = 8
     reader.onerror = () => reject('Error reading file');
   });
 };
+const formatTime = (decimalHours: number | null | undefined) => {
+  if (!decimalHours) return "00:00";
+  const h = Math.floor(decimalHours);
+  const m = Math.round((decimalHours - h) * 60);
+  return `${h.toString().padStart(2, '0')}:${m.toString().padStart(2, '0')}`;
+};
 
 export function PosStudies() {
   const { courses, sessions, loading, addCourse, updateCourse, deleteCourse, addSession } = usePosStudies();
@@ -164,6 +170,10 @@ export function PosStudies() {
   const [isSelectingSecondVideo, setIsSelectingSecondVideo] = useState(false);
   const [activeSettingsTopicIdx, setActiveSettingsTopicIdx] = useState<number | null>(null);
   const [activeSettingsVideotecaIdx, setActiveSettingsVideotecaIdx] = useState<number | null>(null);
+
+  // Web Sites & Artigos States
+  const [isAddingWebBookmark, setIsAddingWebBookmark] = useState(false);
+  const [newWebBookmark, setNewWebBookmark] = useState({ title: '', url: '', description: '' });
 
   // Músicas Workspace States
   const [isAddingMusicPlaylist, setIsAddingMusicPlaylist] = useState(false);
@@ -722,7 +732,7 @@ export function PosStudies() {
     if (activeTab === "Concluídos") {
        tabCourses = courses.filter(c => c.status === 'concluido');
     } else if (activeTab === "Cursos") {
-       tabCourses = courses.filter(c => !['Faculdade', 'Disciplina', 'Certificação', 'Trilha', 'Projeto Acadêmico', 'Documentário', 'Biografia', 'Conteúdo'].includes(c.category || '') && c.status !== 'concluido');
+       tabCourses = courses.filter(c => !['Faculdade', 'Disciplina', 'Certificação', 'Trilha', 'Projeto Acadêmico', 'Documentário', 'Biografia', 'Conteúdo', 'Dossiê'].includes(c.category || '') && c.status !== 'concluido');
     } else if (activeTab === "Faculdade") {
        tabCourses = courses.filter(c => ['Faculdade', 'Disciplina'].includes(c.category || '') && c.status !== 'concluido');
     } else if (activeTab === "Certificações") {
@@ -733,6 +743,8 @@ export function PosStudies() {
        tabCourses = courses.filter(c => c.category === 'Projeto Acadêmico' && c.status !== 'concluido');
     } else if (activeTab === "Documentários") {
        tabCourses = courses.filter(c => c.category === 'Documentário' && c.status !== 'concluido');
+    } else if (activeTab === "Dossiês") {
+       tabCourses = courses.filter(c => c.category === 'Dossiê' && c.status !== 'concluido');
     } else if (activeTab === "Biografias") {
        tabCourses = courses.filter(c => c.category === 'Biografia' && c.status !== 'concluido');
     } else if (activeTab === "Conteúdos") {
@@ -1022,7 +1034,7 @@ export function PosStudies() {
 
                  <div className="mt-auto">
                    <div className="flex justify-between items-end mb-2">
-                     <div className="text-[10px] font-bold text-[#71717A] uppercase tracking-widest">{c.completed_hours}h / {c.total_hours}h</div>
+                     <div className="text-[10px] font-bold text-[#71717A] uppercase tracking-widest">{formatTime(c.completed_hours)} / {formatTime(c.total_hours)}</div>
                      <div className="text-xs font-bold text-cyan-400">{percent}%</div>
                    </div>
                    <div className="h-1.5 w-full bg-[#1A1A1E] rounded-full overflow-hidden mb-4">
@@ -1529,12 +1541,13 @@ export function PosStudies() {
              if (filterStatus !== "todos" && c.status !== filterStatus && activeTab !== "Concluídos") return false;
              if (filterArea !== "todas" && c.knowledge_area !== filterArea) return false;
              
-             if (activeTab === "Cursos") return !['Faculdade', 'Disciplina', 'Certificação', 'Trilha', 'Projeto Acadêmico', 'Documentário', 'Biografia', 'Conteúdo'].includes(c.category || '') && c.status !== 'concluido';
+             if (activeTab === "Cursos") return !['Faculdade', 'Disciplina', 'Certificação', 'Trilha', 'Projeto Acadêmico', 'Documentário', 'Biografia', 'Conteúdo', 'Dossiê'].includes(c.category || '') && c.status !== 'concluido';
              if (activeTab === "Faculdade") return ['Faculdade', 'Disciplina'].includes(c.category || '') && c.status !== 'concluido';
              if (activeTab === "Certificações") return c.category === 'Certificação' && c.status !== 'concluido';
              if (activeTab === "Trilhas") return c.category === 'Trilha' && c.status !== 'concluido';
              if (activeTab === "Projetos") return c.category === 'Projeto Acadêmico' && c.status !== 'concluido';
              if (activeTab === "Documentários") return c.category === 'Documentário' && c.status !== 'concluido';
+             if (activeTab === "Dossiês") return c.category === 'Dossiê' && c.status !== 'concluido';
              if (activeTab === "Biografias") return c.category === 'Biografia' && c.status !== 'concluido';
              if (activeTab === "Conteúdos") return c.category === 'Conteúdo' && c.status !== 'concluido';
              if (activeTab === "Concluídos") return c.status === 'concluido';
@@ -1576,17 +1589,36 @@ export function PosStudies() {
                                 <MonitorPlay className="size-10 text-[#A1A1AA]/30 absolute inset-0 m-auto" />
                              )}
                              {/* Floating Play Icon on Hover */}
-                             <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-all duration-300 scale-90 group-hover:scale-100 z-10">
+                             <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-all duration-300 scale-90 group-hover:scale-100 z-10 pointer-events-none">
                                 <div className="w-14 h-14 rounded-full bg-cyan-500/90 shadow-[0_0_20px_rgba(6,182,212,0.6)] backdrop-blur-md flex items-center justify-center">
                                    <Play className="size-6 text-white ml-1 fill-white" />
                                 </div>
                              </div>
                              {/* Time indicator */}
                              {course.total_hours > 0 && (
-                                <div className="absolute bottom-2 right-2 bg-black/90 backdrop-blur-md text-white text-[10px] font-bold px-2 py-1 rounded-md border border-white/10 shadow-lg z-20">
-                                   {course.total_hours}:00
+                                <div className="absolute bottom-2 right-2 bg-black/90 backdrop-blur-md text-white text-[10px] font-bold px-2 py-1 rounded-md border border-white/10 shadow-lg z-20 pointer-events-none">
+                                   {formatTime(course.total_hours)}
                                 </div>
                              )}
+                             {/* Actions Edit / Delete */}
+                             <div className="absolute top-2 right-2 flex flex-col gap-1.5 opacity-0 group-hover:opacity-100 transition-all duration-300 z-30 translate-x-2 group-hover:translate-x-0">
+                                 <button onClick={(e) => {
+                                     e.stopPropagation();
+                                     setNewCourse(course as any);
+                                     setIsEditingCourse(true);
+                                     setIsCreatingCourse(true);
+                                 }} className="p-2 bg-black/80 hover:bg-cyan-500 border border-white/10 hover:border-cyan-400 text-white rounded-lg backdrop-blur-md transition-all shadow-lg pointer-events-auto" title="Editar Conteúdo">
+                                    <Edit3 className="size-3.5" />
+                                 </button>
+                                 <button onClick={(e) => {
+                                     e.stopPropagation();
+                                     if(confirm("Tem certeza que deseja excluir este conteúdo?")) {
+                                        deleteCourse(course.id);
+                                     }
+                                 }} className="p-2 bg-black/80 hover:bg-rose-500 border border-white/10 hover:border-rose-400 text-white rounded-lg backdrop-blur-md transition-all shadow-lg pointer-events-auto" title="Excluir Conteúdo">
+                                    <Trash2 className="size-3.5" />
+                                 </button>
+                             </div>
                           </div>
                           {/* Info Container */}
                           <div className="flex gap-3 px-1 mt-1">
@@ -1708,7 +1740,7 @@ export function PosStudies() {
                                       <h4 className="font-bold text-white text-xl leading-tight mb-2 group-hover:text-cyan-400 transition-colors line-clamp-2">{course.title}</h4>
                                       <div className="mt-auto pt-4">
                                         <div className="flex justify-between items-end mb-2">
-                                          <div className="text-[10px] font-bold text-[#71717A] uppercase tracking-widest">{course.completed_hours}h / {course.total_hours}h</div>
+                                          <div className="text-[10px] font-bold text-[#71717A] uppercase tracking-widest">{formatTime(course.completed_hours)} / {formatTime(course.total_hours)}</div>
                                           <div className="text-sm font-bold text-cyan-400">{percent}%</div>
                                         </div>
                                         <div className="h-1.5 w-full bg-[#1A1A1E] rounded-full overflow-hidden mb-4">
@@ -1838,7 +1870,7 @@ export function PosStudies() {
                              <h4 className={cn("font-bold text-lg leading-tight mb-2 group-hover:text-cyan-400 transition-colors line-clamp-3 drop-shadow-md", isCompleted ? "text-[#A1A1AA]" : "text-white")}>{course.title}</h4>
                              <div className="mt-2">
                                <div className="flex justify-between items-end mb-2">
-                                 <div className="text-xs font-bold uppercase tracking-widest text-[#A1A1AA]">{course.completed_hours}h / {course.total_hours}h</div>
+                                 <div className="text-xs font-bold uppercase tracking-widest text-[#A1A1AA]">{formatTime(course.completed_hours)} / {formatTime(course.total_hours)}</div>
                                  <div className="text-sm font-bold text-white drop-shadow-md">{percent}%</div>
                                </div>
                                <div className="h-1.5 w-full bg-black/50 rounded-full overflow-hidden border border-white/5">
@@ -1885,7 +1917,7 @@ export function PosStudies() {
                       <div className="flex items-center gap-6">
                         <div className="hidden md:block w-32">
                            <div className="flex justify-between items-end mb-1">
-                             <div className="text-[9px] font-bold text-[#71717A] uppercase tracking-widest">{course.completed_hours}h / {course.total_hours}h</div>
+                             <div className="text-[9px] font-bold text-[#71717A] uppercase tracking-widest">{formatTime(course.completed_hours)} / {formatTime(course.total_hours)}</div>
                              <div className="text-[10px] font-bold text-white">{percent}%</div>
                            </div>
                            <div className="h-1 w-full bg-[#1A1A1E] rounded-full overflow-hidden">
@@ -1936,7 +1968,7 @@ export function PosStudies() {
                                <span className="text-[10px] font-bold text-white">{percent}%</span>
                              </div>
                           </td>
-                          <td className="px-6 py-4 font-bold text-[#A1A1AA] text-xs">{course.completed_hours}h / {course.total_hours}h</td>
+                          <td className="px-6 py-4 font-bold text-[#A1A1AA] text-xs">{formatTime(course.completed_hours)} / {formatTime(course.total_hours)}</td>
                         </tr>
                       );
                    })}
@@ -2342,14 +2374,15 @@ export function PosStudies() {
            </button>
            <div className="flex flex-col xl:flex-row xl:items-center justify-between gap-4 border-b border-[rgba(255,255,255,0.06)] pb-2">
              <div className="flex items-center gap-2 overflow-x-auto hide-scrollbar">
-                {["Visão Geral", "Módulos", "Videoteca", "Músicas", "Diário de Bordo", "Inteligência Artificial"].map(tab => (
+                {["Visão Geral", "Módulos", "Videoteca", "Sites & Artigos", "Músicas", "Diário de Bordo", "Inteligência Artificial"].map(tab => (
                   <button 
                     key={tab}
                     onClick={() => setCourseTab(tab)}
                     className={cn("px-4 py-2 rounded-lg text-sm font-bold transition-all whitespace-nowrap", courseTab === tab ? "bg-white/10 text-white" : "text-[#71717A] hover:text-white")}
                   >
                     {tab === "Inteligência Artificial" ? <span className="flex items-center gap-2"><Sparkles className="size-4 text-cyan-400" /> IA</span> : 
-                     tab === "Videoteca" ? <span className="flex items-center gap-2"><Video className="size-4 text-rose-500" /> {tab}</span> : tab}
+                     tab === "Videoteca" ? <span className="flex items-center gap-2"><Video className="size-4 text-rose-500" /> {tab}</span> : 
+                     tab === "Sites & Artigos" ? <span className="flex items-center gap-2"><Globe className="size-4 text-blue-400" /> {tab}</span> : tab}
                   </button>
                 ))}
              </div>
@@ -2436,7 +2469,7 @@ export function PosStudies() {
                <div className="flex flex-wrap gap-4 mb-8">
                  <div className="flex items-center gap-1.5 text-xs font-bold text-white bg-black/40 px-3 py-1.5 rounded-lg border border-white/5 backdrop-blur-sm"><PenTool className="size-3.5 text-cyan-500"/> {selectedCourse.instructor || "Sem instrutor"}</div>
                  <div className="flex items-center gap-1.5 text-xs font-bold text-white bg-black/40 px-3 py-1.5 rounded-lg border border-white/5 backdrop-blur-sm"><LayoutTemplate className="size-3.5 text-emerald-500"/> {selectedCourse.platform || "Desconhecida"}</div>
-                 <div className="flex items-center gap-1.5 text-xs font-bold text-white bg-black/40 px-3 py-1.5 rounded-lg border border-white/5 backdrop-blur-sm"><Clock className="size-3.5 text-rose-500"/> {selectedCourse.total_hours}h totais</div>
+                 <div className="flex items-center gap-1.5 text-xs font-bold text-white bg-black/40 px-3 py-1.5 rounded-lg border border-white/5 backdrop-blur-sm"><Clock className="size-3.5 text-rose-500"/> {formatTime(selectedCourse.total_hours)} totais</div>
                  {(() => {
                    try {
                      const sched = JSON.parse(selectedCourse.description || '{}');
@@ -4557,29 +4590,65 @@ export function PosStudies() {
                       </div>
                   
                   {isAddingChannel && (
-                    <div className="bg-[#111113] border border-[rgba(255,255,255,0.06)] p-4 rounded-xl flex flex-col sm:flex-row gap-4 animate-in fade-in  mb-4">
-                      <input 
-                        type="text" placeholder="Nome do Canal (Ex: Curso em Vídeo)"
-                        value={newChannel.name} onChange={e => setNewChannel({...newChannel, name: e.target.value})}
-                        className="flex-1 bg-[#1A1A1E] border border-[rgba(255,255,255,0.04)] rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:border-rose-500/50"
-                      />
-                      <input 
-                        type="url" placeholder="Capa do Canal (URL da Imagem) - Opcional"
-                        value={newChannel.cover_url} onChange={e => setNewChannel({...newChannel, cover_url: e.target.value})}
-                        className="flex-1 bg-[#1A1A1E] border border-[rgba(255,255,255,0.04)] rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:border-rose-500/50"
-                      />
-                      <button onClick={() => {
-                        if (!newChannel.name) return;
-                        let s: any = {};
-                        try { s = JSON.parse(selectedCourse.description || '{}'); } catch(e){}
-                        if (!s.youtube_channels) s.youtube_channels = [];
-                        s.youtube_channels.push({ id: Date.now(), name: newChannel.name, cover_url: newChannel.cover_url, videos: [] });
-                        updateCourse(selectedCourse.id, { description: JSON.stringify(s) }, false);
-                        setNewChannel({ name: '', cover_url: '', url: '' });
-                        setIsAddingChannel(false);
-                      }} className="bg-rose-600 hover:bg-rose-500 text-white rounded-lg px-4 py-2 text-xs font-bold transition-colors w-full sm:w-auto">
-                        Salvar
-                      </button>
+                    <div className="bg-[#111113] border border-[rgba(255,255,255,0.06)] p-4 rounded-xl flex flex-col gap-4 animate-in fade-in mb-4">
+                      {allChannels.length > 0 && (
+                        <div className="flex flex-col mb-2 pb-4 border-b border-white/5">
+                          <label className="text-[10px] text-[#A1A1AA] font-bold uppercase tracking-widest mb-2 block">Importar Canal Existente</label>
+                          <select 
+                            className="w-full bg-[#1A1A1E] border border-[rgba(255,255,255,0.04)] rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:border-rose-500/50"
+                            onChange={(e) => {
+                               if (e.target.value) {
+                                 const selected = allChannels.find(c => c.name === e.target.value);
+                                 if (selected) {
+                                    setNewChannel({ name: selected.name, cover_url: selected.cover_url || '' });
+                                 }
+                               }
+                            }}
+                          >
+                            <option value="">Selecione um canal já cadastrado em outro curso...</option>
+                            {allChannels.map((c, i) => (
+                              <option key={i} value={c.name}>{c.name}</option>
+                            ))}
+                          </select>
+                        </div>
+                      )}
+                      
+                      <div>
+                        <label className="text-[10px] text-[#A1A1AA] font-bold uppercase tracking-widest mb-2 block">
+                          {allChannels.length > 0 ? "Ou Cadastre um Novo" : "Cadastrar Novo Canal"}
+                        </label>
+                        <div className="flex flex-col sm:flex-row gap-4">
+                          <input 
+                            type="text" placeholder="Nome do Canal (Ex: Curso em Vídeo)"
+                            value={newChannel.name} onChange={e => setNewChannel({...newChannel, name: e.target.value})}
+                            className="flex-1 bg-[#1A1A1E] border border-[rgba(255,255,255,0.04)] rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:border-rose-500/50"
+                          />
+                          <input 
+                            type="url" placeholder="Capa do Canal (URL da Imagem) - Opcional"
+                            value={newChannel.cover_url} onChange={e => setNewChannel({...newChannel, cover_url: e.target.value})}
+                            className="flex-1 bg-[#1A1A1E] border border-[rgba(255,255,255,0.04)] rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:border-rose-500/50"
+                          />
+                          <button onClick={() => {
+                            if (!newChannel.name) return;
+                            let s: any = {};
+                            try { s = JSON.parse(selectedCourse.description || '{}'); } catch(e){}
+                            if (!s.youtube_channels) s.youtube_channels = [];
+                            
+                            if (s.youtube_channels.some((c: any) => c.name === newChannel.name)) {
+                               toast.error("Este canal já está cadastrado neste curso.");
+                               return;
+                            }
+                            
+                            s.youtube_channels.push({ id: Date.now(), name: newChannel.name, cover_url: newChannel.cover_url, videos: [] });
+                            updateCourse(selectedCourse.id, { description: JSON.stringify(s) }, false);
+                            setNewChannel({ name: '', cover_url: '' });
+                            setIsAddingChannel(false);
+                            toast.success("Canal adicionado com sucesso!");
+                          }} className="bg-rose-600 hover:bg-rose-500 text-white rounded-lg px-4 py-2 text-xs font-bold transition-colors w-full sm:w-auto mt-auto">
+                            Salvar Canal
+                          </button>
+                        </div>
+                      </div>
                     </div>
                   )}
 
@@ -4716,6 +4785,96 @@ export function PosStudies() {
             </div>
           )}
 
+
+             {courseTab === "Sites & Artigos" && (
+               <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4">
+                 <div className="flex justify-between items-center mb-4">
+                   <h4 className="text-sm font-bold text-white uppercase tracking-widest flex items-center gap-2">
+                     <Globe className="size-4 text-blue-400" /> Referências Web
+                   </h4>
+                   <button onClick={() => setIsAddingWebBookmark(!isAddingWebBookmark)} className="px-4 py-2 bg-blue-500/10 text-blue-400 hover:bg-blue-500/20 border border-blue-500/20 rounded-xl text-xs font-bold flex items-center gap-2 transition-colors shadow-sm">
+                     <Plus className="size-3" /> Adicionar Site/Artigo
+                   </button>
+                 </div>
+                 
+                 {isAddingWebBookmark && (
+                   <div className="bg-[#111113] border border-[rgba(255,255,255,0.06)] p-4 rounded-xl flex flex-col gap-4 animate-in fade-in mb-4">
+                     <div className="flex flex-col sm:flex-row gap-4">
+                       <input 
+                         type="text" placeholder="Título (Ex: G1, Artigo Científico)"
+                         value={newWebBookmark.title} onChange={e => setNewWebBookmark({...newWebBookmark, title: e.target.value})}
+                         className="flex-1 bg-[#1A1A1E] border border-[rgba(255,255,255,0.04)] rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:border-blue-500/50"
+                       />
+                       <input 
+                         type="url" placeholder="URL do Site/Artigo"
+                         value={newWebBookmark.url} onChange={e => setNewWebBookmark({...newWebBookmark, url: e.target.value})}
+                         className="flex-1 bg-[#1A1A1E] border border-[rgba(255,255,255,0.04)] rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:border-blue-500/50"
+                       />
+                     </div>
+                     <input 
+                       type="text" placeholder="Breve descrição ou motivo de salvar (Opcional)"
+                       value={newWebBookmark.description} onChange={e => setNewWebBookmark({...newWebBookmark, description: e.target.value})}
+                       className="w-full bg-[#1A1A1E] border border-[rgba(255,255,255,0.04)] rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:border-blue-500/50"
+                     />
+                     <button onClick={() => {
+                       if (!newWebBookmark.title || !newWebBookmark.url) return;
+                       let s: any = {};
+                       try { s = JSON.parse(selectedCourse.description || '{}'); } catch(e){}
+                       if (!s.web_bookmarks) s.web_bookmarks = [];
+                       s.web_bookmarks.push({ id: Date.now(), ...newWebBookmark });
+                       updateCourse(selectedCourse.id, { description: JSON.stringify(s) }, false);
+                       setNewWebBookmark({ title: '', url: '', description: '' });
+                       setIsAddingWebBookmark(false);
+                       toast.success("Referência salva com sucesso!");
+                     }} className="bg-blue-600 hover:bg-blue-500 text-white rounded-lg px-4 py-2 text-xs font-bold transition-colors w-full sm:w-auto self-end">
+                       Salvar Referência
+                     </button>
+                   </div>
+                 )}
+
+                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                   {(() => {
+                     let bookmarks: any[] = [];
+                     try { bookmarks = JSON.parse(selectedCourse?.description || '{}').web_bookmarks || []; } catch(e){}
+                     
+                     if (bookmarks.length === 0 && !isAddingWebBookmark) {
+                       return <div className="col-span-full p-8 text-center border border-dashed border-[rgba(255,255,255,0.06)] rounded-2xl text-[#A1A1AA] text-sm bg-[#1A1A1E]">Nenhum site ou artigo salvo. Adicione referências web, notícias e jornais para o seu dossiê.</div>;
+                     }
+
+                     return bookmarks.map((bm, idx) => (
+                       <a key={bm.id || idx} href={bm.url} target="_blank" rel="noreferrer" className="bg-[#1A1A1E] border border-[rgba(255,255,255,0.06)] hover:border-blue-500/30 rounded-xl p-4 flex flex-col gap-2 group transition-all relative">
+                          <div className="flex justify-between items-start">
+                            <div className="flex items-center gap-3">
+                              <div className="p-2 bg-blue-500/10 text-blue-400 rounded-lg group-hover:bg-blue-500/20 transition-colors">
+                                <Globe className="size-5" />
+                              </div>
+                              <div>
+                                <h5 className="font-bold text-white text-sm line-clamp-1 group-hover:text-blue-400 transition-colors">{bm.title}</h5>
+                                <span className="text-[10px] text-[#71717A] truncate block max-w-[200px]">{bm.url}</span>
+                              </div>
+                            </div>
+                            <button onClick={(e) => {
+                                e.preventDefault();
+                                e.stopPropagation();
+                                if(confirm("Remover esta referência?")) {
+                                  let s: any = {};
+                                  try { s = JSON.parse(selectedCourse?.description || '{}'); } catch(err){}
+                                  if (s.web_bookmarks) {
+                                    s.web_bookmarks = s.web_bookmarks.filter((_:any, i:number) => i !== idx);
+                                    updateCourse(selectedCourse!.id, { description: JSON.stringify(s) }, false);
+                                  }
+                                }
+                            }} className="p-1.5 text-[#71717A] hover:bg-rose-500/10 hover:text-rose-400 rounded-lg transition-colors opacity-0 group-hover:opacity-100 absolute top-2 right-2">
+                               <Trash2 className="size-3.5" />
+                            </button>
+                          </div>
+                          {bm.description && <p className="text-xs text-[#A1A1AA] mt-2 line-clamp-2 pl-12">{bm.description}</p>}
+                       </a>
+                     ));
+                   })()}
+                 </div>
+               </div>
+             )}
 
              {courseTab === "Músicas" && (
                 <div className="space-y-4 animate-in fade-in duration-300">
@@ -4989,7 +5148,7 @@ export function PosStudies() {
                   </div>
                   <div>
                     <div className="text-[10px] text-[#71717A] uppercase font-bold tracking-widest mb-1">Tempo Restante</div>
-                    <div className="text-sm font-bold text-white">{selectedCourse.total_hours ? selectedCourse.total_hours - selectedCourse.completed_hours : 0}h estimadas</div>
+                    <div className="text-sm font-bold text-white">{formatTime(selectedCourse.total_hours ? selectedCourse.total_hours - selectedCourse.completed_hours : 0)} restantes</div>
                   </div>
                   <div>
                     <div className="text-[10px] text-[#71717A] uppercase font-bold tracking-widest mb-1">XP Recebido</div>
@@ -5252,12 +5411,21 @@ export function PosStudies() {
                     activeTab === "Concluídos" ? "Histórico de Conclusões" :
                     activeTab}
                 </h1>
-                {activeTab === "Visão Geral" && (
-                  <div className="text-[9px] md:text-[11px] text-cyan-400/80 font-black uppercase tracking-[0.3em] mt-1 flex items-center gap-2">
-                    <span className="w-1.5 h-1.5 rounded-full bg-cyan-400 animate-pulse shadow-[0_0_10px_rgba(34,211,238,0.8)]"></span>
-                    Foco, Disciplina e Constancia
-                  </div>
-                )}
+                <div className="text-[9px] md:text-[11px] text-cyan-400/80 font-black uppercase tracking-[0.2em] mt-1 flex flex-wrap items-center gap-2">
+                  <span className="w-1.5 h-1.5 rounded-full bg-cyan-400 animate-pulse shadow-[0_0_10px_rgba(34,211,238,0.8)] shrink-0"></span>
+                  {activeTab === "Visão Geral" && "Foco, Disciplina e Constancia"}
+                  {activeTab === "Documentários" && "Filmes documentais, reportagens e séries não-ficcionais"}
+                  {activeTab === "Dossiês" && "Compilados de investigação e pesquisa sobre um tema"}
+                  {activeTab === "Trilhas" && "Sequências curadas para dominar uma habilidade"}
+                  {activeTab === "Cursos" && "Cursos livres ou estruturados com aulas sequenciais"}
+                  {activeTab === "Projetos" && "Trabalhos práticos e aplicação ativa do conhecimento"}
+                  {activeTab === "Biografias" && "Estudos sobre modelos mentais e personalidades"}
+                  {activeTab === "Conteúdos" && "Aulas avulsas, palestras e vídeos independentes"}
+                  {activeTab === "Faculdade" && "Disciplinas e matérias do currículo acadêmico formal"}
+                  {activeTab === "Certificações" && "Preparatórios focados em aprovação de exames"}
+                  {activeTab === "Concluídos" && "Histórico de todos os materiais já finalizados"}
+                  {activeTab === "Inteligência" && "Análises avançadas e insights sobre seus estudos"}
+                </div>
               </div>
             </div>
             {activeTab !== "Visão Geral" && tabStats && (
@@ -5302,7 +5470,7 @@ export function PosStudies() {
 
         {/* TABS NAVEGAÇÃO */}
         <div className="flex items-center gap-1 overflow-x-auto pt-4 mt-4 border-t border-[rgba(255,255,255,0.04)] hide-scrollbar z-10 relative">
-          {["Visão Geral", "Cursos", "Faculdade", "Certificações", "Trilhas", "Projetos", "Documentários", "Biografias", "Conteúdos", "Concluídos", "Inteligência"].map(tab => (
+          {["Visão Geral", "Cursos", "Faculdade", "Certificações", "Trilhas", "Projetos", "Documentários", "Dossiês", "Biografias", "Conteúdos", "Concluídos", "Inteligência"].map(tab => (
             <button
               key={tab}
               onClick={() => { setActiveTab(tab); setSelectedCourseId(null); }}
@@ -5431,7 +5599,7 @@ export function PosStudies() {
                                     {course.category !== 'Conteúdo' ? (
                                       <>
                                         <div className="flex justify-between items-end mb-1.5">
-                                          <div className="text-[10px] font-bold text-[#71717A] uppercase tracking-widest">{course.completed_hours}h / {course.total_hours}h</div>
+                                          <div className="text-[10px] font-bold text-[#71717A] uppercase tracking-widest">{formatTime(course.completed_hours)} / {formatTime(course.total_hours)}</div>
                                           <div className="text-[10px] font-bold text-cyan-400 drop-shadow-md">{percent}%</div>
                                         </div>
                                         <div className="h-1.5 w-full bg-black/50 rounded-full overflow-hidden border border-white/5">
@@ -5549,6 +5717,7 @@ export function PosStudies() {
                   <option value="Disciplina">Disciplina</option>
                   <option value="Projeto Acadêmico">Projeto Acadêmico</option>
                   <option value="Documentário">Documentário</option>
+                  <option value="Dossiê">Dossiê</option>
                   <option value="Biografia">Biografia</option>
                   <option value="Conteúdo">Conteúdo (Vídeos, Podcasts)</option>
                 </select>
@@ -5574,12 +5743,40 @@ export function PosStudies() {
               </div>
 
               <div>
-                <label className="text-[10px] uppercase tracking-widest text-[#71717A] font-bold mb-2 block">Carga Horária Estimada (h)</label>
-                <input 
-                  type="number" min="1" required value={newCourse.total_hours || ''} onChange={e => setNewCourse({...newCourse, total_hours: Number(e.target.value)})}
-                  className="w-full bg-[#1A1A1E] border border-[rgba(255,255,255,0.06)] rounded-xl px-4 py-3 text-sm text-white focus:border-cyan-500 focus:outline-none transition-colors"
-                  placeholder="Ex: 40"
-                />
+                <label className="text-[10px] uppercase tracking-widest text-[#71717A] font-bold mb-2 block">Carga Horária Estimada (HH:MM)</label>
+                <div className="flex items-center gap-2">
+                   <div className="relative flex-1">
+                      <input 
+                        type="number" min="0" 
+                        value={Math.floor(newCourse.total_hours || 0).toString()} 
+                        onChange={e => {
+                           const h = Number(e.target.value);
+                           const m = Math.round(((newCourse.total_hours || 0) - Math.floor(newCourse.total_hours || 0)) * 60);
+                           setNewCourse({...newCourse, total_hours: h + (m / 60)});
+                        }}
+                        className="w-full bg-[#1A1A1E] border border-[rgba(255,255,255,0.06)] rounded-xl pl-4 pr-8 py-3 text-sm text-white focus:border-cyan-500 focus:outline-none transition-colors"
+                        placeholder="00"
+                      />
+                      <span className="absolute right-3 top-1/2 -translate-y-1/2 text-xs text-[#71717A] font-bold">h</span>
+                   </div>
+                   <span className="text-[#71717A] font-bold">:</span>
+                   <div className="relative flex-1">
+                      <input 
+                        type="number" min="0" max="59" 
+                        value={Math.round(((newCourse.total_hours || 0) - Math.floor(newCourse.total_hours || 0)) * 60).toString()} 
+                        onChange={e => {
+                           let m = Number(e.target.value);
+                           if (m > 59) m = 59;
+                           if (m < 0) m = 0;
+                           const h = Math.floor(newCourse.total_hours || 0);
+                           setNewCourse({...newCourse, total_hours: h + (m / 60)});
+                        }}
+                        className="w-full bg-[#1A1A1E] border border-[rgba(255,255,255,0.06)] rounded-xl pl-4 pr-8 py-3 text-sm text-white focus:border-cyan-500 focus:outline-none transition-colors"
+                        placeholder="00"
+                      />
+                      <span className="absolute right-3 top-1/2 -translate-y-1/2 text-xs text-[#71717A] font-bold">m</span>
+                   </div>
+                </div>
               </div>
 
               <div className="md:col-span-2 border-t border-[rgba(255,255,255,0.06)] pt-6 mt-2 mb-2">
