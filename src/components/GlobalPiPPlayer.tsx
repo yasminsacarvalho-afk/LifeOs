@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from 'react';
-import { Play, X, Maximize2, ExternalLink, Minimize2, GripHorizontal } from 'lucide-react';
+import { Play, X, Maximize2, ExternalLink, Minimize2, GripHorizontal, Shuffle, SkipBack, SkipForward } from 'lucide-react';
 import { getSafeEmbedUrl } from '@/lib/youtube';
 import { cn } from '@/lib/utils';
 import { toast } from 'sonner';
@@ -98,7 +98,7 @@ export function GlobalPiPPlayer() {
   return (
     <div 
       className={cn(
-        "fixed bottom-20 right-4 md:bottom-6 md:right-6 z-[999999] min-w-[250px] max-w-[90vw] bg-[#111113] border border-[rgba(255,255,255,0.1)] rounded-xl shadow-2xl flex flex-col",
+        "fixed bottom-20 right-4 md:bottom-6 md:right-6 z-[999999] min-w-[250px] max-w-[90vw] bg-black/60 backdrop-blur-2xl border border-white/20 rounded-xl shadow-2xl flex flex-col",
         isDragging ? "transition-none" : "transition-transform duration-200 ease-out",
         !position.x && !position.y && "animate-in slide-in-from-bottom-5"
       )}
@@ -110,26 +110,72 @@ export function GlobalPiPPlayer() {
       }}
     >
       <div 
-        className="flex justify-between items-center p-2 border-b border-white/5 bg-[#1A1A1E] cursor-move select-none active:cursor-grabbing"
+        className="flex justify-between items-center p-2 border-b border-white/10 bg-transparent cursor-move select-none active:cursor-grabbing"
         onPointerDown={handlePointerDown}
         onPointerMove={handlePointerMove}
         onPointerUp={handlePointerUp}
         onPointerCancel={handlePointerUp}
       >
-        <h3 className="text-xs font-bold text-white flex items-center gap-1.5 truncate pr-2">
-          <GripHorizontal className="size-3 text-[#71717A] shrink-0" />
-          <span className="truncate">{pipData.title}</span>
-        </h3>
+        <div className="flex flex-col overflow-hidden w-full pr-2">
+          <h3 className="text-xs font-bold text-white flex items-center gap-1.5 truncate">
+            <GripHorizontal className="size-3 text-[#71717A] shrink-0" />
+            <span className="truncate">{pipData.title}</span>
+          </h3>
+          {pipData.queue && pipData.currentIndex < pipData.queue.length - 1 && (
+            <p className="text-[10px] text-[#A1A1AA] truncate pl-4.5 mt-0.5">
+              Próxima: {pipData.queue[pipData.currentIndex + 1].title}
+            </p>
+          )}
+        </div>
         <div className="flex items-center gap-1 shrink-0">
+          {pipData.queue && (
+            <button 
+              onClick={(e) => {
+                e.stopPropagation();
+                const shuffled = [...pipData.queue].sort(() => Math.random() - 0.5);
+                setPipData({ ...pipData, queue: shuffled, currentIndex: 0, url: shuffled[0].url, title: shuffled[0].title });
+              }} 
+              title="Aleatório"
+              className="p-1.5 bg-white/5 hover:bg-white/10 rounded-lg text-[#A1A1AA] hover:text-white transition-colors"
+            >
+              <Shuffle className="size-3" />
+            </button>
+          )}
+          {pipData.queue && pipData.currentIndex > 0 && (
+            <button 
+              onClick={(e) => {
+                e.stopPropagation();
+                const prevTrack = pipData.queue[pipData.currentIndex - 1];
+                setPipData({ ...pipData, url: prevTrack.url, title: prevTrack.title, currentIndex: pipData.currentIndex - 1 });
+              }} 
+              title="Faixa Anterior"
+              className="p-1.5 bg-white/5 hover:bg-white/10 rounded-lg text-[#A1A1AA] hover:text-white transition-colors"
+            >
+              <SkipBack className="size-3" fill="currentColor" />
+            </button>
+          )}
+          {pipData.queue && pipData.currentIndex < pipData.queue.length - 1 && (
+            <button 
+              onClick={(e) => {
+                e.stopPropagation();
+                const nextTrack = pipData.queue[pipData.currentIndex + 1];
+                setPipData({ ...pipData, url: nextTrack.url, title: nextTrack.title, currentIndex: pipData.currentIndex + 1 });
+              }} 
+              title="Próxima Faixa"
+              className="p-1.5 bg-white/5 hover:bg-white/10 rounded-lg text-[#A1A1AA] hover:text-white transition-colors"
+            >
+              <SkipForward className="size-3" fill="currentColor" />
+            </button>
+          )}
           <button 
-            onClick={() => setIsMaximized(true)} 
+            onClick={(e) => { e.stopPropagation(); setIsMaximized(true); }} 
             title="Restaurar Tela Cheia"
             className="p-1.5 bg-white/5 hover:bg-white/10 rounded-lg text-[#A1A1AA] hover:text-white transition-colors"
           >
             <Maximize2 className="size-3" />
           </button>
           <button 
-            onClick={() => setPipData(null)} 
+            onClick={(e) => { e.stopPropagation(); setPipData(null); }} 
             title="Fechar"
             className="p-1.5 bg-white/5 hover:bg-white/10 rounded-lg text-[#A1A1AA] hover:text-white transition-colors"
           >
@@ -138,7 +184,7 @@ export function GlobalPiPPlayer() {
         </div>
       </div>
       
-      <div className="w-full flex-1 bg-black relative min-h-[150px]">
+      <div className="w-full bg-black relative aspect-video">
          <iframe 
            src={getSafeEmbedUrl(pipData.url, pipData.extra)} 
            className="absolute inset-0 w-full h-full border-0" 

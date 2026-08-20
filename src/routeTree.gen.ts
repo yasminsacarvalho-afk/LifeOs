@@ -18,6 +18,7 @@ import { Route as QuadroOperacionalRouteImport } from './routes/quadro-operacion
 import { Route as PersonalOsRouteImport } from './routes/personal-os'
 import { Route as PartnersRouteImport } from './routes/partners'
 import { Route as PackagesRouteImport } from './routes/packages'
+import { Route as MusicRouteImport } from './routes/music'
 import { Route as MonitorRouteImport } from './routes/monitor'
 import { Route as LoginRouteImport } from './routes/login'
 import { Route as InfoRouteImport } from './routes/info'
@@ -78,6 +79,11 @@ const PartnersRoute = PartnersRouteImport.update({
 const PackagesRoute = PackagesRouteImport.update({
   id: '/packages',
   path: '/packages',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const MusicRoute = MusicRouteImport.update({
+  id: '/music',
+  path: '/music',
   getParentRoute: () => rootRouteImport,
 } as any)
 const MonitorRoute = MonitorRouteImport.update({
@@ -177,6 +183,7 @@ export interface FileRoutesByFullPath {
   '/info': typeof InfoRoute
   '/login': typeof LoginRoute
   '/monitor': typeof MonitorRoute
+  '/music': typeof MusicRoute
   '/packages': typeof PackagesRoute
   '/partners': typeof PartnersRoute
   '/personal-os': typeof PersonalOsRoute
@@ -204,6 +211,7 @@ export interface FileRoutesByTo {
   '/info': typeof InfoRoute
   '/login': typeof LoginRoute
   '/monitor': typeof MonitorRoute
+  '/music': typeof MusicRoute
   '/packages': typeof PackagesRoute
   '/partners': typeof PartnersRoute
   '/personal-os': typeof PersonalOsRoute
@@ -232,6 +240,7 @@ export interface FileRoutesById {
   '/info': typeof InfoRoute
   '/login': typeof LoginRoute
   '/monitor': typeof MonitorRoute
+  '/music': typeof MusicRoute
   '/packages': typeof PackagesRoute
   '/partners': typeof PartnersRoute
   '/personal-os': typeof PersonalOsRoute
@@ -261,6 +270,7 @@ export interface FileRouteTypes {
     | '/info'
     | '/login'
     | '/monitor'
+    | '/music'
     | '/packages'
     | '/partners'
     | '/personal-os'
@@ -288,6 +298,7 @@ export interface FileRouteTypes {
     | '/info'
     | '/login'
     | '/monitor'
+    | '/music'
     | '/packages'
     | '/partners'
     | '/personal-os'
@@ -315,6 +326,7 @@ export interface FileRouteTypes {
     | '/info'
     | '/login'
     | '/monitor'
+    | '/music'
     | '/packages'
     | '/partners'
     | '/personal-os'
@@ -343,6 +355,7 @@ export interface RootRouteChildren {
   InfoRoute: typeof InfoRoute
   LoginRoute: typeof LoginRoute
   MonitorRoute: typeof MonitorRoute
+  MusicRoute: typeof MusicRoute
   PackagesRoute: typeof PackagesRoute
   PartnersRoute: typeof PartnersRoute
   PersonalOsRoute: typeof PersonalOsRoute
@@ -418,6 +431,13 @@ declare module '@tanstack/react-router' {
       path: '/packages'
       fullPath: '/packages'
       preLoaderRoute: typeof PackagesRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/music': {
+      id: '/music'
+      path: '/music'
+      fullPath: '/music'
+      preLoaderRoute: typeof MusicRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/monitor': {
@@ -551,6 +571,7 @@ const rootRouteChildren: RootRouteChildren = {
   InfoRoute: InfoRoute,
   LoginRoute: LoginRoute,
   MonitorRoute: MonitorRoute,
+  MusicRoute: MusicRoute,
   PackagesRoute: PackagesRoute,
   PartnersRoute: PartnersRoute,
   PersonalOsRoute: PersonalOsRoute,

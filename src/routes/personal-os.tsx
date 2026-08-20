@@ -4,7 +4,7 @@ import {
   GraduationCap, BookOpen, DollarSign, Lightbulb, Target, 
   Brain, Coffee, Timer, Book, LineChart, Plus, AlertCircle, 
   ChevronRight, ArrowRight, Sparkles, TrendingUp, TrendingDown, Clock, Home, Menu, X, CheckCircle2, XCircle,
-  Settings, Monitor, Smartphone, ShieldAlert, User, Download, Mic, MicOff, Volume2, ShoppingCart, Heart, PlaySquare
+  Settings, Monitor, Smartphone, ShieldAlert, User, Download, Mic, MicOff, Volume2, ShoppingCart, Heart, PlaySquare, Music
 } from "lucide-react";
 import { useState, useEffect, lazy, Suspense } from "react";
 import { cn } from "@/lib/utils";

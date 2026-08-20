@@ -16,6 +16,25 @@ export const getYouTubeVideoId = (url: string) => {
   return (match && match[2].length === 11) ? match[2] : null;
 };
 
+export const getMediaThumbnail = (url: string) => {
+  if (!url) return 'https://images.unsplash.com/photo-1616469829581-73993eb86b02?q=80&w=400&auto=format&fit=crop';
+  
+  const ytId = getYouTubeVideoId(url);
+  if (ytId) {
+    return `https://img.youtube.com/vi/${ytId}/maxresdefault.jpg`;
+  }
+  
+  if (url.includes('spotify.com')) {
+    return 'https://storage.googleapis.com/pr-newsroom-wp/1/2018/11/Spotify_Logo_CMYK_Green.png';
+  }
+  
+  if (url.includes('deezer.com')) {
+    return 'https://cdns-images.dzcdn.net/images/cover/9fa640f37cc2212bb6fa8ad772cbcd98/264x264.jpg'; // Generic music cover
+  }
+
+  return 'https://images.unsplash.com/photo-1616469829581-73993eb86b02?q=80&w=400&auto=format&fit=crop';
+};
+
 export const parseTimeToSeconds = (timeStr: string | number) => {
   if (!timeStr) return 0;
   const str = String(timeStr);
@@ -27,6 +46,20 @@ export const parseTimeToSeconds = (timeStr: string | number) => {
 
 export const getSafeEmbedUrl = (url: string, timeExtra?: string | number) => {
   if (!url) return '';
+
+  // Spotify Support
+  const spotifyMatch = url.match(/open\.spotify\.com\/(track|playlist|album|episode|show)\/([a-zA-Z0-9]+)/);
+  if (spotifyMatch) {
+    return `https://open.spotify.com/embed/${spotifyMatch[1]}/${spotifyMatch[2]}?utm_source=generator`;
+  }
+
+  // Deezer Support
+  const deezerMatch = url.match(/deezer\.com\/(?:\w{2}\/)?(track|playlist|album)\/(\d+)/);
+  if (deezerMatch) {
+    return `https://widget.deezer.com/widget/dark/${deezerMatch[1]}/${deezerMatch[2]}`;
+  }
+
+  // YouTube / YouTube Music Support
   const ytId = getYouTubeVideoId(url);
   if (ytId) {
     let startParam = '';

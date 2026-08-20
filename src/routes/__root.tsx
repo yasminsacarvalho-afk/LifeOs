@@ -133,6 +133,7 @@ function AuthGuard({ children }: { children: ReactNode }) {
   const routerState = useRouterState();
   const isLoginPage = routerState.location.pathname === "/login";
   const isPublicRoute = routerState.location.pathname.startsWith("/public/");
+  const isMusicPage = routerState.location.pathname === "/music";
 
   if (loading) {
     return <div className="min-h-screen bg-background flex items-center justify-center">Carregando...</div>;
@@ -147,9 +148,11 @@ function AuthGuard({ children }: { children: ReactNode }) {
       <div className="w-full">
         {children}
       </div>
+      {(!isLoginPage && !isPublicRoute && !isMusicPage) && (
+        <AppSidebar />
+      )}
       {(!isLoginPage && !isPublicRoute) && (
         <>
-          <AppSidebar />
           <VoiceAssistantWidget />
           <GlobalPiPPlayer />
           <GlobalAudioPlayer />

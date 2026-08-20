@@ -34,6 +34,7 @@ import {
   ShoppingCart,
   Briefcase,
   PlaySquare,
+  Music,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useAuth } from "@/contexts/AuthContext";
@@ -97,6 +98,7 @@ const navSections = [
       { to: "/personal-os", search: { tab: "estudos" }, label: "Estudos", icon: GraduationCap, permission: "view_dashboard" },
       { to: "/personal-os", search: { tab: "entretenimento" }, label: "Lazer", icon: Gamepad2, permission: "view_dashboard" },
       { to: "/personal-os", search: { tab: "conteudo" }, label: "Conteúdo", icon: PlaySquare, permission: "view_dashboard" },
+      { to: "/music", label: "Músicas", icon: Music, permission: "view_dashboard" },
       { to: "/personal-os", search: { tab: "alarmes" }, label: "Alarmes", icon: BellRing, permission: "view_dashboard" },
       { to: "/academy", label: "Academy", icon: GraduationCap, permission: "view_dashboard" },
     ],
